@@ -9,6 +9,9 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+/**
+ * 공통 감사 필드와 소프트 삭제 유틸리티.
+ */
 @Getter
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)
@@ -25,7 +28,17 @@ public abstract class BaseEntity {
 	@Column(name = "deleted_at")
 	private LocalDateTime deletedAt;
 
-	protected void markDeleted(LocalDateTime deletedAt) {
-		this.deletedAt = deletedAt;
+	public void delete() {
+		if (deletedAt == null) {
+			deletedAt = LocalDateTime.now();
+		}
+	}
+
+	public void restore() {
+		deletedAt = null;
+	}
+
+	public boolean isDeleted() {
+		return deletedAt != null;
 	}
 }
