@@ -12,3 +12,29 @@ spring:
         format_sql: true # SQL 쿼리 포맷팅 (개발 환경에서 유용)
         highlight_sql: true # SQL 쿼리 하이라이팅 (개발 환경에서 유용)
     show-sql: true # 콘솔에 SQL 쿼리 출력 (개발 환경에서 유용)
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+          max-wait: 3000ms
+
+jwt:
+  issuer: ${JWT_ISSUER:project-local}
+  access-token:
+    expiration: ${JWT_ACCESS_EXPIRATION:1800} # 30분
+  refresh-token:
+    expiration: ${JWT_REFRESH_EXPIRATION:604800} # 7일
+  keys:
+    private-key-path: ${JWT_PRIVATE_KEY_PATH:/secrets/jwt/private.pem}
+    public-key-path: ${JWT_PUBLIC_KEY_PATH:/secrets/jwt/public.pem}
+    current-kid: ${JWT_CURRENT_KID:key-2025-01}
+  legacy:
+    role-prefix-support-enabled: ${JWT_LEGACY_ROLE_PREFIX_SUPPORT_ENABLED:true}
+    role-prefix-accept-until-epoch: ${JWT_LEGACY_ROLE_PREFIX_ACCEPT_UNTIL_EPOCH:0} # 0이면 무기한 허용

@@ -58,11 +58,23 @@
 * **Impact Analysis:** 변경 코드가 기존 테스트를 깨뜨리는지 확인한다.
 * **Unit Test:** 새로운 비즈니스 로직 추가 시, 해당 로직에 대한 단위 테스트 코드를 제안한다.
 * **Guide:** 테스트 실행 명령어(./gradlew test 등)를 함께 안내한다.
+* **Given/When/Then:** 테스트 본문은 given/when/then 형식의 주석을 사용해 의도를 명확히 한다.
+
+### **6.1 테스트 중 자주 발생한 문제 (회고/주의)**
+
+* **OAuth2 JwsHeader import 혼동:** `org.springframework.security.oauth2.jose.jws.JwsHeader`가 아닌 `org.springframework.security.oauth2.jwt.JwsHeader`를 사용해야 한다.
+* **Mockito 제네릭 캡처 오류:** `when(...).thenReturn(...)`가 제네릭 캡처에 실패하면 `doReturn(...).when(...)`로 우회한다.
+* **UnnecessaryStubbingException:** 사용하지 않는 스텁이 있으면 테스트가 실패하므로 불필요한 스텁은 제거한다.
+* **JWT iss 클레임 타입:** `claims.getIssuer()`는 URL 변환을 기대하므로 문자열 issuer는 `claims.getClaims().get("iss")`로 검증한다.
 
 ## **7\. 문서화 (Documentation)**
 
 * **Sync Code & Docs:** 로직이 변경되면 주석(Javadoc/KDoc)과 관련 문서(README, API 명세)도 함께 갱신한다.
 * **Tone:** 문서는 명확하고 정중한 어조(해요체 또는 건조체)를 유지한다.
+
+## **7.1 코드 주석 원칙**
+
+* **Korean Comments:** 코드 생성 시 이해를 돕는 최소한의 한글 주석을 포함한다. (과도한 주석 금지)
 
 ## **8\. Git Branch Naming Convention**
 
