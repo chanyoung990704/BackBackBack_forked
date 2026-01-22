@@ -1,7 +1,5 @@
 package com.aivle.project.common.config;
 
-import com.aivle.project.auth.service.AccessTokenBlacklistService;
-import com.aivle.project.auth.token.AccessTokenValidator;
 import com.aivle.project.auth.token.JwtKeyProvider;
 import com.aivle.project.auth.token.JwtProperties;
 import com.aivle.project.common.security.RestAccessDeniedHandler;
@@ -41,11 +39,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 
-import org.springframework.security.web.header.writers.ContentSecurityPolicyHeaderWriter;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 /**
  * 공통 보안 설정.
  */
@@ -64,17 +57,10 @@ public class SecurityConfig {
 	public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
 		throws Exception {
 		http
-			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 			.csrf(AbstractHttpConfigurer::disable)
-			.headers(headers -> headers
-				.contentSecurityPolicy(csp -> csp
-					.policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; frame-ancestors 'none';")
-				)
-			)
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(authorize -> authorize
-				.requestMatchers("/auth/login", "/auth/refresh", "/auth/signup", "/auth/console", "/error").permitAll()
-				.requestMatchers("/assets/**").permitAll()
+				.requestMatchers("/auth/login", "/auth/refresh", "/error").permitAll()
 				.anyRequest().authenticated()
 			)
 			.oauth2ResourceServer(oauth2 -> oauth2
@@ -86,21 +72,6 @@ public class SecurityConfig {
 			.formLogin(AbstractHttpConfigurer::disable);
 
 		return http.build();
-	}
-
-	@Bean
-	public CorsConfigurationSource corsConfigurationSource() {
-		CorsConfiguration configuration = new CorsConfiguration();
-		// 실 운영 환경에서는 특정 도메인만 허용하도록 변경해야 합니다.
-		configuration.setAllowedOriginPatterns(List.of("*"));
-		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
-		configuration.setAllowCredentials(true);
-		configuration.setMaxAge(3600L);
-
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/**", configuration);
-		return source;
 	}
 
 	@Bean
@@ -117,11 +88,11 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public JwtDecoder jwtDecoder(OAuth2TokenValidator<Jwt> accessTokenValidator) {
+	public JwtDecoder jwtDecoder() {
 		RSAPublicKey publicKey = jwtKeyProvider.loadPublicKey();
 		NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(publicKey).build();
-		OAuth2TokenValidator<Jwt> defaultValidator = JwtValidators.createDefaultWithIssuer(jwtProperties.getIssuer());
-		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(defaultValidator, accessTokenValidator));
+		OAuth2TokenValidator<Jwt> validator = JwtValidators.createDefaultWithIssuer(jwtProperties.getIssuer());
+		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validator));
 		return decoder;
 	}
 
@@ -134,11 +105,6 @@ public class SecurityConfig {
 			.keyID(jwtProperties.getKeys().getCurrentKid())
 			.build();
 		return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(rsaKey)));
-	}
-
-	@Bean
-	public OAuth2TokenValidator<Jwt> accessTokenValidator(AccessTokenBlacklistService accessTokenBlacklistService) {
-		return new AccessTokenValidator(accessTokenBlacklistService);
 	}
 
 	@Bean

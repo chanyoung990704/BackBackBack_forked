@@ -13,7 +13,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -90,19 +89,6 @@ public class RefreshTokenService {
 		return cache;
 	}
 
-	public void revokeByUserId(String userId) {
-		List<RefreshTokenEntity> entities = refreshTokenRepository.findAllByUserIdAndRevokedFalse(userId);
-		revokeEntities(entities);
-		redisTemplate.delete(sessionKey(userId));
-	}
-
-	public void revokeByUserIdAndDeviceId(String userId, String deviceId) {
-		String normalizedDeviceId = normalizeDeviceId(deviceId);
-		List<RefreshTokenEntity> entities = refreshTokenRepository
-			.findAllByUserIdAndDeviceIdAndRevokedFalse(userId, normalizedDeviceId);
-		revokeEntities(entities);
-	}
-
 	private void storeRedis(RefreshTokenCache cache) {
 		try {
 			String json = objectMapper.writeValueAsString(cache);
@@ -174,14 +160,6 @@ public class RefreshTokenService {
 			entity.revoke();
 			refreshTokenRepository.save(entity);
 		});
-	}
-
-	private void revokeEntities(List<RefreshTokenEntity> entities) {
-		for (RefreshTokenEntity entity : entities) {
-			revokeRedis(entity.getToken(), entity.getUserId());
-			entity.revoke();
-			refreshTokenRepository.save(entity);
-		}
 	}
 
 	private void storeEntity(RefreshTokenCache cache) {

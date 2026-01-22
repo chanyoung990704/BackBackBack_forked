@@ -8,7 +8,6 @@ import org.springframework.http.HttpStatus;
 public enum CommonErrorCode implements ErrorCode {
 	COMMON_400("COMMON_400", "요청이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
 	COMMON_400_VALIDATION("COMMON_400_VALIDATION", "입력값이 올바르지 않습니다.", HttpStatus.BAD_REQUEST),
-	COMMON_403("COMMON_403", "요청 권한이 없습니다.", HttpStatus.FORBIDDEN),
 	COMMON_404("COMMON_404", "리소스를 찾을 수 없습니다.", HttpStatus.NOT_FOUND),
 	COMMON_409("COMMON_409", "요청이 현재 상태와 충돌합니다.", HttpStatus.CONFLICT),
 	COMMON_500("COMMON_500", "서버 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR);

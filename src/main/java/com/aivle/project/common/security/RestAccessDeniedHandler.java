@@ -1,5 +1,6 @@
 package com.aivle.project.common.security;
 
+import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.error.ErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,9 +29,10 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
 			"접근 권한이 없습니다.",
 			request.getRequestURI()
 		);
+		ApiResponse<Void> apiResponse = ApiResponse.fail(errorResponse);
 
 		response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 		response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-		objectMapper.writeValue(response.getOutputStream(), errorResponse);
+		objectMapper.writeValue(response.getOutputStream(), apiResponse);
 	}
 }

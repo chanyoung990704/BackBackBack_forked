@@ -31,6 +31,11 @@ public class GlobalExceptionHandler {
 		return buildResponse(ex.getErrorCode(), request.getRequestURI());
 	}
 
+	@ExceptionHandler(CommonException.class)
+	public ResponseEntity<ApiResponse<Void>> handleCommonException(CommonException ex, HttpServletRequest request) {
+		return buildResponse(ex.getErrorCode(), request.getRequestURI());
+	}
+
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
 		MethodArgumentNotValidException ex,

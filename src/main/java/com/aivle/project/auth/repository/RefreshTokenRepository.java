@@ -13,6 +13,4 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
 	Optional<RefreshTokenEntity> findByToken(String token);
 
 	List<RefreshTokenEntity> findAllByUserIdAndRevokedFalse(String userId);
-
-	List<RefreshTokenEntity> findAllByUserIdAndDeviceIdAndRevokedFalse(String userId, String deviceId);
 }

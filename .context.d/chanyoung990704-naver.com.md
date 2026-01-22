@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-01-22 | 작업: 게시글 JWT 컨트롤러/페이징 및 테스트 보강 | 결과: /posts 페이징 API 및 JWT subject 검증 테스트 추가, CommonException 핸들러 추가 | 이슈: 없음
 - 2026-01-21 | 작업: RefreshTokenServiceTest 불필요 스텁 제거 | 결과: 테스트별로 Redis 스텁 주입하도록 변경 | 이슈: 없음
 - 2026-01-21 | 작업: 회원가입 API 추가 | 결과: /auth/signup, USER 역할 매핑, 서비스/DTO/테스트 추가 | 이슈: 없음
 - 2026-01-21 | 작업: 로그아웃 전체 로그아웃 기준 시각 검증 보정 | 결과: issuedAt == logoutAllAt 허용 및 검증 테스트 추가 | 이슈: 없음

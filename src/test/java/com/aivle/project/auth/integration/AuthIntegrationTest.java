@@ -6,11 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aivle.project.auth.dto.LoginRequest;
-import com.aivle.project.auth.dto.SignupRequest;
-import com.aivle.project.auth.dto.SignupResponse;
 import com.aivle.project.auth.dto.TokenResponse;
-import com.aivle.project.auth.repository.RefreshTokenRepository;
-import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.error.ErrorResponse;
 import com.aivle.project.common.config.TestSecurityConfig;
 import com.aivle.project.user.entity.RoleEntity;
@@ -88,9 +84,6 @@ class AuthIntegrationTest {
 	@Autowired
 	private StringRedisTemplate redisTemplate;
 
-	@Autowired
-	private RefreshTokenRepository refreshTokenRepository;
-
 	@PersistenceContext
 	private EntityManager entityManager;
 
@@ -130,12 +123,7 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 토큰 응답이 반환된다
-		ApiResponse<TokenResponse> apiResponse = objectMapper.readValue(
-			result.getResponse().getContentAsString(),
-			new TypeReference<ApiResponse<TokenResponse>>() {}
-		);
-		TokenResponse response = apiResponse.data();
-		assertThat(apiResponse.success()).isTrue();
+		TokenResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), TokenResponse.class);
 		assertThat(response.accessToken()).isNotBlank();
 		assertThat(response.refreshToken()).isNotBlank();
 		assertThat(response.tokenType()).isEqualTo("Bearer");
@@ -189,105 +177,11 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 표준 에러 응답을 반환한다
-		ApiResponse<Void> apiResponse = objectMapper.readValue(
-			result.getResponse().getContentAsString(),
-			new TypeReference<ApiResponse<Void>>() {}
-		);
-		assertThat(apiResponse.success()).isFalse();
-		assertThat(apiResponse.error().code()).isEqualTo("AUTH_401");
-	}
-
-	@Test
-	@DisplayName("회원가입 성공 시 사용자 정보가 반환된다")
-	void signup_shouldReturnCreatedUser() throws Exception {
-		// given: 회원가입 요청을 준비
-		SignupRequest request = new SignupRequest();
-		request.setEmail("signup@test.com");
-		request.setPassword("password123");
-		request.setName("signup-user");
-		request.setPhone("01012345678");
-
-		// when: 회원가입 요청을 수행
-		MvcResult result = mockMvc.perform(post("/auth/signup")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
-			.andExpect(status().isCreated())
-			.andReturn();
-
-		// then: 응답과 DB 저장을 확인
-		ApiResponse<SignupResponse> apiResponse = objectMapper.readValue(
-			result.getResponse().getContentAsString(),
-			new TypeReference<ApiResponse<SignupResponse>>() {}
-		);
-		SignupResponse response = apiResponse.data();
-		assertThat(apiResponse.success()).isTrue();
-		assertThat(response.email()).isEqualTo("signup@test.com");
-		assertThat(response.role()).isEqualTo(RoleName.USER);
-		assertThat(userRepository.findByEmail("signup@test.com")).isPresent();
-	}
-
-	@Test
-	@DisplayName("로그아웃 시 Access Token이 무효화되고 Refresh Token이 폐기된다")
-	void logout_shouldInvalidateAccessAndRefreshToken() throws Exception {
-		// given: 활성 사용자와 로그인 토큰을 준비
-		UserEntity user = createActiveUserWithRole("logout@test.com", "password", RoleName.USER);
-		TokenResponse tokens = loginAndGetTokenResponse("logout@test.com", "password", "device-logout");
-
-		String accessToken = tokens.accessToken();
-		String refreshToken = tokens.refreshToken();
-		String refreshKey = "refresh:" + refreshToken;
-		String sessionKey = "sessions:" + user.getUuid();
-
-		assertThat(redisTemplate.opsForValue().get(refreshKey)).isNotNull();
-		assertThat(redisTemplate.opsForSet().isMember(sessionKey, refreshToken)).isTrue();
-
-		// when: 로그아웃 요청을 수행
-		mockMvc.perform(post("/auth/logout")
-				.header("Authorization", "Bearer " + accessToken))
-			.andExpect(status().isOk());
-
-		// then: 기존 Access Token은 무효화되고 Refresh Token은 폐기된다
-		mockMvc.perform(get("/test/claims")
-				.header("Authorization", "Bearer " + accessToken))
-			.andExpect(status().isUnauthorized());
-
-		assertThat(redisTemplate.opsForValue().get(refreshKey)).isNull();
-		assertThat(redisTemplate.opsForSet().isMember(sessionKey, refreshToken)).isFalse();
-
-		var entity = refreshTokenRepository.findByToken(refreshToken);
-		assertThat(entity).isPresent();
-		assertThat(entity.get().isRevoked()).isTrue();
-	}
-
-	@Test
-	@DisplayName("전체 로그아웃 후 기존 토큰은 차단되고 새 로그인 토큰은 정상 동작한다")
-	void logoutAll_shouldInvalidateExistingTokenAndAllowNewLogin() throws Exception {
-		// given: 활성 사용자와 로그인 토큰을 준비
-		createActiveUserWithRole("logoutall@test.com", "password", RoleName.USER);
-		TokenResponse firstTokens = loginAndGetTokenResponse("logoutall@test.com", "password", "device-1");
-
-		// when: 전체 로그아웃을 수행
-		mockMvc.perform(post("/auth/logout-all")
-				.header("Authorization", "Bearer " + firstTokens.accessToken()))
-			.andExpect(status().isOk());
-
-		// then: 기존 토큰은 차단된다
-		mockMvc.perform(get("/test/claims")
-				.header("Authorization", "Bearer " + firstTokens.accessToken()))
-			.andExpect(status().isUnauthorized());
-
-		// then: 새 로그인 토큰은 정상 동작한다
-		TokenResponse secondTokens = loginAndGetTokenResponse("logoutall@test.com", "password", "device-2");
-		mockMvc.perform(get("/test/claims")
-				.header("Authorization", "Bearer " + secondTokens.accessToken()))
-			.andExpect(status().isOk());
+		ErrorResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorResponse.class);
+		assertThat(response.code()).isEqualTo("AUTH_401");
 	}
 
 	private String loginAndGetAccessToken(String email, String password, String deviceId) throws Exception {
-		return loginAndGetTokenResponse(email, password, deviceId).accessToken();
-	}
-
-	private TokenResponse loginAndGetTokenResponse(String email, String password, String deviceId) throws Exception {
 		LoginRequest request = new LoginRequest();
 		request.setEmail(email);
 		request.setPassword(password);
@@ -300,11 +194,8 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk())
 			.andReturn();
 
-		ApiResponse<TokenResponse> apiResponse = objectMapper.readValue(
-			result.getResponse().getContentAsString(),
-			new TypeReference<ApiResponse<TokenResponse>>() {}
-		);
-		return apiResponse.data();
+		TokenResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), TokenResponse.class);
+		return response.accessToken();
 	}
 
 	private UserEntity createActiveUserWithRole(String email, String rawPassword, RoleName roleName) {

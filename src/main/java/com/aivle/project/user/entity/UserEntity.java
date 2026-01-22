@@ -63,19 +63,6 @@ public class UserEntity extends BaseEntity {
 		}
 	}
 
-	/**
-	 * 회원가입용 사용자 생성.
-	 */
-	public static UserEntity create(String email, String encodedPassword, String name, String phone, UserStatus status) {
-		UserEntity user = new UserEntity();
-		user.email = email;
-		user.password = encodedPassword;
-		user.name = name;
-		user.phone = phone;
-		user.status = status;
-		return user;
-	}
-
 	public void withdraw() {
 		if (isDeleted()) {
 			return;

@@ -70,37 +70,4 @@ public class PostsEntity extends BaseEntity {
 			status = PostStatus.PUBLISHED;
 		}
 	}
-
-	public static PostsEntity create(
-		UserEntity user,
-		CategoriesEntity category,
-		String title,
-		String content,
-		boolean isPinned,
-		PostStatus status,
-		Long actorId
-	) {
-		PostsEntity post = new PostsEntity();
-		post.user = user;
-		post.category = category;
-		post.title = title;
-		post.content = content;
-		post.isPinned = isPinned;
-		post.status = status != null ? status : PostStatus.PUBLISHED;
-		post.createdBy = actorId;
-		post.updatedBy = actorId;
-		return post;
-	}
-
-	public void update(String title, String content, CategoriesEntity category, Long actorId) {
-		this.title = title;
-		this.content = content;
-		this.category = category;
-		this.updatedBy = actorId;
-	}
-
-	public void markDeleted(Long actorId) {
-		delete();
-		this.updatedBy = actorId;
-	}
 }

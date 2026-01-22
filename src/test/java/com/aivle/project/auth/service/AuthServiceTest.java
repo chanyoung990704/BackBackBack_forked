@@ -18,7 +18,6 @@ import com.aivle.project.auth.token.JwtTokenService;
 import com.aivle.project.auth.token.RefreshTokenCache;
 import com.aivle.project.user.security.CustomUserDetails;
 import com.aivle.project.user.security.CustomUserDetailsService;
-import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +27,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.jwt.Jwt;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -45,20 +43,11 @@ class AuthServiceTest {
 	@Mock
 	private CustomUserDetailsService userDetailsService;
 
-	@Mock
-	private AccessTokenBlacklistService accessTokenBlacklistService;
-
 	@Test
 	@DisplayName("로그인 성공 시 액세스/리프레시 토큰을 반환한다")
 	void login_shouldReturnTokenResponse() {
 		// given: 로그인 요청과 인증 성공 상태를 준비
-		AuthService authService = new AuthService(
-			authenticationManager,
-			jwtTokenService,
-			refreshTokenService,
-			userDetailsService,
-			accessTokenBlacklistService
-		);
+		AuthService authService = new AuthService(authenticationManager, jwtTokenService, refreshTokenService, userDetailsService);
 
 		LoginRequest request = new LoginRequest();
 		request.setEmail("user@example.com");
@@ -88,13 +77,7 @@ class AuthServiceTest {
 	@DisplayName("리프레시 요청 시 새 토큰 쌍을 반환한다")
 	void refresh_shouldReturnNewTokens() {
 		// given: 리프레시 토큰 회전 결과와 활성 사용자 상태를 준비
-		AuthService authService = new AuthService(
-			authenticationManager,
-			jwtTokenService,
-			refreshTokenService,
-			userDetailsService,
-			accessTokenBlacklistService
-		);
+		AuthService authService = new AuthService(authenticationManager, jwtTokenService, refreshTokenService, userDetailsService);
 
 		TokenRefreshRequest request = new TokenRefreshRequest();
 		request.setRefreshToken("old-token");
@@ -132,13 +115,7 @@ class AuthServiceTest {
 	@DisplayName("비활성 사용자면 리프레시가 실패한다")
 	void refresh_shouldThrowWhenUserDisabled() {
 		// given: 리프레시 회전 결과와 비활성 사용자 상태를 준비
-		AuthService authService = new AuthService(
-			authenticationManager,
-			jwtTokenService,
-			refreshTokenService,
-			userDetailsService,
-			accessTokenBlacklistService
-		);
+		AuthService authService = new AuthService(authenticationManager, jwtTokenService, refreshTokenService, userDetailsService);
 
 		TokenRefreshRequest request = new TokenRefreshRequest();
 		request.setRefreshToken("old-token");
@@ -170,13 +147,7 @@ class AuthServiceTest {
 	@DisplayName("인증 실패 시 로그인 요청이 거절된다")
 	void login_shouldThrowWhenAuthenticationFails() {
 		// given: 인증 실패 상태를 준비
-		AuthService authService = new AuthService(
-			authenticationManager,
-			jwtTokenService,
-			refreshTokenService,
-			userDetailsService,
-			accessTokenBlacklistService
-		);
+		AuthService authService = new AuthService(authenticationManager, jwtTokenService, refreshTokenService, userDetailsService);
 
 		LoginRequest request = new LoginRequest();
 		request.setEmail("user@example.com");
@@ -196,13 +167,7 @@ class AuthServiceTest {
 	@DisplayName("리프레시 토큰이 유효하지 않으면 예외가 전파된다")
 	void refresh_shouldThrowWhenRefreshTokenInvalid() {
 		// given: 리프레시 토큰 검증 실패 상태를 준비
-		AuthService authService = new AuthService(
-			authenticationManager,
-			jwtTokenService,
-			refreshTokenService,
-			userDetailsService,
-			accessTokenBlacklistService
-		);
+		AuthService authService = new AuthService(authenticationManager, jwtTokenService, refreshTokenService, userDetailsService);
 
 		TokenRefreshRequest request = new TokenRefreshRequest();
 		request.setRefreshToken("invalid-refresh");
@@ -215,67 +180,5 @@ class AuthServiceTest {
 		assertThatThrownBy(() -> authService.refresh(request))
 			.isInstanceOf(AuthException.class)
 			.hasMessage(AuthErrorCode.INVALID_REFRESH_TOKEN.getMessage());
-	}
-
-	@Test
-	@DisplayName("로그아웃 시 액세스 토큰 블랙리스트와 리프레시 토큰 폐기를 수행한다")
-	void logout_shouldBlacklistAndRevokeByDevice() {
-		// given: 로그아웃 대상 JWT를 준비
-		AuthService authService = new AuthService(
-			authenticationManager,
-			jwtTokenService,
-			refreshTokenService,
-			userDetailsService,
-			accessTokenBlacklistService
-		);
-
-		Instant issuedAt = Instant.now().minusSeconds(10);
-		Instant expiresAt = Instant.now().plusSeconds(120);
-		Jwt jwt = Jwt.withTokenValue("access")
-			.header("alg", "RS256")
-			.subject("user-uuid")
-			.issuedAt(issuedAt)
-			.expiresAt(expiresAt)
-			.jti("jti-1")
-			.claim("deviceId", "device-1")
-			.build();
-
-		// when: 로그아웃을 수행
-		authService.logout(jwt);
-
-		// then: 블랙리스트 등록과 리프레시 토큰 폐기가 수행된다
-		verify(accessTokenBlacklistService).blacklist("jti-1", expiresAt);
-		verify(refreshTokenService).revokeByUserIdAndDeviceId("user-uuid", "device-1");
-	}
-
-	@Test
-	@DisplayName("전체 로그아웃 시 블랙리스트와 전체 폐기가 수행된다")
-	void logoutAll_shouldBlacklistAndRevokeAll() {
-		// given: 전체 로그아웃 대상 JWT를 준비
-		AuthService authService = new AuthService(
-			authenticationManager,
-			jwtTokenService,
-			refreshTokenService,
-			userDetailsService,
-			accessTokenBlacklistService
-		);
-
-		Instant issuedAt = Instant.now().minusSeconds(10);
-		Instant expiresAt = Instant.now().plusSeconds(120);
-		Jwt jwt = Jwt.withTokenValue("access")
-			.header("alg", "RS256")
-			.subject("user-uuid")
-			.issuedAt(issuedAt)
-			.expiresAt(expiresAt)
-			.jti("jti-2")
-			.build();
-
-		// when: 전체 로그아웃을 수행
-		authService.logoutAll(jwt);
-
-		// then: 블랙리스트 등록, 전체 로그아웃 기준 기록, 리프레시 토큰 폐기가 수행된다
-		verify(accessTokenBlacklistService).blacklist("jti-2", expiresAt);
-		verify(accessTokenBlacklistService).markLogoutAll(eq("user-uuid"), any(Instant.class));
-		verify(refreshTokenService).revokeByUserId("user-uuid");
 	}
 }

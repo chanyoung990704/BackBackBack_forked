@@ -2,6 +2,8 @@ package com.aivle.project.post.service;
 
 import com.aivle.project.category.entity.CategoriesEntity;
 import com.aivle.project.category.repository.CategoriesRepository;
+import com.aivle.project.common.dto.PageRequest;
+import com.aivle.project.common.dto.PageResponse;
 import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.post.dto.PostCreateRequest;
@@ -12,8 +14,9 @@ import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.post.repository.PostsRepository;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.repository.UserRepository;
-import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,21 +33,25 @@ public class PostService {
 	private final CategoriesRepository categoriesRepository;
 
 	@Transactional(readOnly = true)
-	public List<PostResponse> list() {
-		return postsRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc().stream()
-			.map(PostResponse::from)
-			.toList();
+	public PageResponse<PostResponse> list(PageRequest pageRequest) {
+		// 페이지 조건에 맞춰 게시글 목록을 최신순으로 조회합니다.
+		Page<PostsEntity> page = postsRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc(
+			pageRequest.toPageable()
+		);
+		return PageResponse.of(page.map(PostResponse::from));
 	}
 
 	@Transactional(readOnly = true)
 	public PostResponse get(Long postId) {
+		// 특정 게시글의 상세 정보를 조회합니다.
 		PostsEntity post = findPost(postId);
 		return PostResponse.from(post);
 	}
 
-	public PostResponse create(Long userId, PostCreateRequest request) {
-		validateUserId(userId);
-		UserEntity user = findUser(userId);
+	public PostResponse create(UUID userUuid, PostCreateRequest request) {
+		// 사용자 및 카테고리 유효성을 확인한 후 새 게시글을 작성합니다.
+		UserEntity user = findUser(userUuid);
+		Long userId = user.getId();
 		CategoriesEntity category = findCategory(request.getCategoryId());
 
 		PostsEntity post = PostsEntity.create(
@@ -61,8 +68,9 @@ public class PostService {
 		return PostResponse.from(saved);
 	}
 
-	public PostResponse update(Long userId, Long postId, PostUpdateRequest request) {
-		validateUserId(userId);
+	public PostResponse update(UUID userUuid, Long postId, PostUpdateRequest request) {
+		// 작성자 본인 확인 후 요청된 필드를 수정합니다.
+		Long userId = findUser(userUuid).getId();
 		PostsEntity post = findPost(postId);
 		validateOwner(post, userId);
 
@@ -80,8 +88,9 @@ public class PostService {
 		return PostResponse.from(post);
 	}
 
-	public void delete(Long userId, Long postId) {
-		validateUserId(userId);
+	public void delete(UUID userUuid, Long postId) {
+		// 작성자 본인 확인 후 게시글을 삭제(소프트 삭제) 처리합니다.
+		Long userId = findUser(userUuid).getId();
 		PostsEntity post = findPost(postId);
 		validateOwner(post, userId);
 		post.markDeleted(userId);
@@ -92,8 +101,8 @@ public class PostService {
 			.orElseThrow(() -> new CommonException(CommonErrorCode.COMMON_404));
 	}
 
-	private UserEntity findUser(Long userId) {
-		return userRepository.findByIdAndDeletedAtIsNull(userId)
+	private UserEntity findUser(UUID userUuid) {
+		return userRepository.findByUuidAndDeletedAtIsNull(userUuid)
 			.orElseThrow(() -> new CommonException(CommonErrorCode.COMMON_404));
 	}
 
@@ -105,15 +114,6 @@ public class PostService {
 	private void validateOwner(PostsEntity post, Long userId) {
 		if (!post.getUser().getId().equals(userId)) {
 			throw new CommonException(CommonErrorCode.COMMON_403);
-		}
-	}
-
-	private void validateUserId(Long userId) {
-		if (userId == null) {
-			throw new CommonException(CommonErrorCode.COMMON_400);
-		}
-		if (userId <= 0) {
-			throw new CommonException(CommonErrorCode.COMMON_400_VALIDATION);
 		}
 	}
 

@@ -1,4 +1,4 @@
-package com.aivle.project.post.entity;
+package com.aivle.project.post;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
