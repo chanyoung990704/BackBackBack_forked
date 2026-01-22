@@ -1,6 +1,7 @@
 package com.aivle.project.common.error;
 
 import com.aivle.project.auth.exception.AuthException;
+import com.aivle.project.common.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -26,12 +27,12 @@ public class GlobalExceptionHandler {
 	private final Clock clock = Clock.systemUTC();
 
 	@ExceptionHandler(AuthException.class)
-	public ResponseEntity<ErrorResponse> handleAuthException(AuthException ex, HttpServletRequest request) {
+	public ResponseEntity<ApiResponse<Void>> handleAuthException(AuthException ex, HttpServletRequest request) {
 		return buildResponse(ex.getErrorCode(), request.getRequestURI());
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
-	public ResponseEntity<ErrorResponse> handleMethodArgumentNotValid(
+	public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(
 		MethodArgumentNotValidException ex,
 		HttpServletRequest request
 	) {
@@ -42,7 +43,7 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(BindException.class)
-	public ResponseEntity<ErrorResponse> handleBindException(BindException ex, HttpServletRequest request) {
+	public ResponseEntity<ApiResponse<Void>> handleBindException(BindException ex, HttpServletRequest request) {
 		List<FieldErrorResponse> errors = ex.getBindingResult().getFieldErrors().stream()
 			.map(error -> new FieldErrorResponse(error.getField(), error.getDefaultMessage()))
 			.toList();
@@ -50,7 +51,7 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(ConstraintViolationException.class)
-	public ResponseEntity<ErrorResponse> handleConstraintViolation(
+	public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(
 		ConstraintViolationException ex,
 		HttpServletRequest request
 	) {
@@ -66,26 +67,28 @@ public class GlobalExceptionHandler {
 		MissingServletRequestParameterException.class,
 		HttpMessageNotReadableException.class
 	})
-	public ResponseEntity<ErrorResponse> handleBadRequest(Exception ex, HttpServletRequest request) {
+	public ResponseEntity<ApiResponse<Void>> handleBadRequest(Exception ex, HttpServletRequest request) {
 		return buildResponse(CommonErrorCode.COMMON_400, request.getRequestURI());
 	}
 
 	@ExceptionHandler(Exception.class)
-	public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest request) {
+	public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception ex, HttpServletRequest request) {
 		return buildResponse(CommonErrorCode.COMMON_500, request.getRequestURI());
 	}
 
-	private ResponseEntity<ErrorResponse> buildResponse(ErrorCode code, String path) {
+	private ResponseEntity<ApiResponse<Void>> buildResponse(ErrorCode code, String path) {
 		String timestamp = OffsetDateTime.now(clock).toString();
-		return ResponseEntity.status(code.getStatus()).body(ErrorResponse.of(code, path, timestamp));
+		ErrorResponse errorResponse = ErrorResponse.of(code, path, timestamp);
+		return ResponseEntity.status(code.getStatus()).body(ApiResponse.fail(errorResponse));
 	}
 
-	private ResponseEntity<ErrorResponse> buildResponse(
+	private ResponseEntity<ApiResponse<Void>> buildResponse(
 		ErrorCode code,
 		String path,
 		List<FieldErrorResponse> errors
 	) {
 		String timestamp = OffsetDateTime.now(clock).toString();
-		return ResponseEntity.status(code.getStatus()).body(ErrorResponse.of(code, path, timestamp, errors));
+		ErrorResponse errorResponse = ErrorResponse.of(code, path, timestamp, errors);
+		return ResponseEntity.status(code.getStatus()).body(ApiResponse.fail(errorResponse));
 	}
 }

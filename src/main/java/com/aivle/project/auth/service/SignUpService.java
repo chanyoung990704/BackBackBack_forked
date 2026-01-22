@@ -4,15 +4,12 @@ import com.aivle.project.auth.dto.SignupRequest;
 import com.aivle.project.auth.dto.SignupResponse;
 import com.aivle.project.auth.exception.AuthErrorCode;
 import com.aivle.project.auth.exception.AuthException;
-import com.aivle.project.user.entity.RoleEntity;
+import com.aivle.project.auth.mapper.AuthMapper;
 import com.aivle.project.user.entity.RoleName;
 import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.entity.UserRoleEntity;
-import com.aivle.project.user.entity.UserStatus;
-import com.aivle.project.user.repository.RoleRepository;
-import com.aivle.project.user.repository.UserRepository;
-import com.aivle.project.user.repository.UserRoleRepository;
+import com.aivle.project.user.service.UserDomainService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,33 +19,31 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SignUpService {
 
-	private final UserRepository userRepository;
-	private final RoleRepository roleRepository;
-	private final UserRoleRepository userRoleRepository;
+	private final UserDomainService userDomainService;
 	private final PasswordEncoder passwordEncoder;
+	private final AuthMapper authMapper;
 
 	@Transactional
 	public SignupResponse signup(SignupRequest request) {
-		if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+		log.info("Attempting signup for email: {}", request.getEmail());
+		if (userDomainService.existsByEmail(request.getEmail())) {
+			log.warn("Signup failed: email {} already exists", request.getEmail());
 			throw new AuthException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
 		}
 
 		String encodedPassword = passwordEncoder.encode(request.getPassword());
-		UserEntity user = UserEntity.create(
+		UserEntity user = userDomainService.register(
 			request.getEmail(),
 			encodedPassword,
 			request.getName(),
 			request.getPhone(),
-			UserStatus.ACTIVE
+			RoleName.USER
 		);
-		userRepository.save(user);
 
-		RoleEntity role = roleRepository.findByName(RoleName.USER)
-			.orElseGet(() -> roleRepository.save(new RoleEntity(RoleName.USER, "user role")));
-		userRoleRepository.save(new UserRoleEntity(user, role));
-
-		return SignupResponse.of(user, RoleName.USER);
+		log.info("Signup successful for email: {}", request.getEmail());
+		return authMapper.toSignupResponse(user, RoleName.USER);
 	}
 }

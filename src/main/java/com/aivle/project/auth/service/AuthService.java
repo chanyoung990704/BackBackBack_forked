@@ -11,6 +11,7 @@ import com.aivle.project.user.security.CustomUserDetails;
 import com.aivle.project.user.security.CustomUserDetailsService;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
 	private final AuthenticationManager authenticationManager;
@@ -33,6 +35,7 @@ public class AuthService {
 	private final AccessTokenBlacklistService accessTokenBlacklistService;
 
 	public TokenResponse login(LoginRequest request, String ipAddress) {
+		log.info("Attempting login for user: {}, IP: {}", request.getEmail(), ipAddress);
 		Authentication authentication = authenticate(request.getEmail(), request.getPassword());
 		CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 		String deviceId = normalizeDeviceId(request.getDeviceId());
@@ -41,6 +44,7 @@ public class AuthService {
 		String refreshToken = jwtTokenService.createRefreshToken();
 		refreshTokenService.storeToken(userDetails, refreshToken, deviceId, request.getDeviceInfo(), ipAddress);
 
+		log.info("Login successful for user: {}, deviceId: {}", request.getEmail(), deviceId);
 		return TokenResponse.of(
 			accessToken,
 			jwtTokenService.getAccessTokenExpirationSeconds(),
@@ -50,14 +54,17 @@ public class AuthService {
 	}
 
 	public TokenResponse refresh(TokenRefreshRequest request) {
+		log.info("Attempting token refresh");
 		String newRefreshToken = jwtTokenService.createRefreshToken();
 		RefreshTokenCache rotated = refreshTokenService.rotateToken(request.getRefreshToken(), newRefreshToken);
 		CustomUserDetails userDetails = (CustomUserDetails) loadUser(rotated.email());
 		if (!userDetails.isEnabled()) {
+			log.warn("Refresh failed: user {} is disabled", rotated.email());
 			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
 		}
 
 		String accessToken = jwtTokenService.createAccessToken(userDetails, rotated.deviceId());
+		log.info("Token refresh successful for user: {}", rotated.email());
 		return TokenResponse.of(
 			accessToken,
 			jwtTokenService.getAccessTokenExpirationSeconds(),
@@ -75,6 +82,7 @@ public class AuthService {
 		String jti = resolveTokenId(jwt);
 		Instant expiresAt = resolveExpiresAt(jwt);
 
+		log.info("Logout requested for user: {}, deviceId: {}", userId, deviceId);
 		accessTokenBlacklistService.blacklist(jti, expiresAt);
 		refreshTokenService.revokeByUserIdAndDeviceId(userId, deviceId);
 	}
@@ -87,6 +95,7 @@ public class AuthService {
 		String jti = resolveTokenId(jwt);
 		Instant expiresAt = resolveExpiresAt(jwt);
 
+		log.info("Logout-all requested for user: {}", userId);
 		accessTokenBlacklistService.blacklist(jti, expiresAt);
 		accessTokenBlacklistService.markLogoutAll(userId, Instant.now());
 		refreshTokenService.revokeByUserId(userId);

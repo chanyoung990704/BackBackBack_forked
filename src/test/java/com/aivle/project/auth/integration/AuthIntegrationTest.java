@@ -10,6 +10,7 @@ import com.aivle.project.auth.dto.SignupRequest;
 import com.aivle.project.auth.dto.SignupResponse;
 import com.aivle.project.auth.dto.TokenResponse;
 import com.aivle.project.auth.repository.RefreshTokenRepository;
+import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.error.ErrorResponse;
 import com.aivle.project.common.config.TestSecurityConfig;
 import com.aivle.project.user.entity.RoleEntity;
@@ -129,7 +130,12 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 토큰 응답이 반환된다
-		TokenResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), TokenResponse.class);
+		ApiResponse<TokenResponse> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<TokenResponse>>() {}
+		);
+		TokenResponse response = apiResponse.data();
+		assertThat(apiResponse.success()).isTrue();
 		assertThat(response.accessToken()).isNotBlank();
 		assertThat(response.refreshToken()).isNotBlank();
 		assertThat(response.tokenType()).isEqualTo("Bearer");
@@ -183,8 +189,12 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 표준 에러 응답을 반환한다
-		ErrorResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorResponse.class);
-		assertThat(response.code()).isEqualTo("AUTH_401");
+		ApiResponse<Void> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<Void>>() {}
+		);
+		assertThat(apiResponse.success()).isFalse();
+		assertThat(apiResponse.error().code()).isEqualTo("AUTH_401");
 	}
 
 	@Test
@@ -205,7 +215,12 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 응답과 DB 저장을 확인
-		SignupResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), SignupResponse.class);
+		ApiResponse<SignupResponse> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<SignupResponse>>() {}
+		);
+		SignupResponse response = apiResponse.data();
+		assertThat(apiResponse.success()).isTrue();
 		assertThat(response.email()).isEqualTo("signup@test.com");
 		assertThat(response.role()).isEqualTo(RoleName.USER);
 		assertThat(userRepository.findByEmail("signup@test.com")).isPresent();
@@ -285,7 +300,11 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk())
 			.andReturn();
 
-		return objectMapper.readValue(result.getResponse().getContentAsString(), TokenResponse.class);
+		ApiResponse<TokenResponse> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<TokenResponse>>() {}
+		);
+		return apiResponse.data();
 	}
 
 	private UserEntity createActiveUserWithRole(String email, String rawPassword, RoleName roleName) {

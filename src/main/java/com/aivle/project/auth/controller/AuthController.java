@@ -7,6 +7,7 @@ import com.aivle.project.auth.dto.TokenRefreshRequest;
 import com.aivle.project.auth.dto.TokenResponse;
 import com.aivle.project.auth.service.AuthService;
 import com.aivle.project.auth.service.SignUpService;
+import com.aivle.project.common.dto.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,34 +32,34 @@ public class AuthController {
 	private final SignUpService signUpService;
 
 	@PostMapping("/login")
-	public ResponseEntity<TokenResponse> login(
+	public ResponseEntity<ApiResponse<TokenResponse>> login(
 		@Valid @RequestBody LoginRequest request,
 		HttpServletRequest httpServletRequest
 	) {
 		String ipAddress = resolveIp(httpServletRequest);
-		return ResponseEntity.ok(authService.login(request, ipAddress));
+		return ResponseEntity.ok(ApiResponse.ok(authService.login(request, ipAddress)));
 	}
 
 	@PostMapping("/refresh")
-	public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody TokenRefreshRequest request) {
-		return ResponseEntity.ok(authService.refresh(request));
+	public ResponseEntity<ApiResponse<TokenResponse>> refresh(@Valid @RequestBody TokenRefreshRequest request) {
+		return ResponseEntity.ok(ApiResponse.ok(authService.refresh(request)));
 	}
 
 	@PostMapping("/signup")
-	public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(signUpService.signup(request));
+	public ResponseEntity<ApiResponse<SignupResponse>> signup(@Valid @RequestBody SignupRequest request) {
+		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(signUpService.signup(request)));
 	}
 
 	@PostMapping("/logout")
-	public ResponseEntity<Void> logout(@AuthenticationPrincipal Jwt jwt) {
+	public ResponseEntity<ApiResponse<Void>> logout(@AuthenticationPrincipal Jwt jwt) {
 		authService.logout(jwt);
-		return ResponseEntity.ok().build();
+		return ResponseEntity.ok(ApiResponse.ok());
 	}
 
 	@PostMapping("/logout-all")
-	public ResponseEntity<Void> logoutAll(@AuthenticationPrincipal Jwt jwt) {
+	public ResponseEntity<ApiResponse<Void>> logoutAll(@AuthenticationPrincipal Jwt jwt) {
 		authService.logoutAll(jwt);
-		return ResponseEntity.ok().build();
+		return ResponseEntity.ok(ApiResponse.ok());
 	}
 
 	private String resolveIp(HttpServletRequest request) {

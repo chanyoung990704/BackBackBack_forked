@@ -1,5 +1,6 @@
 package com.aivle.project.auth.controller;
 
+import com.aivle.project.common.dto.ApiResponse;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,7 +27,7 @@ public class AuthConsoleController {
 
 	@GetMapping("/claims")
 	@ResponseBody
-	public Map<String, Object> claims(@AuthenticationPrincipal Jwt jwt) {
+	public ApiResponse<Map<String, Object>> claims(@AuthenticationPrincipal Jwt jwt) {
 		Map<String, Object> response = new LinkedHashMap<>();
 		response.put("sub", jwt.getSubject());
 		response.put("email", jwt.getClaimAsString("email"));
@@ -36,7 +37,7 @@ public class AuthConsoleController {
 		response.put("jti", jwt.getId());
 		response.put("issuedAt", formatInstant(jwt.getIssuedAt()));
 		response.put("expiresAt", formatInstant(jwt.getExpiresAt()));
-		return response;
+		return ApiResponse.ok(response);
 	}
 
 	private String formatInstant(Instant instant) {
