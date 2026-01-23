@@ -16,7 +16,6 @@ import com.aivle.project.common.error.CommonException;
 import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.post.repository.PostsRepository;
 import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.repository.UserRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,9 +37,6 @@ class CommentsServiceTest {
 	@Mock
 	private PostsRepository postsRepository;
 
-	@Mock
-	private UserRepository userRepository;
-
 	@Test
 	@DisplayName("댓글 생성 성공 - 최상위 댓글")
 	void create_topLevel_success() {
@@ -58,7 +54,6 @@ class CommentsServiceTest {
 		PostsEntity post = mock(PostsEntity.class);
 		given(post.getId()).willReturn(postId);
 
-		given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.of(user));
 		given(postsRepository.findByIdAndDeletedAtIsNull(postId)).willReturn(Optional.of(post));
 		given(commentsRepository.findMaxSequenceByPostIdAndParentIsNull(postId)).willReturn(-1);
 		given(commentsRepository.save(any(CommentsEntity.class))).willAnswer(invocation -> {
@@ -68,7 +63,7 @@ class CommentsServiceTest {
 		});
 
 		// when
-		CommentResponse response = commentsService.create(userId, request);
+		CommentResponse response = commentsService.create(user, request);
 
 		// then
 		assertThat(response.id()).isEqualTo(100L);
@@ -102,7 +97,6 @@ class CommentsServiceTest {
 		given(parent.getPost()).willReturn(post); // 부모 댓글은 같은 게시글이어야 함
 		given(parent.getDepth()).willReturn(0);
 
-		given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.of(user));
 		given(postsRepository.findByIdAndDeletedAtIsNull(postId)).willReturn(Optional.of(post));
 		given(commentsRepository.findById(parentId)).willReturn(Optional.of(parent));
 		given(commentsRepository.findMaxSequenceByParentId(parentId)).willReturn(0); // 기존 자식 1개 있음 가정
@@ -113,7 +107,7 @@ class CommentsServiceTest {
 		});
 
 		// when
-		CommentResponse response = commentsService.create(userId, request);
+		CommentResponse response = commentsService.create(user, request);
 
 		// then
 		assertThat(response.id()).isEqualTo(101L);
@@ -132,12 +126,11 @@ class CommentsServiceTest {
 		request.setContent("댓글");
 
 		UserEntity user = mock(UserEntity.class);
-
-		given(userRepository.findByIdAndDeletedAtIsNull(userId)).willReturn(Optional.of(user));
+		given(user.getId()).willReturn(userId);
 		given(postsRepository.findByIdAndDeletedAtIsNull(999L)).willReturn(Optional.empty());
 
 		// when & then
-		assertThatThrownBy(() -> commentsService.create(userId, request))
+		assertThatThrownBy(() -> commentsService.create(user, request))
 			.isInstanceOf(CommonException.class);
 	}
 

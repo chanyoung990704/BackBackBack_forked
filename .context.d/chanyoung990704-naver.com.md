@@ -6,6 +6,8 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-01-23 | 작업: 서비스 시그니처를 UserEntity/ID 기반으로 정리 | 결과: Post/Comment 서비스 중복 사용자 조회 제거 및 테스트 수정 | 이슈: 없음
+- 2026-01-23 | 작업: @CurrentUser 리졸버 추가 및 컨트롤러 적용 | 결과: Post/Comment 컨트롤러에서 JWT subject 파싱 제거, 관련 테스트 통과 | 이슈: 없음
 - 2026-01-23 | 작업: prod 이메일 인증 설정 추가 | 결과: application-prod.yaml에 base-url 및 skip 설정 추가 | 이슈: 없음
 - 2026-01-23 | 작업: 이메일 인증 URL 외부 접속 대응 | 결과: 인증 링크 base-url 설정 추가 및 EmailService에서 구성값 사용 | 이슈: 없음
 - 2026-01-23 | 작업: 미인증 로그인 응답 분리 및 이메일 발송 테스트 보강 | 결과: AuthErrorCode/로그인 예외 처리 추가, 회원가입 이메일 발송 테스트 추가 | 이슈: 없음

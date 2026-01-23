@@ -3,20 +3,17 @@ package com.aivle.project.post.controller;
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.dto.PageRequest;
 import com.aivle.project.common.dto.PageResponse;
-import com.aivle.project.common.error.CommonErrorCode;
-import com.aivle.project.common.error.CommonException;
+import com.aivle.project.common.security.CurrentUser;
 import com.aivle.project.post.dto.PostCreateRequest;
 import com.aivle.project.post.dto.PostResponse;
 import com.aivle.project.post.dto.PostUpdateRequest;
 import com.aivle.project.post.service.PostService;
+import com.aivle.project.user.entity.UserEntity;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -59,42 +56,28 @@ public class PostController {
 
 	@PostMapping
 	public ResponseEntity<ApiResponse<PostResponse>> create(
-		@AuthenticationPrincipal Jwt jwt,
+		@CurrentUser UserEntity user,
 		@Valid @RequestBody PostCreateRequest request
 	) {
-		UUID userUuid = resolveUserUuid(jwt);
 		return ResponseEntity.status(HttpStatus.CREATED)
-			.body(ApiResponse.ok(postService.create(userUuid, request)));
+			.body(ApiResponse.ok(postService.create(user, request)));
 	}
 
 	@PatchMapping("/{postId}")
 	public ResponseEntity<ApiResponse<PostResponse>> update(
-		@AuthenticationPrincipal Jwt jwt,
+		@CurrentUser UserEntity user,
 		@PathVariable Long postId,
 		@Valid @RequestBody PostUpdateRequest request
 	) {
-		UUID userUuid = resolveUserUuid(jwt);
-		return ResponseEntity.ok(ApiResponse.ok(postService.update(userUuid, postId, request)));
+		return ResponseEntity.ok(ApiResponse.ok(postService.update(user, postId, request)));
 	}
 
 	@DeleteMapping("/{postId}")
 	public ResponseEntity<ApiResponse<Void>> delete(
-		@AuthenticationPrincipal Jwt jwt,
+		@CurrentUser UserEntity user,
 		@PathVariable Long postId
 	) {
-		UUID userUuid = resolveUserUuid(jwt);
-		postService.delete(userUuid, postId);
+		postService.delete(user, postId);
 		return ResponseEntity.ok(ApiResponse.ok());
-	}
-
-	private UUID resolveUserUuid(Jwt jwt) {
-		if (jwt == null || jwt.getSubject() == null || jwt.getSubject().isBlank()) {
-			throw new CommonException(CommonErrorCode.COMMON_400);
-		}
-		try {
-			return UUID.fromString(jwt.getSubject());
-		} catch (IllegalArgumentException ex) {
-			throw new CommonException(CommonErrorCode.COMMON_400);
-		}
 	}
 }

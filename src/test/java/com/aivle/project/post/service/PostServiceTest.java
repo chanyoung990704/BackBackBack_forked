@@ -19,7 +19,6 @@ import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.post.repository.PostsRepository;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.entity.UserStatus;
-import com.aivle.project.user.repository.UserRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,9 +41,6 @@ class PostServiceTest {
 
 	@Mock
 	private PostsRepository postsRepository;
-
-	@Mock
-	private UserRepository userRepository;
 
 	@Mock
 	private CategoriesRepository categoriesRepository;
@@ -81,8 +77,7 @@ class PostServiceTest {
 	@DisplayName("게시글 생성 시 제목과 내용이 trim 처리된다")
 	void create_shouldTrimFields() {
 		// given
-		UUID userUuid = UUID.randomUUID();
-		UserEntity user = newUser(1L, userUuid);
+		UserEntity user = newUser(1L, UUID.randomUUID());
 		CategoriesEntity category = newCategory(10L);
 
 		PostCreateRequest request = new PostCreateRequest();
@@ -90,7 +85,6 @@ class PostServiceTest {
 		request.setTitle(" 제목 ");
 		request.setContent(" 내용 ");
 
-		given(userRepository.findByUuidAndDeletedAtIsNull(userUuid)).willReturn(Optional.of(user));
 		given(categoriesRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(category));
 		given(postsRepository.save(any(PostsEntity.class))).willAnswer(invocation -> {
 			PostsEntity saved = invocation.getArgument(0);
@@ -99,7 +93,7 @@ class PostServiceTest {
 		});
 
 		// when
-		PostResponse response = postService.create(userUuid, request);
+		PostResponse response = postService.create(user, request);
 
 		// then
 		assertThat(response.id()).isEqualTo(100L);
@@ -113,8 +107,7 @@ class PostServiceTest {
 	@DisplayName("게시글 수정 시 작성자 검증과 필드 변경이 반영된다")
 	void update_shouldApplyChanges() {
 		// given
-		UUID userUuid = UUID.randomUUID();
-		UserEntity user = newUser(1L, userUuid);
+		UserEntity user = newUser(1L, UUID.randomUUID());
 		CategoriesEntity category = newCategory(10L);
 		CategoriesEntity nextCategory = newCategory(20L);
 		PostsEntity post = newPost(100L, user, category, "before", "before");
@@ -124,12 +117,11 @@ class PostServiceTest {
 		request.setContent(" after ");
 		request.setCategoryId(20L);
 
-		given(userRepository.findByUuidAndDeletedAtIsNull(userUuid)).willReturn(Optional.of(user));
 		given(postsRepository.findByIdAndDeletedAtIsNull(100L)).willReturn(Optional.of(post));
 		given(categoriesRepository.findByIdAndDeletedAtIsNull(20L)).willReturn(Optional.of(nextCategory));
 
 		// when
-		PostResponse response = postService.update(userUuid, 100L, request);
+		PostResponse response = postService.update(user, 100L, request);
 
 		// then
 		assertThat(response.title()).isEqualTo("after");
@@ -141,8 +133,7 @@ class PostServiceTest {
 	@DisplayName("작성자가 아니면 게시글 수정이 실패한다")
 	void update_shouldFailWhenNotOwner() {
 		// given
-		UUID userUuid = UUID.randomUUID();
-		UserEntity requester = newUser(1L, userUuid);
+		UserEntity requester = newUser(1L, UUID.randomUUID());
 		UserEntity owner = newUser(2L, UUID.randomUUID());
 		CategoriesEntity category = newCategory(10L);
 		PostsEntity post = newPost(100L, owner, category, "title", "content");
@@ -150,11 +141,10 @@ class PostServiceTest {
 		PostUpdateRequest request = new PostUpdateRequest();
 		request.setTitle("changed");
 
-		given(userRepository.findByUuidAndDeletedAtIsNull(userUuid)).willReturn(Optional.of(requester));
 		given(postsRepository.findByIdAndDeletedAtIsNull(100L)).willReturn(Optional.of(post));
 
 		// when & then
-		assertThatThrownBy(() -> postService.update(userUuid, 100L, request))
+		assertThatThrownBy(() -> postService.update(requester, 100L, request))
 			.isInstanceOf(CommonException.class);
 	}
 
@@ -162,16 +152,14 @@ class PostServiceTest {
 	@DisplayName("게시글 삭제 시 소프트 삭제가 반영된다")
 	void delete_shouldMarkDeleted() {
 		// given
-		UUID userUuid = UUID.randomUUID();
-		UserEntity user = newUser(1L, userUuid);
+		UserEntity user = newUser(1L, UUID.randomUUID());
 		CategoriesEntity category = newCategory(10L);
 		PostsEntity post = newPost(100L, user, category, "title", "content");
 
-		given(userRepository.findByUuidAndDeletedAtIsNull(userUuid)).willReturn(Optional.of(user));
 		given(postsRepository.findByIdAndDeletedAtIsNull(100L)).willReturn(Optional.of(post));
 
 		// when
-		postService.delete(userUuid, 100L);
+		postService.delete(user, 100L);
 
 		// then
 		assertThat(post.isDeleted()).isTrue();

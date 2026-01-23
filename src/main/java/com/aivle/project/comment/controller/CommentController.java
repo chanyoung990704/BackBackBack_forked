@@ -5,16 +5,13 @@ import com.aivle.project.comment.dto.CommentResponse;
 import com.aivle.project.comment.dto.CommentUpdateRequest;
 import com.aivle.project.comment.service.CommentsService;
 import com.aivle.project.common.dto.ApiResponse;
-import com.aivle.project.common.error.CommonErrorCode;
-import com.aivle.project.common.error.CommonException;
+import com.aivle.project.common.security.CurrentUser;
+import com.aivle.project.user.entity.UserEntity;
 import jakarta.validation.Valid;
 import java.util.List;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -41,44 +38,30 @@ public class CommentController {
 
 	@PostMapping("/posts/{postId}/comments")
 	public ResponseEntity<ApiResponse<CommentResponse>> create(
-		@AuthenticationPrincipal Jwt jwt,
+		@CurrentUser UserEntity user,
 		@PathVariable Long postId,
 		@Valid @RequestBody CommentCreateRequest request
 	) {
-		UUID userUuid = resolveUserUuid(jwt);
 		request.setPostId(postId);
 		return ResponseEntity.status(HttpStatus.CREATED)
-			.body(ApiResponse.ok(commentsService.create(userUuid, request)));
+			.body(ApiResponse.ok(commentsService.create(user, request)));
 	}
 
 	@PatchMapping("/comments/{commentId}")
 	public ResponseEntity<ApiResponse<CommentResponse>> update(
-		@AuthenticationPrincipal Jwt jwt,
+		@CurrentUser UserEntity user,
 		@PathVariable Long commentId,
 		@Valid @RequestBody CommentUpdateRequest request
 	) {
-		UUID userUuid = resolveUserUuid(jwt);
-		return ResponseEntity.ok(ApiResponse.ok(commentsService.update(userUuid, commentId, request)));
+		return ResponseEntity.ok(ApiResponse.ok(commentsService.update(user.getId(), commentId, request)));
 	}
 
 	@DeleteMapping("/comments/{commentId}")
 	public ResponseEntity<ApiResponse<Void>> delete(
-		@AuthenticationPrincipal Jwt jwt,
+		@CurrentUser UserEntity user,
 		@PathVariable Long commentId
 	) {
-		UUID userUuid = resolveUserUuid(jwt);
-		commentsService.delete(userUuid, commentId);
+		commentsService.delete(user.getId(), commentId);
 		return ResponseEntity.ok(ApiResponse.ok());
-	}
-
-	private UUID resolveUserUuid(Jwt jwt) {
-		if (jwt == null || jwt.getSubject() == null || jwt.getSubject().isBlank()) {
-			throw new CommonException(CommonErrorCode.COMMON_400);
-		}
-		try {
-			return UUID.fromString(jwt.getSubject());
-		} catch (IllegalArgumentException ex) {
-			throw new CommonException(CommonErrorCode.COMMON_400);
-		}
 	}
 }

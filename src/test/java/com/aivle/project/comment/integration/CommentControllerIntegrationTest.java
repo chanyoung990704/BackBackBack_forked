@@ -97,10 +97,10 @@ class CommentControllerIntegrationTest {
 		CommentCreateRequest request = new CommentCreateRequest();
 		request.setPostId(post.getId());
 		request.setContent("댓글 1");
-		commentsService.create(user.getId(), request);
+		commentsService.create(user, request);
 
 		request.setContent("댓글 2");
-		commentsService.create(user.getId(), request);
+		commentsService.create(user, request);
 
 		// when
 		MvcResult result = mockMvc.perform(get("/posts/{postId}/comments", post.getId())
@@ -127,7 +127,7 @@ class CommentControllerIntegrationTest {
 		CommentCreateRequest createRequest = new CommentCreateRequest();
 		createRequest.setPostId(post.getId());
 		createRequest.setContent("댓글 내용");
-		CommentResponse created = commentsService.create(user.getId(), createRequest);
+		CommentResponse created = commentsService.create(user, createRequest);
 
 		CommentUpdateRequest updateRequest = new CommentUpdateRequest();
 		updateRequest.setContent(" 수정 ");
@@ -159,7 +159,7 @@ class CommentControllerIntegrationTest {
 		CommentCreateRequest createRequest = new CommentCreateRequest();
 		createRequest.setPostId(post.getId());
 		createRequest.setContent("댓글 내용");
-		CommentResponse created = commentsService.create(user.getId(), createRequest);
+		CommentResponse created = commentsService.create(user, createRequest);
 
 		// when
 		mockMvc.perform(delete("/comments/{commentId}", created.id())

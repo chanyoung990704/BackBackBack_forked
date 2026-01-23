@@ -13,8 +13,6 @@ import com.aivle.project.post.entity.PostStatus;
 import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.post.repository.PostsRepository;
 import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.repository.UserRepository;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -29,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostService {
 
 	private final PostsRepository postsRepository;
-	private final UserRepository userRepository;
 	private final CategoriesRepository categoriesRepository;
 
 	@Transactional(readOnly = true)
@@ -48,10 +45,9 @@ public class PostService {
 		return PostResponse.from(post);
 	}
 
-	public PostResponse create(UUID userUuid, PostCreateRequest request) {
+	public PostResponse create(UserEntity user, PostCreateRequest request) {
 		// 사용자 및 카테고리 유효성을 확인한 후 새 게시글을 작성합니다.
-		UserEntity user = findUser(userUuid);
-		Long userId = user.getId();
+		Long userId = requireUserId(user);
 		CategoriesEntity category = findCategory(request.getCategoryId());
 
 		PostsEntity post = PostsEntity.create(
@@ -68,9 +64,9 @@ public class PostService {
 		return PostResponse.from(saved);
 	}
 
-	public PostResponse update(UUID userUuid, Long postId, PostUpdateRequest request) {
+	public PostResponse update(UserEntity user, Long postId, PostUpdateRequest request) {
 		// 작성자 본인 확인 후 요청된 필드를 수정합니다.
-		Long userId = findUser(userUuid).getId();
+		Long userId = requireUserId(user);
 		PostsEntity post = findPost(postId);
 		validateOwner(post, userId);
 
@@ -88,9 +84,9 @@ public class PostService {
 		return PostResponse.from(post);
 	}
 
-	public void delete(UUID userUuid, Long postId) {
+	public void delete(UserEntity user, Long postId) {
 		// 작성자 본인 확인 후 게시글을 삭제(소프트 삭제) 처리합니다.
-		Long userId = findUser(userUuid).getId();
+		Long userId = requireUserId(user);
 		PostsEntity post = findPost(postId);
 		validateOwner(post, userId);
 		post.markDeleted(userId);
@@ -98,11 +94,6 @@ public class PostService {
 
 	private PostsEntity findPost(Long postId) {
 		return postsRepository.findByIdAndDeletedAtIsNull(postId)
-			.orElseThrow(() -> new CommonException(CommonErrorCode.COMMON_404));
-	}
-
-	private UserEntity findUser(UUID userUuid) {
-		return userRepository.findByUuidAndDeletedAtIsNull(userUuid)
 			.orElseThrow(() -> new CommonException(CommonErrorCode.COMMON_404));
 	}
 
@@ -128,5 +119,12 @@ public class PostService {
 		if (content != null && content.isBlank()) {
 			throw new CommonException(CommonErrorCode.COMMON_400_VALIDATION);
 		}
+	}
+
+	private Long requireUserId(UserEntity user) {
+		if (user == null || user.getId() == null) {
+			throw new CommonException(CommonErrorCode.COMMON_403);
+		}
+		return user.getId();
 	}
 }

@@ -48,13 +48,13 @@ class CommentIntegrationTest {
 		CommentCreateRequest parentRequest = new CommentCreateRequest();
 		parentRequest.setPostId(post.getId());
 		parentRequest.setContent("댓글 내용");
-		CommentResponse parentResponse = commentsService.create(commenter.getId(), parentRequest);
+		CommentResponse parentResponse = commentsService.create(commenter, parentRequest);
 
 		CommentCreateRequest childRequest = new CommentCreateRequest();
 		childRequest.setPostId(post.getId());
 		childRequest.setParentId(parentResponse.id());
 		childRequest.setContent("대댓글 내용");
-		CommentResponse childResponse = commentsService.create(writer.getId(), childRequest);
+		CommentResponse childResponse = commentsService.create(writer, childRequest);
 
 		// then: 계층 구조가 올바르게 조회된다
 		List<CommentResponse> responses = commentsService.listByPost(post.getId());
@@ -84,19 +84,19 @@ class CommentIntegrationTest {
 		CommentCreateRequest parentRequest = new CommentCreateRequest();
 		parentRequest.setPostId(post.getId());
 		parentRequest.setContent("부모 댓글");
-		CommentResponse parent = commentsService.create(commenter.getId(), parentRequest);
+		CommentResponse parent = commentsService.create(commenter, parentRequest);
 
 		CommentCreateRequest replyOneRequest = new CommentCreateRequest();
 		replyOneRequest.setPostId(post.getId());
 		replyOneRequest.setParentId(parent.id());
 		replyOneRequest.setContent("대댓글 1");
-		CommentResponse replyOne = commentsService.create(writer.getId(), replyOneRequest);
+		CommentResponse replyOne = commentsService.create(writer, replyOneRequest);
 
 		CommentCreateRequest replyTwoRequest = new CommentCreateRequest();
 		replyTwoRequest.setPostId(post.getId());
 		replyTwoRequest.setParentId(parent.id());
 		replyTwoRequest.setContent("대댓글 2");
-		CommentResponse replyTwo = commentsService.create(writer.getId(), replyTwoRequest);
+		CommentResponse replyTwo = commentsService.create(writer, replyTwoRequest);
 
 		// when
 		List<CommentResponse> responses = commentsService.listByPost(post.getId());
