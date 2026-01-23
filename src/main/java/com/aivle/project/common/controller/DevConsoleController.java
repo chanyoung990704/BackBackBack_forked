@@ -17,4 +17,9 @@ public class DevConsoleController {
 	public String console() {
 		return "api-console";
 	}
+
+	@GetMapping("/file-console")
+	public String fileConsole() {
+		return "file-console";
+	}
 }

@@ -69,6 +69,7 @@ public class SecurityConfig {
 					"/api/auth/verify-email",
 					"/api/auth/resend-verification",
 					"/dev/console",
+					"/dev/file-console",
 					"/error"
 				).permitAll()
 				.requestMatchers("/dev/categories").permitAll()

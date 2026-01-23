@@ -63,6 +63,10 @@ dependencies {
 	// SpringDoc: 버전 명시 필요 (Boot 3.x 대응)
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
+	// AWS SDK (S3)
+	implementation platform('software.amazon.awssdk:bom:2.25.57')
+	implementation 'software.amazon.awssdk:s3'
+
 	// Annotation Processor
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 

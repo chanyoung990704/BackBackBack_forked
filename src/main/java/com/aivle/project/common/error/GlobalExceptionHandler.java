@@ -2,6 +2,7 @@ package com.aivle.project.common.error;
 
 import com.aivle.project.auth.exception.AuthException;
 import com.aivle.project.common.dto.ApiResponse;
+import com.aivle.project.file.exception.FileException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -33,6 +34,11 @@ public class GlobalExceptionHandler {
 
 	@ExceptionHandler(CommonException.class)
 	public ResponseEntity<ApiResponse<Void>> handleCommonException(CommonException ex, HttpServletRequest request) {
+		return buildResponse(ex.getErrorCode(), request.getRequestURI());
+	}
+
+	@ExceptionHandler(FileException.class)
+	public ResponseEntity<ApiResponse<Void>> handleFileException(FileException ex, HttpServletRequest request) {
 		return buildResponse(ex.getErrorCode(), request.getRequestURI());
 	}
 

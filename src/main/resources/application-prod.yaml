@@ -3,3 +3,20 @@ app:
     verification:
       skip: false
       base-url: ${APP_BASE_URL}
+  file:
+    storage:
+      s3:
+        bucket: ${AWS_S3_BUCKET}
+        region: ${AWS_REGION}
+        prefix: ${AWS_S3_PREFIX:uploads}
+    upload:
+      max-size: ${FILE_MAX_SIZE:10485760}
+      max-files: ${FILE_MAX_COUNT:5}
+      validate-signature: true
+      upload-dir: ${UPLOAD_DIR:/var/app/uploads}
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: ${FILE_MAX_SIZE:10MB}
+      max-request-size: ${REQUEST_MAX_SIZE:20MB}

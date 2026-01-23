@@ -30,3 +30,9 @@ app:
     verification:
       skip: true
       base-url: ${APP_BASE_URL:http://localhost:8080}
+  file:
+    upload:
+      max-size: 5242880
+      max-files: 3
+      validate-signature: false
+      upload-dir: C:/upload/files
