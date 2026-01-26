@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ko">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Dev Home</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			--ink: #121417;
+			--ink-soft: #2b2f3a;
+			--muted: #6b7280;
+			--accent: #ff6b3d;
+			--accent-2: #3d7bff;
+			--accent-3: #13b886;
+			--paper: #f6f1ea;
+			--card: #ffffff;
+			--line: #e6dfd5;
+			--shadow: 0 20px 50px rgba(18, 20, 23, 0.14);
+			--radius: 20px;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			font-family: "Space Grotesk", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+			color: var(--ink);
+			background: radial-gradient(circle at 20% 20%, #fff1df 0%, transparent 55%),
+				radial-gradient(circle at 80% 0%, #e7efff 0%, transparent 52%),
+				linear-gradient(180deg, #f8f3ea 0%, #efe8dd 100%);
+			min-height: 100vh;
+		}
+
+		.shell {
+			max-width: 1080px;
+			margin: 0 auto;
+			padding: 40px 24px 64px;
+			display: grid;
+			gap: 24px;
+		}
+
+		.header {
+			display: grid;
+			gap: 10px;
+			animation: rise 0.7s ease both;
+		}
+
+		.title {
+			font-family: "Newsreader", serif;
+			font-size: clamp(30px, 3.2vw, 48px);
+			margin: 0;
+			letter-spacing: -0.02em;
+		}
+
+		.subtitle {
+			margin: 0;
+			color: var(--muted);
+			font-size: 15px;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+			gap: 20px;
+		}
+
+		.card {
+			background: var(--card);
+			border-radius: var(--radius);
+			padding: 22px;
+			box-shadow: var(--shadow);
+			border: 1px solid var(--line);
+			animation: floatIn 0.7s ease both;
+		}
+
+		.card h2 {
+			margin: 0 0 14px;
+			font-size: 18px;
+		}
+
+		.link-list {
+			display: grid;
+			gap: 10px;
+		}
+
+		.link-card {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 12px 14px;
+			border-radius: 14px;
+			text-decoration: none;
+			border: 1px solid #e8e1d7;
+			color: var(--ink-soft);
+			background: #fbfaf8;
+			font-size: 14px;
+			font-weight: 600;
+		}
+
+		.link-card span {
+			color: var(--muted);
+			font-size: 12px;
+		}
+
+		.accent {
+			color: var(--accent);
+		}
+
+		.accent-2 {
+			color: var(--accent-2);
+		}
+
+		.accent-3 {
+			color: var(--accent-3);
+		}
+
+		@keyframes rise {
+			from { opacity: 0; transform: translateY(16px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		@keyframes floatIn {
+			from { opacity: 0; transform: translateY(18px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+	</style>
+</head>
+<body>
+	<div class="shell">
+		<header class="header">
+			<h1 class="title">Dev Home</h1>
+			<p class="subtitle">개발 환경에서 필요한 콘솔/문서 페이지를 한 곳에서 연결합니다.</p>
+		</header>
+
+		<section class="grid">
+			<article class="card">
+				<h2 class="accent">콘솔</h2>
+				<div class="link-list">
+					<a class="link-card" th:href="@{/dev/console}">
+						API 콘솔 <span>/dev/console</span>
+					</a>
+					<a class="link-card" th:href="@{/dev/file-console}">
+						파일 콘솔 <span>/dev/file-console</span>
+					</a>
+					<a class="link-card" th:href="@{/auth/console}">
+						인증 콘솔 <span>/auth/console</span>
+					</a>
+				</div>
+			</article>
+
+			<article class="card">
+				<h2 class="accent-2">문서 & 진단</h2>
+				<div class="link-list">
+					<a class="link-card" th:href="@{/swagger-ui/index.html}">
+						Swagger UI <span>/swagger-ui/index.html</span>
+					</a>
+					<a class="link-card" th:href="@{/api-docs}">
+						OpenAPI JSON <span>/api-docs</span>
+					</a>
+					<a class="link-card" th:href="@{/h2-console}">
+						H2 Console <span>/h2-console</span>
+					</a>
+				</div>
+			</article>
+
+			<article class="card">
+				<h2 class="accent-3">참고</h2>
+				<div class="link-list">
+					<a class="link-card" th:href="@{/swagger-ui.html}">
+						Swagger UI(legacy) <span>/swagger-ui.html</span>
+					</a>
+				</div>
+			</article>
+		</section>
+	</div>
+</body>
+</html>

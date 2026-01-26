@@ -6,6 +6,9 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-01-26 | 작업: CodeDeploy 재시작 안정화 | 결과: stop-server 프로세스 탐지 보강 및 start-server에서 재시작 보장 | 이슈: 없음
+- 2026-01-26 | 작업: dev 홈 페이지 및 CodeDeploy 실행 명령 정비 | 결과: 루트 페이지 연결 화면 추가, dev 보안 허용, start-server 실행 커맨드 변경 | 이슈: 없음
+- 2026-01-26 | 작업: CodeBuild gradlew 실행 권한 보정 | 결과: buildspec에 chmod +x gradlew 추가 | 이슈: 없음
 - 2026-01-25 | 작업: SpringDoc 버전 재업데이트 | 결과: 2.6.0 -> 2.8.15로 변경하여 Spring 6.2 호환성 확보 | 이슈: 확인 중
 - 2026-01-25 | 작업: SpringDoc 버전 업그레이드 | 결과: 2.3.0 -> 2.6.0로 변경하여 OpenAPI 생성 오류 대응 | 이슈: 확인 중
 - 2026-01-25 | 작업: 작업 에이전트 워크플로우 문서화 | 결과: 단위 작업/테스트/커밋/종합 테스트 절차 명시 | 이슈: 없음

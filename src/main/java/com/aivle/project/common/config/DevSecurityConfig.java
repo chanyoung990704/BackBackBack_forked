@@ -29,4 +29,17 @@ public class DevSecurityConfig {
 
         return http.build();
     }
+
+    @Bean
+    @Order(1)
+    public SecurityFilterChain devHomeSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/")
+            .authorizeHttpRequests(authorize -> authorize
+                .anyRequest().permitAll()
+            )
+            .csrf(AbstractHttpConfigurer::disable);
+
+        return http.build();
+    }
 }

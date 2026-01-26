@@ -1,0 +1,21 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      java: corretto21
+  pre_build:
+    commands:
+      - chmod +x gradlew
+      - ./gradlew --version
+      - chmod +x scripts/*.sh
+  build:
+    commands:
+      - ./gradlew clean build -x test
+
+artifacts:
+  files:
+    - appspec.yml
+    - build/libs/*.jar
+    - docker-compose*.yml
+    - scripts/**/*
