@@ -1,5 +1,6 @@
 package com.aivle.project.common.config;
 
+import com.aivle.project.auth.service.TurnstileService;
 import com.aivle.project.auth.token.JwtKeyProvider;
 import com.aivle.project.auth.token.JwtProperties;
 import jakarta.mail.Session;
@@ -47,6 +48,16 @@ public class TestSecurityConfig {
 			.thenAnswer(invocation -> new MimeMessage(Session.getDefaultInstance(new Properties())));
 		// 테스트에서는 실제 메일 발송을 막기 위해 모킹한다.
 		return mailSender;
+	}
+
+	@Bean
+	@Primary
+	public TurnstileService testTurnstileService() {
+		TurnstileService turnstileService = Mockito.mock(TurnstileService.class);
+		// 기본적으로 Turnstile 검증을 통과하도록 설정
+		Mockito.when(turnstileService.verifyTokenSync(Mockito.anyString(), Mockito.any()))
+			.thenReturn(true);
+		return turnstileService;
 	}
 
 	private static KeyPair generateKeyPair() {

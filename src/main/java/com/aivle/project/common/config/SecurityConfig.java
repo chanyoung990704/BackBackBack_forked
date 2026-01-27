@@ -62,6 +62,12 @@ public class SecurityConfig {
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(authorize -> authorize
 				.requestMatchers(
+					"/favicon.ico",
+					"/css/**",
+					"/js/**",
+					"/images/**",
+					"/webjars/**",
+					"/assets/**",
 					"/api-docs",
 					"/api-docs/**",
 					"/swagger-ui.html",
@@ -80,6 +86,18 @@ public class SecurityConfig {
 				.requestMatchers(HttpMethod.GET, "/posts/**").permitAll()
 				.anyRequest().authenticated()
 			)
+			.headers(headers -> headers.contentSecurityPolicy(csp -> csp
+				.policyDirectives(
+					"script-src 'self' https://challenges.cloudflare.com; "
+						+ "script-src-elem 'self' https://challenges.cloudflare.com; "
+						+ "script-src-attr 'self'; "
+						+ "frame-src https://challenges.cloudflare.com; "
+						+ "connect-src 'self' https://challenges.cloudflare.com; "
+						+ "object-src 'none'; "
+						+ "base-uri 'self'"
+				)
+				.reportOnly()
+			))
 			.oauth2ResourceServer(oauth2 -> oauth2
 				.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
 				.authenticationEntryPoint(authenticationEntryPoint)

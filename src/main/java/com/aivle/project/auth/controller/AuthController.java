@@ -74,8 +74,11 @@ public class AuthController {
 		@ApiResponse(responseCode = "400", description = "요청값 오류"),
 		@ApiResponse(responseCode = "500", description = "서버 오류")
 	})
-	public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
-		return ResponseEntity.status(HttpStatus.CREATED).body(signUpService.signup(request));
+	public ResponseEntity<SignupResponse> signup(
+			@Valid @RequestBody SignupRequest request,
+			@Parameter(hidden = true) HttpServletRequest httpServletRequest) {
+		String clientIp = resolveIp(httpServletRequest);
+		return ResponseEntity.status(HttpStatus.CREATED).body(signUpService.signup(request, clientIp));
 	}
 
 	private String resolveIp(HttpServletRequest request) {

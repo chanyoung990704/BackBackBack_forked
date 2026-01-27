@@ -6,6 +6,9 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-01-27 | 작업: SecurityConfig 정적 리소스 허용 및 CSP 헤더 추가 | 결과: favicon/정적 경로 permitAll, Turnstile 도메인 포함 CSP를 Report-Only로 설정 | 이슈: 없음
+- 2026-01-27 | 작업: Turnstile 디버그 로그 강화 | 결과: 검증 요청/응답 상세 로그 추가 및 dev에서 debug 활성화 | 이슈: 없음
+- 2026-01-27 | 작업: dev Turnstile 콘솔/회원가입 위젯 추가 및 검증 API 연결 | 결과: auth/turnstile 콘솔에서 토큰 발급·검증·회원가입까지 확인 가능, dev 키 기본값 제거 | 이슈: 없음
 - 2026-01-26 | 작업: CodeDeploy 재시작 안정화 | 결과: stop-server 프로세스 탐지 보강 및 start-server에서 재시작 보장 | 이슈: 없음
 - 2026-01-26 | 작업: dev 홈 페이지 및 CodeDeploy 실행 명령 정비 | 결과: 루트 페이지 연결 화면 추가, dev 보안 허용, start-server 실행 커맨드 변경 | 이슈: 없음
 - 2026-01-26 | 작업: CodeBuild gradlew 실행 권한 보정 | 결과: buildspec에 chmod +x gradlew 추가 | 이슈: 없음

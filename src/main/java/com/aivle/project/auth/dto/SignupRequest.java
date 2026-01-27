@@ -41,6 +41,10 @@ public class SignupRequest {
 	@Schema(description = "전화번호", example = "01012345678")
 	private String phone;
 
+	@NotBlank(message = "보안 검증이 필요합니다")
+	@Schema(description = "Cloudflare Turnstile 토큰", example = "0.abc123...")
+	private String turnstileToken;
+
 	@JsonIgnore
 	@AssertTrue(message = "비밀번호에 전화번호를 포함할 수 없습니다.")
 	public boolean isPasswordValid() {

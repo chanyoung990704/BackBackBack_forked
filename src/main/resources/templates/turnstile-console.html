@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Turnstile Console</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,600&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			--ink: #10131a;
+			--ink-soft: #2f3340;
+			--muted: #6f7484;
+			--accent: #ff6b3d;
+			--accent-2: #3d7bff;
+			--paper: #f5f0e8;
+			--card: #ffffff;
+			--line: #e7e1d6;
+			--shadow: 0 20px 50px rgba(16, 19, 26, 0.16);
+			--radius: 20px;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			font-family: "Space Grotesk", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+			color: var(--ink);
+			background: radial-gradient(circle at 20% 20%, #fff1df 0%, transparent 55%),
+				radial-gradient(circle at 80% 0%, #e7efff 0%, transparent 52%),
+				linear-gradient(180deg, #f8f3ea 0%, #efe8dd 100%);
+			min-height: 100vh;
+		}
+
+		.shell {
+			max-width: 1100px;
+			margin: 0 auto;
+			padding: 40px 24px 64px;
+			display: grid;
+			gap: 24px;
+		}
+
+		.header {
+			display: grid;
+			gap: 8px;
+			animation: rise 0.7s ease both;
+		}
+
+		.title {
+			font-family: "Newsreader", serif;
+			font-size: clamp(28px, 3vw, 44px);
+			margin: 0;
+			letter-spacing: -0.02em;
+		}
+
+		.subtitle {
+			margin: 0;
+			color: var(--muted);
+			font-size: 15px;
+		}
+
+		.grid {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+			gap: 20px;
+		}
+
+		.card {
+			background: var(--card);
+			border-radius: var(--radius);
+			padding: 22px;
+			box-shadow: var(--shadow);
+			border: 1px solid var(--line);
+			animation: floatIn 0.7s ease both;
+		}
+
+		.card h2 {
+			margin: 0 0 14px;
+			font-size: 18px;
+		}
+
+		.badge {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 6px 12px;
+			border-radius: 999px;
+			background: #fff4e6;
+			color: #b9501a;
+			font-size: 12px;
+			width: fit-content;
+		}
+
+		label {
+			font-size: 13px;
+			color: var(--muted);
+			display: block;
+			margin-bottom: 6px;
+		}
+
+		input,
+		textarea {
+			width: 100%;
+			padding: 12px 14px;
+			border-radius: 12px;
+			border: 1px solid #e8e2d8;
+			font-family: inherit;
+			font-size: 14px;
+			background: #fbfaf8;
+			color: var(--ink);
+		}
+
+		textarea {
+			min-height: 140px;
+			resize: vertical;
+		}
+
+		.row {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+			gap: 12px;
+		}
+
+		.actions {
+			display: flex;
+			gap: 10px;
+			flex-wrap: wrap;
+			margin-top: 14px;
+		}
+
+		button {
+			border: none;
+			padding: 12px 16px;
+			border-radius: 999px;
+			font-family: inherit;
+			font-weight: 600;
+			cursor: pointer;
+			transition: transform 0.2s ease, box-shadow 0.2s ease;
+		}
+
+		button.primary {
+			background: var(--accent);
+			color: #fff;
+			box-shadow: 0 12px 30px rgba(255, 107, 61, 0.35);
+		}
+
+		button.ghost {
+			background: #f2ece3;
+			color: var(--ink-soft);
+		}
+
+		button:disabled {
+			opacity: 0.6;
+			cursor: not-allowed;
+		}
+
+		.turnstile-box {
+			padding: 14px;
+			border-radius: 16px;
+			border: 1px dashed #e5d9cb;
+			background: #fffdfa;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 120px;
+		}
+
+		.log {
+			font-family: "Space Grotesk", sans-serif;
+			font-size: 13px;
+			background: #0f1117;
+			color: #f3f3f3;
+			padding: 16px;
+			border-radius: 16px;
+			min-height: 180px;
+			white-space: pre-wrap;
+		}
+
+		.footer-note {
+			font-size: 12px;
+			color: var(--muted);
+			margin-top: 6px;
+		}
+
+		.site-key {
+			color: var(--ink-soft);
+			font-size: 13px;
+			word-break: break-all;
+		}
+
+		@keyframes rise {
+			from { opacity: 0; transform: translateY(12px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		@keyframes floatIn {
+			from { opacity: 0; transform: translateY(16px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		@media (max-width: 720px) {
+			.shell {
+				padding: 28px 18px 40px;
+			}
+
+			.card {
+				padding: 18px;
+			}
+		}
+	</style>
+</head>
+<body th:attr="data-site-key=${siteKey}">
+	<div class="shell">
+		<header class="header">
+			<span class="badge">dev profile 전용</span>
+			<h1 class="title">Turnstile Console</h1>
+			<p class="subtitle">실제 dev 환경에서 Turnstile 위젯 발급과 서버 검증을 확인합니다.</p>
+		</header>
+
+		<section class="grid">
+			<div class="card" style="animation-delay: 0.05s;">
+				<h2>위젯 발급</h2>
+				<p class="footer-note">Site Key: <span class="site-key" th:text="${#strings.isEmpty(siteKey) ? '설정 필요' : siteKey}">설정 필요</span></p>
+				<div class="turnstile-box">
+					<div class="cf-turnstile"
+						data-callback="turnstileCallback"
+						data-expired-callback="turnstileExpired"
+						data-error-callback="turnstileError"
+						th:attr="data-sitekey=${siteKey}">
+					</div>
+				</div>
+				<div class="actions">
+					<button class="primary" type="button" id="verify-btn">검증 요청</button>
+					<button class="ghost" type="button" id="reset-btn">위젯 리셋</button>
+				</div>
+				<p class="footer-note">/auth/console/turnstile/verify로 서버 검증을 실행합니다.</p>
+			</div>
+
+			<div class="card" style="animation-delay: 0.08s;">
+				<h2>발급 토큰</h2>
+				<label for="token">Turnstile 응답 토큰</label>
+				<textarea id="token" name="token" placeholder="여기에 발급된 토큰이 표시됩니다." spellcheck="false"></textarea>
+				<p class="footer-note">필요하면 토큰을 복사해 다른 API 요청에 사용할 수 있습니다.</p>
+			</div>
+
+			<div class="card" style="animation-delay: 0.1s;">
+				<h2>회원가입 요청</h2>
+				<form id="signup-form">
+					<div class="row">
+						<div>
+							<label for="signup-email">이메일</label>
+							<input id="signup-email" name="email" type="email" placeholder="new@example.com" required>
+						</div>
+						<div>
+							<label for="signup-password">비밀번호</label>
+							<input id="signup-password" name="password" type="password" placeholder="8자 이상" required>
+						</div>
+					</div>
+					<div class="row" style="margin-top: 12px;">
+						<div>
+							<label for="signup-name">이름</label>
+							<input id="signup-name" name="name" type="text" placeholder="홍길동" required>
+						</div>
+						<div>
+							<label for="signup-phone">전화번호</label>
+							<input id="signup-phone" name="phone" type="text" placeholder="01012345678">
+						</div>
+					</div>
+					<div class="actions">
+						<button class="primary" type="submit" id="signup-btn">회원가입 요청</button>
+						<button class="ghost" type="button" id="signup-clear-btn">필드 초기화</button>
+					</div>
+				</form>
+				<p class="footer-note">현재 발급된 Turnstile 토큰을 함께 전송합니다.</p>
+			</div>
+
+			<div class="card" style="animation-delay: 0.12s;">
+				<h2>검증 결과</h2>
+				<pre class="log" id="log">대기 중...</pre>
+			</div>
+		</section>
+	</div>
+
+	<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+	<script>
+		const logEl = document.getElementById("log");
+		const tokenField = document.getElementById("token");
+		const verifyButton = document.getElementById("verify-btn");
+		const resetButton = document.getElementById("reset-btn");
+		const signupForm = document.getElementById("signup-form");
+		const signupButton = document.getElementById("signup-btn");
+		const signupClearButton = document.getElementById("signup-clear-btn");
+		const siteKey = document.body.dataset.siteKey || "";
+
+		const setLog = (payload) => {
+			logEl.textContent = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+		};
+
+		window.turnstileCallback = (token) => {
+			tokenField.value = token;
+			setLog("토큰 발급 완료");
+		};
+
+		window.turnstileExpired = () => {
+			tokenField.value = "";
+			setLog("토큰이 만료되었습니다. 다시 발급해주세요.");
+		};
+
+		window.turnstileError = () => {
+			setLog("Turnstile 위젯 오류가 발생했습니다.");
+		};
+
+		verifyButton.addEventListener("click", async () => {
+			const token = tokenField.value.trim();
+			if (!token) {
+				setLog("토큰이 없습니다. 위젯에서 토큰을 먼저 발급해주세요.");
+				return;
+			}
+			try {
+				const response = await fetch("/auth/console/turnstile/verify", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ token })
+				});
+				const data = await response.json();
+				setLog({ status: response.status, data });
+			} catch (error) {
+				setLog({ error: error.message });
+			}
+		});
+
+		resetButton.addEventListener("click", () => {
+			if (window.turnstile && typeof window.turnstile.reset === "function") {
+				window.turnstile.reset();
+			}
+			tokenField.value = "";
+			setLog("위젯을 초기화했습니다.");
+		});
+
+		signupForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			const token = tokenField.value.trim();
+			if (!token) {
+				setLog("토큰이 없습니다. 위젯에서 토큰을 먼저 발급해주세요.");
+				return;
+			}
+			const payload = {
+				email: document.getElementById("signup-email").value,
+				password: document.getElementById("signup-password").value,
+				name: document.getElementById("signup-name").value,
+				phone: document.getElementById("signup-phone").value,
+				turnstileToken: token
+			};
+			try {
+				const response = await fetch("/auth/signup", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload)
+				});
+				const data = await response.json();
+				setLog({ status: response.status, data });
+			} catch (error) {
+				setLog({ error: error.message });
+			}
+		});
+
+		signupClearButton.addEventListener("click", () => {
+			document.getElementById("signup-email").value = "";
+			document.getElementById("signup-password").value = "";
+			document.getElementById("signup-name").value = "";
+			document.getElementById("signup-phone").value = "";
+			setLog("회원가입 입력값을 초기화했습니다.");
+		});
+
+		if (!siteKey) {
+			setLog("turnstile.site-key 설정이 비어 있습니다. application-dev.yaml 또는 환경 변수를 확인해주세요.");
+			verifyButton.disabled = true;
+			resetButton.disabled = true;
+			if (signupButton) {
+				signupButton.disabled = true;
+			}
+		}
+	</script>
+</body>
+</html>

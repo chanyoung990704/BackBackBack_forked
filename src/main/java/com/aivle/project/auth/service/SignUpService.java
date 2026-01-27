@@ -27,6 +27,7 @@ public class SignUpService {
 
 	private final UserDomainService userDomainService;
 	private final EmailVerificationService emailVerificationService;
+	private final TurnstileService turnstileService;
 	private final PasswordEncoder passwordEncoder;
 	private final AuthMapper authMapper;
 
@@ -34,8 +35,16 @@ public class SignUpService {
 	private boolean skipEmailVerification;
 
 	@Transactional
-	public SignupResponse signup(SignupRequest request) {
+	public SignupResponse signup(SignupRequest request, String remoteIp) {
 		log.info("Attempting signup for email: {}", request.getEmail());
+
+		// 1. Turnstile 봇 검증
+		if (!turnstileService.verifyTokenSync(request.getTurnstileToken(), remoteIp)) {
+			log.warn("Signup rejected: Turnstile verification failed for email: {}", request.getEmail());
+			throw new AuthException(AuthErrorCode.TURNSTILE_VERIFICATION_FAILED);
+		}
+
+		// 2. 이메일 중복 체크
 		if (userDomainService.existsByEmail(request.getEmail())) {
 			log.warn("Signup failed: email {} already exists", request.getEmail());
 			throw new AuthException(AuthErrorCode.EMAIL_ALREADY_EXISTS);

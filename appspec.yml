@@ -11,18 +11,21 @@ hooks:
     - location: scripts/setup-server.sh
       timeout: 300
       runas: root
+    - location: scripts/install-systemd.sh
+      timeout: 120
+      runas: root
     - location: scripts/stop-server.sh
       timeout: 60
-      runas: ec2-user
+      runas: root
   AfterInstall:
-    - location: scripts/ensure-env.sh
-      timeout: 60
-      runas: ec2-user
+    - location: scripts/install-app.sh
+      timeout: 120
+      runas: root
   ApplicationStart:
     - location: scripts/start-server.sh
       timeout: 120
-      runas: ec2-user
+      runas: root
   ValidateService:
     - location: scripts/health-check.sh
       timeout: 60
-      runas: ec2-user
+      runas: root

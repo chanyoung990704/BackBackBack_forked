@@ -1,20 +1,29 @@
 package com.aivle.project.auth.controller;
 
+import com.aivle.project.auth.service.TurnstileService;
 import com.aivle.project.common.dto.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.util.StringUtils;
 
 /**
  * 로그인/로그아웃 검증용 콘솔 페이지 (dev 전용).
@@ -23,12 +32,44 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 @RequestMapping("/auth/console")
 @Tag(name = "개발", description = "개발용 인증 콘솔 API")
+@RequiredArgsConstructor
 public class AuthConsoleController {
+
+	private final TurnstileService turnstileService;
+
+	@Value("${turnstile.site-key:}")
+	private String turnstileSiteKey;
 
 	@GetMapping
 	@Operation(hidden = true)
-	public String console() {
+	public String console(Model model) {
+		model.addAttribute("siteKey", turnstileSiteKey);
 		return "auth-console";
+	}
+
+	@GetMapping("/turnstile")
+	@Operation(hidden = true)
+	public String turnstileConsole(Model model) {
+		model.addAttribute("siteKey", turnstileSiteKey);
+		return "turnstile-console";
+	}
+
+	@PostMapping("/turnstile/verify")
+	@ResponseBody
+	@Operation(hidden = true)
+	public ApiResponse<Map<String, Object>> verifyTurnstile(
+		@RequestBody(required = false) Map<String, String> payload,
+		@Parameter(hidden = true) HttpServletRequest request
+	) {
+		String token = payload == null ? null : payload.get("token");
+		String clientIp = resolveIp(request);
+		boolean verified = turnstileService.verifyTokenSync(token, clientIp);
+
+		Map<String, Object> response = new LinkedHashMap<>();
+		response.put("verified", verified);
+		response.put("tokenPreview", maskToken(token));
+		response.put("remoteIp", clientIp);
+		return ApiResponse.ok(response);
 	}
 
 	@GetMapping("/claims")
@@ -59,5 +100,21 @@ public class AuthConsoleController {
 			return null;
 		}
 		return instant.toString();
+	}
+
+	private String resolveIp(HttpServletRequest request) {
+		String forwarded = request.getHeader("X-Forwarded-For");
+		if (StringUtils.hasText(forwarded)) {
+			return forwarded.split(",")[0].trim();
+		}
+		return request.getRemoteAddr();
+	}
+
+	private String maskToken(String token) {
+		if (!StringUtils.hasText(token)) {
+			return null;
+		}
+		int prefixLength = Math.min(10, token.length());
+		return token.substring(0, prefixLength) + "...";
 	}
 }

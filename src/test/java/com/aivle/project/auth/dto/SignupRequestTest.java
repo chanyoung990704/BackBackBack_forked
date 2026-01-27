@@ -109,6 +109,7 @@ class SignupRequestTest {
 		request.setEmail("test@example.com");
 		request.setName("테스터");
 		request.setPhone("01011112222");
+		request.setTurnstileToken("test-turnstile-token");
 		return request;
 	}
 }

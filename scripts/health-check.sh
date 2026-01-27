@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_DIR="${APP_DIR:-/home/ec2-user/app/BackBackBack}"
-PID_FILE="${PID_FILE:-$APP_DIR/app.pid}"
+APP_NAME="${APP_NAME:-backbackback}"
+ENV_FILE="${ENV_FILE:-/etc/${APP_NAME}/${APP_NAME}.env}"
 
-if [ -f "$APP_DIR/.env" ]; then
+if [ -f "$ENV_FILE" ]; then
   set -a
-  # shellcheck disable=SC1091
-  . "$APP_DIR/.env"
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
   set +a
 fi
 
@@ -22,15 +22,14 @@ if [ -n "$HEALTHCHECK_URL" ]; then
   exit 0
 fi
 
-if [ ! -f "$PID_FILE" ]; then
-  echo "[ERROR] PID 파일이 없습니다." >&2
+if command -v systemctl >/dev/null 2>&1; then
+  if systemctl is-active --quiet "$APP_NAME"; then
+    echo "[INFO] 서버 상태 정상 (systemd: $APP_NAME)"
+    exit 0
+  fi
+  echo "[ERROR] systemd 서비스가 비활성 상태입니다: $APP_NAME" >&2
   exit 1
 fi
 
-PID="$(cat "$PID_FILE")"
-if ! kill -0 "$PID" 2>/dev/null; then
-  echo "[ERROR] 프로세스가 실행 중이 아닙니다. (pid: $PID)" >&2
-  exit 1
-fi
-
-echo "[INFO] 서버 상태 정상 (pid: $PID)"
+echo "[ERROR] systemctl을 찾지 못했습니다." >&2
+exit 1

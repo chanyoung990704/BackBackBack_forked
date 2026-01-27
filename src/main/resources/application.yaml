@@ -76,3 +76,9 @@ jwt:
   legacy:
     role-prefix-support-enabled: ${JWT_LEGACY_ROLE_PREFIX_SUPPORT_ENABLED:true}
     role-prefix-accept-until-epoch: ${JWT_LEGACY_ROLE_PREFIX_ACCEPT_UNTIL_EPOCH:0} # 0이면 무기한 허용
+
+turnstile:
+  secret-key: ${TURNSTILE_SECRET_KEY:1x0000000000000000000000000000000AA} # 테스트용 기본값
+  site-key: ${TURNSTILE_SITE_KEY:1x00000000000000000000AA} # 테스트용 기본값
+  verify-url: ${TURNSTILE_VERIFY_URL:https://challenges.cloudflare.com/turnstile/v0/siteverify}
+  timeout: ${TURNSTILE_TIMEOUT:5000} # API 호출 타임아웃 (ms)

@@ -36,3 +36,8 @@ app:
       max-files: 3
       validate-signature: false
       upload-dir: ./upload/files
+
+turnstile:
+  secret-key: ${TURNSTILE_SECRET_KEY:}
+  site-key: ${TURNSTILE_SITE_KEY:}
+  debug-enabled: true

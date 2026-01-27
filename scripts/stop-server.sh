@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+APP_NAME="${APP_NAME:-backbackback}"
+
+if command -v systemctl >/dev/null 2>&1; then
+  if systemctl list-unit-files --type=service | awk '{print $1}' | grep -qx "${APP_NAME}.service"; then
+    systemctl stop "$APP_NAME"
+    echo "[INFO] 서버 종료 완료 (systemd: $APP_NAME)"
+    exit 0
+  fi
+fi
+
 APP_DIR="${APP_DIR:-/home/ec2-user/app/BackBackBack}"
 PID_FILE="${PID_FILE:-$APP_DIR/app.pid}"
 JAR_PATH="${JAR_PATH:-$APP_DIR/build/libs/project-0.0.1-SNAPSHOT.jar}"
@@ -38,4 +48,4 @@ if kill -0 "$PID" 2>/dev/null; then
 fi
 
 rm -f "$PID_FILE"
-echo "[INFO] 서버 종료 완료"
+echo "[INFO] 서버 종료 완료 (legacy)"

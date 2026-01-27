@@ -44,3 +44,5 @@ fi
 usermod -aG docker ec2-user || true
 mkdir -p "$APP_DIR"
 chown -R ec2-user:ec2-user "$APP_DIR"
+mkdir -p /opt/app
+chown ec2-user:ec2-user /opt/app
