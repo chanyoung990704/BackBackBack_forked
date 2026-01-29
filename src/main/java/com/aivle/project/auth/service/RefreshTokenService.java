@@ -88,6 +88,12 @@ public class RefreshTokenService {
 		return cache;
 	}
 
+	public void revokeToken(String refreshToken) {
+		RefreshTokenCache cache = loadValidToken(refreshToken);
+		revokeRedis(refreshToken, cache.userId());
+		revokeEntity(refreshToken);
+	}
+
 	private void storeRedis(RefreshTokenCache cache) {
 		try {
 			String json = objectMapper.writeValueAsString(cache);

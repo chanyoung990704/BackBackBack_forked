@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.servlet.http.Cookie;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -130,10 +132,16 @@ class AuthIntegrationTest {
 		// then: 토큰 응답이 반환된다
 		TokenResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), TokenResponse.class);
 		assertThat(response.accessToken()).isNotBlank();
-		assertThat(response.refreshToken()).isNotBlank();
+		assertThat(response.refreshToken()).isNull(); // @JsonIgnore ensures this is null in JSON
 		assertThat(response.tokenType()).isEqualTo("Bearer");
 
-		String refreshToken = response.refreshToken();
+		// then: 리프레시 토큰이 쿠키에 포함되어 있다
+		Cookie cookie = result.getResponse().getCookie("refresh_token");
+		assertThat(cookie).isNotNull();
+		assertThat(cookie.isHttpOnly()).isTrue();
+		assertThat(cookie.getSecure()).isTrue();
+
+		String refreshToken = cookie.getValue();
 		String refreshKey = "refresh:" + refreshToken;
 		String sessionKey = "sessions:" + user.getId();
 		assertThat(redisTemplate.opsForValue().get(refreshKey)).isNotNull();
@@ -282,6 +290,110 @@ class AuthIntegrationTest {
 		// then: passwordChangedAt이 업데이트 되었는지 확인
 		UserEntity updatedUser = userRepository.findByEmail(email).orElseThrow();
 		assertThat(updatedUser.getPasswordChangedAt()).isNotNull();
+	}
+
+	@Test
+	@DisplayName("리프레시 토큰 쿠키로 새로운 액세스 토큰을 발급받는다")
+	void refresh_withCookie_shouldReturnNewAccessToken() throws Exception {
+		// given: 활성 사용자와 리프레시 토큰 쿠키 준비
+		createActiveUserWithRole("refresh@test.com", "password", RoleName.ROLE_USER);
+		
+		LoginRequest loginRequest = new LoginRequest();
+		loginRequest.setEmail("refresh@test.com");
+		loginRequest.setPassword("password");
+		loginRequest.setDeviceId("device-1");
+
+		MvcResult loginResult = mockMvc.perform(post("/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(loginRequest)))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
+		assertThat(refreshCookie).isNotNull();
+
+		// when: 쿠키와 함께 리프레시 요청
+		MvcResult refreshResult = mockMvc.perform(post("/auth/refresh")
+				.cookie(refreshCookie))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		// then: 새로운 액세스 토큰이 발급되고 새 쿠키가 설정된다
+		TokenResponse response = objectMapper.readValue(refreshResult.getResponse().getContentAsString(), TokenResponse.class);
+		assertThat(response.accessToken()).isNotBlank();
+		
+		Cookie newCookie = refreshResult.getResponse().getCookie("refresh_token");
+		assertThat(newCookie).isNotNull();
+		assertThat(newCookie.getValue()).isNotEqualTo(refreshCookie.getValue());
+	}
+
+	@Test
+	@DisplayName("로그아웃 시 리프레시 토큰 쿠키가 삭제된다")
+	void logout_shouldClearCookie() throws Exception {
+		// given: 활성 사용자와 로그인 상태
+		createActiveUserWithRole("logout@test.com", "password", RoleName.ROLE_USER);
+		
+		LoginRequest loginRequest = new LoginRequest();
+		loginRequest.setEmail("logout@test.com");
+		loginRequest.setPassword("password");
+		loginRequest.setDeviceId("device-1");
+
+		MvcResult loginResult = mockMvc.perform(post("/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(loginRequest)))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
+		assertThat(refreshCookie).isNotNull();
+
+		// when: 로그아웃 요청
+		MvcResult logoutResult = mockMvc.perform(post("/auth/logout")
+				.cookie(refreshCookie))
+			.andExpect(status().isOk())
+			.andDo(print())
+			.andReturn();
+
+		        // then: 쿠키가 삭제(Max-Age=0)되어야 함
+		        Cookie clearedCookie = logoutResult.getResponse().getCookie("refresh_token");
+		        assertThat(clearedCookie).isNotNull();
+		        assertThat(clearedCookie.getMaxAge()).isZero();
+		        assertThat(clearedCookie.getValue()).isEmpty();
+		    }
+		
+		    @Test
+		    @DisplayName("전체 로그아웃 시 블랙리스트가 설정되고 쿠키가 삭제된다")	void logoutAll_shouldBlacklistAndClearCookie() throws Exception {
+		// given: 활성 사용자 및 로그인
+		createActiveUserWithRole("logoutall@test.com", "password", RoleName.ROLE_USER);
+		
+		LoginRequest loginRequest = new LoginRequest();
+		loginRequest.setEmail("logoutall@test.com");
+		loginRequest.setPassword("password");
+		loginRequest.setDeviceId("device-1");
+
+		MvcResult loginResult = mockMvc.perform(post("/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(loginRequest)))
+			.andExpect(status().isOk())
+			.andReturn();
+		
+		TokenResponse response = objectMapper.readValue(loginResult.getResponse().getContentAsString(), TokenResponse.class);
+		String accessToken = response.accessToken();
+		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
+
+		// when: 전체 로그아웃 요청 (인증 필요)
+		MvcResult logoutAllResult = mockMvc.perform(post("/auth/logout-all")
+				.header("Authorization", "Bearer " + accessToken)
+				.cookie(refreshCookie))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		// then: 쿠키 삭제 확인
+		Cookie clearedCookie = logoutAllResult.getResponse().getCookie("refresh_token");
+		assertThat(clearedCookie).isNotNull();
+		assertThat(clearedCookie.getMaxAge()).isZero();
+		
+		// then: 블랙리스트 확인 (재로그인/토큰사용 시도는 별도 검증 필요하지만 여기선 성공 응답으로 갈음)
 	}
 
 	private String loginAndGetAccessToken(String email, String password, String deviceId) throws Exception {

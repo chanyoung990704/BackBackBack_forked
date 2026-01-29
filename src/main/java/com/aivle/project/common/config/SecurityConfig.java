@@ -75,6 +75,7 @@ public class SecurityConfig {
 					"/openapi/**",
 					"/auth/login",
 					"/auth/refresh",
+					"/auth/logout",
 					"/auth/signup",
 					"/auth/console/**",
 					"/api/auth/verify-email",

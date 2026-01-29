@@ -1,3 +1,4 @@
+# UPDATED based on described flow: company search -> confirm(add+cache/model) -> overview(detail aggregation) -> update-requests
 openapi: 3.0.3
 info:
   title: SENTINEL PoC API
@@ -6,16 +7,16 @@ servers:
   - url: /api
 security:
   - bearerAuth: []
-
 tags:
   - name: Dashboard
-  - name: Partners
+  - name: Companies
   - name: Decision
-
+  - name: Auth
 paths:
   /dashboard/summary:
     get:
-      tags: [Dashboard]
+      tags:
+        - Dashboard
       summary: 대시보드 KPI 4종 요약
       parameters:
         - $ref: '#/components/parameters/RangeParam'
@@ -26,10 +27,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseDashboardSummary'
-
   /dashboard/performance-trend:
     get:
-      tags: [Dashboard]
+      tags:
+        - Dashboard
       summary: 파트너 성과 추이(종합 점수) 시계열
       parameters:
         - $ref: '#/components/parameters/RangeParam'
@@ -45,10 +46,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseTimeSeries'
-
   /dashboard/risk-distribution:
     get:
-      tags: [Dashboard]
+      tags:
+        - Dashboard
       summary: 위험 분포(도넛)
       parameters:
         - $ref: '#/components/parameters/RangeParam'
@@ -59,43 +60,57 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseRiskDistribution'
-
-  /partners:
+  /companies:
     get:
-      tags: [Partners]
+      tags:
+        - Companies
       summary: 협력사 목록(검색/필터/페이지)
       parameters:
         - in: query
           name: q
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: sector
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: risk
           schema:
             type: string
-            enum: [SAFE, WARN, RISK]
+            enum:
+              - SAFE
+              - WARN
+              - RISK
         - in: query
           name: page
-          schema: { type: integer, default: 1, minimum: 1 }
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
         - in: query
           name: size
-          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
         - in: query
           name: sort
-          schema: { type: string, default: "risk,desc" }
+          schema:
+            type: string
+            default: risk,desc
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponsePartnerList'
-
-  /partners/{partnerId}:
+                $ref: '#/components/schemas/ApiResponseCompanyList'
+  /companies/{companyId}:
     get:
-      tags: [Partners]
+      tags:
+        - Companies
       summary: 협력사 상세(헤더/기본정보)
       parameters:
         - $ref: '#/components/parameters/PartnerId'
@@ -105,11 +120,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponsePartnerDetail'
-
-  /partners/{partnerId}/kpi-summary:
+                $ref: '#/components/schemas/ApiResponseCompanyDetail'
+  /companies/{companyId}/kpi-summary:
     get:
-      tags: [Partners]
+      tags:
+        - Companies
       summary: 협력사 핵심 KPI 카드 3종(tooltip 포함)
       parameters:
         - $ref: '#/components/parameters/PartnerId'
@@ -120,11 +135,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponsePartnerKpiSummary'
-
-  /partners/{partnerId}/signals:
+                $ref: '#/components/schemas/ApiResponseCompanyKpiSummary'
+  /companies/{companyId}/signals:
     get:
-      tags: [Partners]
+      tags:
+        - Companies
       summary: 보조 지표 신호등 리스트(tooltip 포함)
       parameters:
         - $ref: '#/components/parameters/PartnerId'
@@ -135,11 +150,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponsePartnerSignals'
-
-  /partners/{partnerId}/forecast:
+                $ref: '#/components/schemas/ApiResponseCompanySignals'
+  /companies/{companyId}/forecast:
     get:
-      tags: [Partners]
+      tags:
+        - Companies
       summary: 시계열 건강도 예측 그래프
       parameters:
         - $ref: '#/components/parameters/PartnerId'
@@ -147,13 +162,17 @@ paths:
           name: horizon
           schema:
             type: string
-            enum: [6m, 12m]
+            enum:
+              - 6m
+              - 12m
             default: 6m
         - in: query
           name: granularity
           schema:
             type: string
-            enum: [month, week]
+            enum:
+              - month
+              - week
             default: month
       responses:
         '200':
@@ -162,21 +181,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponseForecast'
-
   /notices:
     get:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: 공지사항 목록
       parameters:
         - in: query
           name: q
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: page
-          schema: { type: integer, default: 1, minimum: 1 }
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
         - in: query
           name: size
-          schema: { type: integer, default: 10, minimum: 1, maximum: 100 }
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
       responses:
         '200':
           description: OK
@@ -185,302 +212,567 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseNoticeList'
     post:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: 공지사항 작성(ADMIN)
-      security: [ bearerAuth: [] ]
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/NoticeUpsertRequest' }
+            schema:
+              $ref: '#/components/schemas/NoticeUpsertRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseId' }
-
+              schema:
+                $ref: '#/components/schemas/ApiResponseId'
   /notices/{noticeId}:
     get:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: 공지사항 상세
       parameters:
         - in: path
           name: noticeId
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseNoticeDetail' }
+              schema:
+                $ref: '#/components/schemas/ApiResponseNoticeDetail'
     patch:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: 공지사항 수정(ADMIN)
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/NoticeUpsertRequest' }
+            schema:
+              $ref: '#/components/schemas/NoticeUpsertRequest'
       parameters:
         - in: path
           name: noticeId
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseId' }
+              schema:
+                $ref: '#/components/schemas/ApiResponseId'
     delete:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: 공지사항 삭제(ADMIN)
       parameters:
         - in: path
           name: noticeId
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseId' }
-
+              schema:
+                $ref: '#/components/schemas/ApiResponseId'
   /qna:
     get:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: Q&A 목록
       parameters:
         - in: query
           name: q
-          schema: { type: string }
+          schema:
+            type: string
         - in: query
           name: status
           schema:
             type: string
-            enum: [OPEN, ANSWERED]
+            enum:
+              - OPEN
+              - ANSWERED
         - in: query
           name: page
-          schema: { type: integer, default: 1, minimum: 1 }
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
         - in: query
           name: size
-          schema: { type: integer, default: 10, minimum: 1, maximum: 100 }
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseQnaList' }
+              schema:
+                $ref: '#/components/schemas/ApiResponseQnaList'
     post:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: Q&A 작성
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/QnaCreateRequest' }
+            schema:
+              $ref: '#/components/schemas/QnaCreateRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseId' }
-
+              schema:
+                $ref: '#/components/schemas/ApiResponseId'
   /qna/{qnaId}:
     get:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: Q&A 상세 + 댓글(답변)
       parameters:
         - in: path
           name: qnaId
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseQnaDetail' }
-
+              schema:
+                $ref: '#/components/schemas/ApiResponseQnaDetail'
   /qna/{qnaId}/comments:
     post:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: Q&A 댓글/답변 등록
       parameters:
         - in: path
           name: qnaId
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/QnaCommentRequest' }
+            schema:
+              $ref: '#/components/schemas/QnaCommentRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseId' }
-
+              schema:
+                $ref: '#/components/schemas/ApiResponseId'
   /qna/{qnaId}/status:
     patch:
-      tags: [Decision]
+      tags:
+        - Decision
       summary: Q&A 상태 변경(답변완료 처리, ADMIN)
       parameters:
         - in: path
           name: qnaId
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/QnaStatusRequest' }
+            schema:
+              $ref: '#/components/schemas/QnaStatusRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ApiResponseId' }
-
+              schema:
+                $ref: '#/components/schemas/ApiResponseId'
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: 로그인 (토큰 발급)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAuthLogin'
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: 로그아웃 (토큰 무효화)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseMessage'
+  # 기업 추가 페이지: 기업명/기업코드 검색
+  /companies/search:
+    get:
+      tags:
+        - Companies
+      summary: 기업 검색 (기업명/기업코드)
+      parameters:
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 기업명(부분일치)
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 기업코드(부분/완전일치)
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCompanySearch'
+  # 기업 추가 Confirm: DB에 결과 있으면 재사용, 없으면 모델 분석 트리거
+  /companies/confirm:
+    post:
+      tags:
+        - Companies
+      summary: 기업 추가/분석 확정(캐시 재사용 또는 신규 분석 트리거)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyConfirmRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCompanyConfirm'
+        '202':
+          description: Accepted - 분석 처리중
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCompanyConfirm'
+  # 기업 상세 페이지 통합 오버뷰: 예측 그래프 + 핵심/보조지표 + AI 코멘트
+  /companies/{companyId}/overview:
+    get:
+      tags:
+        - Companies
+      summary: 기업 상세(대시보드/상세페이지용 통합 오버뷰)
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCompanyOverview'
+  # 기업 요약 모달의 '업데이트 요청' 버튼 연동
+  /companies/{companyId}/update-requests:
+    post:
+      tags:
+        - Companies
+      summary: 기업 데이터/분석 업데이트 요청(관리자 알림)
+      parameters:
+        - name: companyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRequestCreate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseId'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
   parameters:
     PartnerId:
       in: path
       name: partnerId
       required: true
-      schema: { type: string }
+      schema:
+        type: string
     RangeParam:
       in: query
       name: range
       required: false
       schema:
         type: string
-        enum: [7d, 30d, 90d]
+        enum:
+          - 7d
+          - 30d
+          - 90d
         default: 30d
-
   schemas:
-    # ---------- Envelope ----------
     ApiResponseDashboardSummary:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/DashboardSummaryResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/DashboardSummaryResponse'
+        error:
+          nullable: true
     ApiResponseTimeSeries:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/TimeSeriesResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/TimeSeriesResponse'
+        error:
+          nullable: true
     ApiResponseRiskDistribution:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/RiskDistributionResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/RiskDistributionResponse'
+        error:
+          nullable: true
     ApiResponsePartnerList:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/PartnerListResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CompanyListResponse'
+        error:
+          nullable: true
     ApiResponsePartnerDetail:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/PartnerDetailResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CompanyDetailResponse'
+        error:
+          nullable: true
     ApiResponsePartnerKpiSummary:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/PartnerKpiSummaryResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CompanyKpiSummaryResponse'
+        error:
+          nullable: true
     ApiResponsePartnerSignals:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/PartnerSignalsResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CompanySignalsResponse'
+        error:
+          nullable: true
     ApiResponseForecast:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/ForecastResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ForecastResponse'
+        error:
+          nullable: true
     ApiResponseNoticeList:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/NoticeListResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/NoticeListResponse'
+        error:
+          nullable: true
     ApiResponseNoticeDetail:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/NoticeDetailResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/NoticeDetailResponse'
+        error:
+          nullable: true
     ApiResponseQnaList:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/QnaListResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/QnaListResponse'
+        error:
+          nullable: true
     ApiResponseQnaDetail:
       type: object
       properties:
-        success: { type: boolean, example: true }
-        data: { $ref: '#/components/schemas/QnaDetailResponse' }
-        error: { nullable: true }
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/QnaDetailResponse'
+        error:
+          nullable: true
     ApiResponseId:
       type: object
       properties:
-        success: { type: boolean, example: true }
+        success:
+          type: boolean
+          example: true
         data:
           type: object
           properties:
-            id: { oneOf: [{ type: integer }, { type: string }] }
-        error: { nullable: true }
-
-    # ---------- Common DTO ----------
+            id:
+              oneOf:
+                - type: integer
+                - type: string
+        error:
+          nullable: true
+    ApiResponseAuthLogin:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AuthLoginResponse'
+        error:
+          nullable: true
+    ApiResponseMessage:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+        error:
+          nullable: true
     TooltipDto:
       type: object
       properties:
-        description: { type: string }
-        interpretation: { type: string, nullable: true }
-        actionHint: { type: string, nullable: true }
-
+        description:
+          type: string
+        interpretation:
+          type: string
+          nullable: true
+        actionHint:
+          type: string
+          nullable: true
     DeltaDto:
       type: object
       properties:
-        value: { type: number }
-        unit: { type: string, nullable: true }
+        value:
+          type: number
+        unit:
+          type: string
+          nullable: true
         direction:
           type: string
-          enum: [UP, DOWN, FLAT]
-        label: { type: string, nullable: true }
-
+          enum:
+            - UP
+            - DOWN
+            - FLAT
+        label:
+          type: string
+          nullable: true
     KpiCardDto:
       type: object
       properties:
-        key: { type: string }
-        title: { type: string }
+        key:
+          type: string
+        title:
+          type: string
         value: {}
-        unit: { type: string, nullable: true }
+        unit:
+          type: string
+          nullable: true
         tone:
           type: string
-          enum: [DEFAULT, GOOD, WARN, RISK]
+          enum:
+            - DEFAULT
+            - GOOD
+            - WARN
+            - RISK
         delta:
           allOf:
             - $ref: '#/components/schemas/DeltaDto'
@@ -489,277 +781,760 @@ components:
           type: object
           nullable: true
           properties:
-            label: { type: string }
-            subLabel: { type: string, nullable: true }
+            label:
+              type: string
+            subLabel:
+              type: string
+              nullable: true
         tooltip:
           allOf:
             - $ref: '#/components/schemas/TooltipDto'
           nullable: true
-
     SectorDto:
       type: object
       properties:
-        key: { type: string }
-        label: { type: string }
-
+        key:
+          type: string
+        label:
+          type: string
     UserRefDto:
       type: object
       properties:
-        id: { type: integer }
-        name: { type: string }
+        id:
+          type: integer
+        name:
+          type: string
         role:
           type: string
           nullable: true
-          enum: [USER, ADMIN]
-
-    # ---------- Dashboard ----------
+          enum:
+            - USER
+            - ADMIN
+    AuthLoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        expiresIn:
+          type: integer
+          description: seconds
+        user:
+          $ref: '#/components/schemas/UserRefDto'
+    LoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
     DashboardSummaryResponse:
       type: object
       properties:
-        range: { type: string, example: "30d" }
+        range:
+          type: string
+          example: 30d
         kpis:
           type: array
-          items: { $ref: '#/components/schemas/KpiCardDto' }
-
+          items:
+            $ref: '#/components/schemas/KpiCardDto'
     TimeSeriesPoint:
       type: object
       properties:
-        x: { type: string, description: ISO date or label }
-        y: { type: number }
-
+        x:
+          type: string
+          description: ISO date or label
+        y:
+          type: number
     TimeSeriesSeries:
       type: object
       properties:
-        name: { type: string }
+        name:
+          type: string
         points:
           type: array
-          items: { $ref: '#/components/schemas/TimeSeriesPoint' }
-
+          items:
+            $ref: '#/components/schemas/TimeSeriesPoint'
     TimeSeriesResponse:
       type: object
       properties:
-        range: { type: string }
-        metric: { type: string }
+        range:
+          type: string
+        metric:
+          type: string
         series:
           type: array
-          items: { $ref: '#/components/schemas/TimeSeriesSeries' }
-
+          items:
+            $ref: '#/components/schemas/TimeSeriesSeries'
     RiskSegment:
       type: object
       properties:
-        key: { type: string, enum: [SAFE, WARN, RISK] }
-        label: { type: string }
-        count: { type: integer }
-        ratio: { type: number, description: 0~1 }
-
+        key:
+          type: string
+          enum:
+            - SAFE
+            - WARN
+            - RISK
+        label:
+          type: string
+        count:
+          type: integer
+        ratio:
+          type: number
+          description: 0~1
     RiskDistributionResponse:
       type: object
       properties:
-        range: { type: string }
+        range:
+          type: string
         segments:
           type: array
-          items: { $ref: '#/components/schemas/RiskSegment' }
+          items:
+            $ref: '#/components/schemas/RiskSegment'
         summary:
           type: object
           properties:
-            avgRiskLevel: { type: string, enum: [LOW, MID, HIGH] }
+            avgRiskLevel:
+              type: string
+              enum:
+                - LOW
+                - MID
+                - HIGH
             topSector:
               $ref: '#/components/schemas/SectorDto'
-
-    # ---------- Partners ----------
     PartnerKpiMini:
       type: object
       properties:
-        networkHealth: { type: number }
-        annualRevenue: { type: number }
-        contractProgress: { type: number }
-
+        networkHealth:
+          type: number
+        annualRevenue:
+          type: number
+        contractProgress:
+          type: number
     PartnerListItem:
       type: object
       properties:
-        id: { type: string }
-        name: { type: string }
-        sector: { $ref: '#/components/schemas/SectorDto' }
-        overallScore: { type: number }
-        riskLevel: { type: string, enum: [SAFE, WARN, RISK] }
-        lastUpdatedAt: { type: string }
-        kpi: { $ref: '#/components/schemas/PartnerKpiMini' }
-
+        id:
+          type: string
+        name:
+          type: string
+        sector:
+          $ref: '#/components/schemas/SectorDto'
+        overallScore:
+          type: number
+        riskLevel:
+          type: string
+          enum:
+            - SAFE
+            - WARN
+            - RISK
+        lastUpdatedAt:
+          type: string
+        kpi:
+          $ref: '#/components/schemas/CompanyKpiMini'
     PartnerListResponse:
       type: object
       properties:
-        page: { type: integer }
-        size: { type: integer }
-        total: { type: integer }
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
         items:
           type: array
-          items: { $ref: '#/components/schemas/PartnerListItem' }
-
+          items:
+            $ref: '#/components/schemas/CompanyListItem'
     PartnerDetailResponse:
       type: object
       properties:
-        id: { type: string }
-        name: { type: string }
-        sector: { $ref: '#/components/schemas/SectorDto' }
-        overallScore: { type: number }
-        riskLevel: { type: string, enum: [SAFE, WARN, RISK] }
+        id:
+          type: string
+        name:
+          type: string
+        sector:
+          $ref: '#/components/schemas/SectorDto'
+        overallScore:
+          type: number
+        riskLevel:
+          type: string
+          enum:
+            - SAFE
+            - WARN
+            - RISK
         tags:
           type: array
-          items: { type: string }
-        updatedAt: { type: string }
-
+          items:
+            type: string
+        updatedAt:
+          type: string
     PartnerKpiSummaryResponse:
       type: object
       properties:
-        partnerId: { type: string }
-        range: { type: string }
+        partnerId:
+          type: string
+        range:
+          type: string
         kpis:
           type: array
-          items: { $ref: '#/components/schemas/KpiCardDto' }
-
+          items:
+            $ref: '#/components/schemas/KpiCardDto'
     SignalItem:
       type: object
       properties:
-        key: { type: string }
-        label: { type: string }
-        status: { type: string, enum: [GOOD, WARN, RISK] }
-        value: { type: number, nullable: true }
-        unit: { type: string, nullable: true }
-        tooltip: { $ref: '#/components/schemas/TooltipDto' }
-
+        key:
+          type: string
+        label:
+          type: string
+        status:
+          type: string
+          enum:
+            - GOOD
+            - WARN
+            - RISK
+        value:
+          type: number
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        tooltip:
+          $ref: '#/components/schemas/TooltipDto'
     PartnerSignalsResponse:
       type: object
       properties:
-        partnerId: { type: string }
-        range: { type: string }
+        partnerId:
+          type: string
+        range:
+          type: string
         items:
           type: array
-          items: { $ref: '#/components/schemas/SignalItem' }
-
+          items:
+            $ref: '#/components/schemas/SignalItem'
     ForecastPoint:
       type: object
       properties:
-        x: { type: string }
-        y: { type: number }
-        type: { type: string, enum: [ACTUAL, PRED] }
-
+        x:
+          type: string
+        y:
+          type: number
+        type:
+          type: string
+          enum:
+            - ACTUAL
+            - PRED
     ForecastResponse:
       type: object
       properties:
-        partnerId: { type: string }
-        horizon: { type: string }
+        partnerId:
+          type: string
+        horizon:
+          type: string
         series:
           type: array
-          items: { $ref: '#/components/schemas/ForecastPoint' }
+          items:
+            $ref: '#/components/schemas/ForecastPoint'
         modelInfo:
           type: object
           properties:
-            name: { type: string }
-            updatedAt: { type: string }
-
-    # ---------- Decision Room ----------
+            name:
+              type: string
+            updatedAt:
+              type: string
     NoticeUpsertRequest:
       type: object
-      required: [title, content]
+      required:
+        - title
+        - content
       properties:
-        title: { type: string }
-        content: { type: string }
-        pinned: { type: boolean, default: false }
-
+        title:
+          type: string
+        content:
+          type: string
+        pinned:
+          type: boolean
+          default: false
     NoticeListItem:
       type: object
       properties:
-        id: { type: integer }
-        title: { type: string }
-        pinned: { type: boolean }
-        createdAt: { type: string }
-        author: { $ref: '#/components/schemas/UserRefDto' }
-
+        id:
+          type: integer
+        title:
+          type: string
+        pinned:
+          type: boolean
+        createdAt:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserRefDto'
     NoticeListResponse:
       type: object
       properties:
-        page: { type: integer }
-        size: { type: integer }
-        total: { type: integer }
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
         items:
           type: array
-          items: { $ref: '#/components/schemas/NoticeListItem' }
-
+          items:
+            $ref: '#/components/schemas/NoticeListItem'
     NoticeDetailResponse:
       type: object
       properties:
-        id: { type: integer }
-        title: { type: string }
-        content: { type: string }
-        pinned: { type: boolean }
-        createdAt: { type: string }
-        updatedAt: { type: string }
-        author: { $ref: '#/components/schemas/UserRefDto' }
-
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        pinned:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserRefDto'
     QnaCreateRequest:
       type: object
-      required: [title, content]
+      required:
+        - title
+        - content
       properties:
-        title: { type: string }
-        content: { type: string }
-        partnerId: { type: string, nullable: true }
-
+        title:
+          type: string
+        content:
+          type: string
+        partnerId:
+          type: string
+          nullable: true
     QnaCommentRequest:
       type: object
-      required: [content]
+      required:
+        - content
       properties:
-        content: { type: string }
-
+        content:
+          type: string
     QnaStatusRequest:
       type: object
-      required: [status]
+      required:
+        - status
       properties:
-        status: { type: string, enum: [OPEN, ANSWERED] }
-
+        status:
+          type: string
+          enum:
+            - OPEN
+            - ANSWERED
     QnaListItem:
       type: object
       properties:
-        id: { type: integer }
-        title: { type: string }
-        status: { type: string, enum: [OPEN, ANSWERED] }
-        commentCount: { type: integer }
-        createdAt: { type: string }
-        author: { $ref: '#/components/schemas/UserRefDto' }
-
+        id:
+          type: integer
+        title:
+          type: string
+        status:
+          type: string
+          enum:
+            - OPEN
+            - ANSWERED
+        commentCount:
+          type: integer
+        createdAt:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserRefDto'
     QnaListResponse:
       type: object
       properties:
-        page: { type: integer }
-        size: { type: integer }
-        total: { type: integer }
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
         items:
           type: array
-          items: { $ref: '#/components/schemas/QnaListItem' }
-
+          items:
+            $ref: '#/components/schemas/QnaListItem'
     QnaComment:
       type: object
       properties:
-        id: { type: integer }
-        content: { type: string }
-        createdAt: { type: string }
-        author: { $ref: '#/components/schemas/UserRefDto' }
-
+        id:
+          type: integer
+        content:
+          type: string
+        createdAt:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserRefDto'
     PartnerRef:
       type: object
       properties:
-        id: { type: string }
-        name: { type: string }
-
+        id:
+          type: string
+        name:
+          type: string
     QnaDetailResponse:
       type: object
       properties:
-        id: { type: integer }
-        title: { type: string }
-        content: { type: string }
-        status: { type: string, enum: [OPEN, ANSWERED] }
-        partner: { $ref: '#/components/schemas/PartnerRef' }
-        createdAt: { type: string }
-        author: { $ref: '#/components/schemas/UserRefDto' }
+        id:
+          type: integer
+        title:
+          type: string
+        content:
+          type: string
+        status:
+          type: string
+          enum:
+            - OPEN
+            - ANSWERED
+        partner:
+          $ref: '#/components/schemas/CompanyRef'
+        createdAt:
+          type: string
+        author:
+          $ref: '#/components/schemas/UserRefDto'
         comments:
           type: array
-          items: { $ref: '#/components/schemas/QnaComment' }
+          items:
+            $ref: '#/components/schemas/QnaComment'
+    ApiResponseCompanyList:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CompanyListResponse'
+        error:
+          nullable: true
+    ApiResponseCompanyDetail:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CompanyDetailResponse'
+        error:
+          nullable: true
+    ApiResponseCompanyKpiSummary:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CompanyKpiSummaryResponse'
+        error:
+          nullable: true
+    ApiResponseCompanySignals:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/CompanySignalsResponse'
+        error:
+          nullable: true
+    CompanyKpiMini:
+      type: object
+      properties:
+        networkHealth:
+          type: number
+        annualRevenue:
+          type: number
+        contractProgress:
+          type: number
+    CompanyListItem:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sector:
+          $ref: '#/components/schemas/SectorDto'
+        overallScore:
+          type: number
+        riskLevel:
+          type: string
+          enum:
+            - SAFE
+            - WARN
+            - RISK
+        lastUpdatedAt:
+          type: string
+        kpi:
+          $ref: '#/components/schemas/CompanyKpiMini'
+    CompanyListResponse:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanyListItem'
+    CompanyDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        sector:
+          $ref: '#/components/schemas/SectorDto'
+        overallScore:
+          type: number
+        riskLevel:
+          type: string
+          enum:
+            - SAFE
+            - WARN
+            - RISK
+        tags:
+          type: array
+          items:
+            type: string
+        updatedAt:
+          type: string
+    CompanyKpiSummaryResponse:
+      type: object
+      properties:
+        partnerId:
+          type: string
+        range:
+          type: string
+        kpis:
+          type: array
+          items:
+            $ref: '#/components/schemas/KpiCardDto'
+    CompanySignalsResponse:
+      type: object
+      properties:
+        partnerId:
+          type: string
+        range:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SignalItem'
+    CompanyRef:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    CompanySearchItem:
+      type: object
+      properties:
+        companyId:
+          type: string
+          description: 내부 식별자(없으면 code로 대체 가능)
+        name:
+          type: string
+        code:
+          type: string
+        sector:
+          $ref: '#/components/schemas/SectorDto'
+      required:
+        - name
+        - code
+    CompanySearchResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompanySearchItem'
+        count:
+          type: integer
+      required:
+        - items
+        - count
+    ApiResponseCompanySearch:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CompanySearchResponse'
+      required:
+        - success
+        - data
+    CompanyConfirmRequest:
+      type: object
+      properties:
+        companyId:
+          type: string
+          description: search 결과의 companyId(있으면)
+        code:
+          type: string
+          description: 기업코드
+        name:
+          type: string
+          description: 기업명(옵션)
+      oneOf:
+        - required:
+            - companyId
+        - required:
+            - code
+    CompanyConfirmResult:
+      type: object
+      properties:
+        companyId:
+          type: string
+        name:
+          type: string
+        sector:
+          $ref: '#/components/schemas/SectorDto'
+        modelStatus:
+          type: string
+          enum:
+            - EXISTING
+            - PROCESSING
+            - COMPLETED
+          description: EXISTING=기존 결과 재사용, PROCESSING=분석중, COMPLETED=신규 분석 완료
+        isCached:
+          type: boolean
+          description: true면 DB 캐시 결과 사용
+        lastAnalyzedAt:
+          type: string
+          nullable: true
+    ApiResponseCompanyConfirm:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CompanyConfirmResult'
+      required:
+        - success
+        - data
+    KeyMetricItem:
+      type: object
+      properties:
+        key:
+          type: string
+          description: 지표 키 (e.g., ROA, CFO_SALES_RATIO)
+        label:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+          nullable: true
+        delta:
+          $ref: '#/components/schemas/DeltaDto'
+        tooltip:
+          $ref: '#/components/schemas/TooltipDto'
+      required:
+        - key
+        - label
+        - value
+    SignalLight:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        level:
+          type: string
+          enum:
+            - GREEN
+            - YELLOW
+            - RED
+            - UNKNOWN
+        value:
+          type: number
+          nullable: true
+        unit:
+          type: string
+          nullable: true
+        tooltip:
+          $ref: '#/components/schemas/TooltipDto'
+      required:
+        - key
+        - label
+        - level
+    CompanyOverviewResponse:
+      type: object
+      properties:
+        company:
+          $ref: '#/components/schemas/CompanyDetailResponse'
+        forecast:
+          $ref: '#/components/schemas/ForecastResponse'
+        keyMetrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeyMetricItem'
+        signals:
+          type: array
+          items:
+            $ref: '#/components/schemas/SignalLight'
+        aiComment:
+          type: string
+        externalReputationRisk:
+          type: object
+          properties:
+            score:
+              type: number
+              description: 0~100
+            label:
+              type: string
+              enum:
+                - SAFE
+                - WARN
+                - RISK
+            topKeywords:
+              type: array
+              items:
+                type: string
+        modelStatus:
+          type: string
+          enum:
+            - EXISTING
+            - PROCESSING
+            - COMPLETED
+      required:
+        - company
+        - modelStatus
+    ApiResponseCompanyOverview:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CompanyOverviewResponse'
+      required:
+        - success
+        - data
+    UpdateRequestCreate:
+      type: object
+      properties:
+        message:
+          type: string
+          description: 요청 사유/메모(옵션)
+        priority:
+          type: string
+          enum:
+            - LOW
+            - MEDIUM
+            - HIGH
+          default: MEDIUM

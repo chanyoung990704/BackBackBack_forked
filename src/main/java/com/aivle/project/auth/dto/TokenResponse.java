@@ -1,5 +1,6 @@
 package com.aivle.project.auth.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
@@ -13,9 +14,11 @@ public record TokenResponse(
 	String accessToken,
 	@Schema(description = "액세스 토큰 만료(초)", example = "1800")
 	long expiresIn,
-	@Schema(description = "리프레시 토큰", example = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...")
+	@JsonIgnore
+	@Schema(description = "리프레시 토큰", example = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...", hidden = true)
 	String refreshToken,
-	@Schema(description = "리프레시 토큰 만료(초)", example = "604800")
+	@JsonIgnore
+	@Schema(description = "리프레시 토큰 만료(초)", example = "604800", hidden = true)
 	long refreshExpiresIn,
 	@Schema(description = "비밀번호 만료 여부", example = "false")
 	boolean passwordExpired

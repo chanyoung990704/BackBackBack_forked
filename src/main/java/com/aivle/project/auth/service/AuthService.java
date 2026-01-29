@@ -12,6 +12,7 @@ import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.security.CustomUserDetails;
 import com.aivle.project.user.security.CustomUserDetailsService;
 import com.aivle.project.user.service.UserDomainService;
+import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DisabledException;
@@ -32,6 +33,7 @@ public class AuthService {
 	private final AuthenticationManager authenticationManager;
 	private final JwtTokenService jwtTokenService;
 	private final RefreshTokenService refreshTokenService;
+	private final AccessTokenBlacklistService accessTokenBlacklistService;
 	private final CustomUserDetailsService userDetailsService;
 	private final UserDomainService userDomainService;
 	private final PasswordEncoder passwordEncoder;
@@ -72,6 +74,16 @@ public class AuthService {
 			jwtTokenService.getRefreshTokenExpirationSeconds(),
 			userDetails.isPasswordExpired()
 		);
+	}
+
+	public void logout(String refreshToken) {
+		if (refreshToken != null && !refreshToken.isBlank()) {
+			refreshTokenService.revokeToken(refreshToken);
+		}
+	}
+
+	public void logoutAll(UserEntity user) {
+		accessTokenBlacklistService.markLogoutAll(user.getUuid().toString(), Instant.now());
 	}
 
 	@Transactional
