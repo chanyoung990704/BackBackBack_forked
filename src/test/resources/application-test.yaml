@@ -12,3 +12,6 @@ spring:
   test:
     database:
       replace: none
+
+turnstile:
+  secret-key: test-secret-key

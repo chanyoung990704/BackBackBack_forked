@@ -30,6 +30,10 @@ logging:
     # org.hibernate.hql.internal.ast.QueryTranslatorImpl: debug
 
 app:
+  auth:
+    cookie:
+      secure: false
+      same-site: Lax
   email:
     verification:
       skip: true

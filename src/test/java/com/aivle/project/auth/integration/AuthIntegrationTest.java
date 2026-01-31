@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aivle.project.auth.config.AuthCookieProperties;
 import com.aivle.project.auth.dto.AuthLoginResponse;
 import com.aivle.project.auth.dto.LoginRequest;
 import com.aivle.project.auth.dto.PasswordChangeRequest;
@@ -96,6 +97,9 @@ class AuthIntegrationTest {
 	@Autowired
 	private StringRedisTemplate redisTemplate;
 
+	@Autowired
+	private AuthCookieProperties authCookieProperties;
+
 	@PersistenceContext
 	private EntityManager entityManager;
 
@@ -150,7 +154,9 @@ class AuthIntegrationTest {
 		Cookie cookie = result.getResponse().getCookie("refresh_token");
 		assertThat(cookie).isNotNull();
 		assertThat(cookie.isHttpOnly()).isTrue();
-		assertThat(cookie.getSecure()).isTrue();
+		assertThat(cookie.getSecure()).isEqualTo(authCookieProperties.isSecure());
+		String setCookieHeader = result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+		assertThat(setCookieHeader).contains("SameSite=" + authCookieProperties.getSameSite());
 
 		String refreshToken = cookie.getValue();
 		String refreshKey = "refresh:" + refreshToken;

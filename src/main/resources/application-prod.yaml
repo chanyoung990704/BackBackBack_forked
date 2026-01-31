@@ -1,4 +1,8 @@
 app:
+  auth:
+    cookie:
+      secure: true
+      same-site: None
   email:
     verification:
       skip: false

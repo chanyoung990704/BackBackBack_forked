@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-01-31 | 작업: 리프레시 토큰 쿠키 정책 분리 | 결과: SameSite/secure 설정을 프로파일별로 적용하고 테스트 보강 | 이슈: MockBean deprecated 경고
 - 2026-01-31 | 작업: 헬스체크 접근 테스트 안정화 | 결과: 테스트용 컨트롤러 분리 및 MockMvc 테스트 통과 | 이슈: MockBean deprecated 경고
 - 2026-01-31 | 작업: 헬스체크 엔드포인트 접근 허용 | 결과: /actuator/health permitAll 추가 | 이슈: 없음
 - 2026-01-31 | 작업: 다운로드 리다이렉트 통합 테스트 추가 | 결과: presigned URL 응답 흐름 검증 | 이슈: MockBean deprecated 경고

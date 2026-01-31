@@ -1,5 +1,6 @@
 package com.aivle.project.auth.controller;
 
+import com.aivle.project.auth.config.AuthCookieProperties;
 import com.aivle.project.auth.dto.AuthLoginResponse;
 import com.aivle.project.auth.dto.LoginRequest;
 import com.aivle.project.auth.dto.PasswordChangeRequest;
@@ -45,6 +46,7 @@ public class AuthController {
 
 	private final AuthService authService;
 	private final SignUpService signUpService;
+	private final AuthCookieProperties authCookieProperties;
 
 	@PostMapping("/login")
 	@Operation(summary = "로그인", description = "이메일/비밀번호로 로그인하고 토큰을 발급합니다.", security = {})
@@ -162,12 +164,16 @@ public class AuthController {
 	}
 
 	private ResponseCookie createRefreshTokenCookie(String refreshToken, long maxAgeSeconds) {
+		String sameSite = authCookieProperties.getSameSite();
+		if (sameSite == null || sameSite.isBlank()) {
+			sameSite = "Strict";
+		}
 		return ResponseCookie.from("refresh_token", refreshToken)
 			.httpOnly(true)
-			.secure(true)
+			.secure(authCookieProperties.isSecure())
 			.path("/")
 			.maxAge(maxAgeSeconds)
-			.sameSite("Strict")
+			.sameSite(sameSite)
 			.build();
 	}
 
