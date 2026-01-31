@@ -60,6 +60,7 @@ class S3FileStorageServiceTest {
 		assertThat(key).startsWith("uploads/posts/1/");
 		assertThat(key).endsWith(".png");
 		assertThat(stored.storageUrl()).isEqualTo("https://example.com/file");
+		assertThat(stored.storageKey()).isEqualTo(key);
 	}
 
 	@Test

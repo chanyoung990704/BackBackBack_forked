@@ -5,6 +5,7 @@ import com.aivle.project.file.entity.FilesEntity;
 import com.aivle.project.file.exception.FileErrorCode;
 import com.aivle.project.file.exception.FileException;
 import com.aivle.project.file.service.FileService;
+import com.aivle.project.file.storage.FileDownloadUrlResolver;
 import com.aivle.project.user.entity.UserEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -35,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class FileDownloadController {
 
 	private final FileService fileService;
+	private final FileDownloadUrlResolver fileDownloadUrlResolver;
 
 	@GetMapping("/{fileId}")
 	@SecurityRequirement(name = "bearerAuth")
@@ -56,8 +58,10 @@ public class FileDownloadController {
 		String storageUrl = file.getStorageUrl();
 
 		if (storageUrl != null && storageUrl.startsWith("http")) {
+			String redirectUrl = fileDownloadUrlResolver.resolve(file)
+				.orElse(storageUrl);
 			return ResponseEntity.status(HttpStatus.FOUND)
-				.location(URI.create(storageUrl))
+				.location(URI.create(redirectUrl))
 				.build();
 		}
 

@@ -156,6 +156,7 @@ class ReportMetricQueryControllerTest {
 		FilesEntity pdf = filesRepository.save(FilesEntity.create(
 			FileUsageType.REPORT_PDF,
 			"http://example.com/report.pdf",
+			null,
 			"report.pdf",
 			1200L,
 			"application/pdf"

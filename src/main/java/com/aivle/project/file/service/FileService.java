@@ -52,6 +52,7 @@ public class FileService {
 			FilesEntity entity = FilesEntity.create(
 				FileUsageType.POST_ATTACHMENT,
 				stored.storageUrl(),
+				stored.storageKey(),
 				stored.originalFilename(),
 				stored.fileSize(),
 				stored.contentType()

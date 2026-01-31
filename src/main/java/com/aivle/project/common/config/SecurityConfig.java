@@ -83,6 +83,8 @@ public class SecurityConfig {
 					"/auth/console/**",
 					"/api/auth/verify-email",
 					"/api/auth/resend-verification",
+					"/actuator/health",
+					"/actuator/health/**",
 					"/dev/console",
 					"/dev/file-console",
 					"/dev/report-predict-console",
