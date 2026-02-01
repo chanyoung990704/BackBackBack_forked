@@ -1,4 +1,6 @@
 app:
+  cors:
+    allowed-origins: ${APP_BASE_URL}
   auth:
     cookie:
       secure: true
@@ -31,6 +33,25 @@ spring:
     multipart:
       max-file-size: ${FILE_MAX_SIZE:10MB}
       max-request-size: ${REQUEST_MAX_SIZE:20MB}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 turnstile:
   secret-key: ${TURNSTILE_SECRET_KEY}

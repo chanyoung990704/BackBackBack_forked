@@ -30,6 +30,8 @@ logging:
     # org.hibernate.hql.internal.ast.QueryTranslatorImpl: debug
 
 app:
+  cors:
+    allowed-origins: ${APP_BASE_URL:http://localhost:3000}
   auth:
     cookie:
       secure: false

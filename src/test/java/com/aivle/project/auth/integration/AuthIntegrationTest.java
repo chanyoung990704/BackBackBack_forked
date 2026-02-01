@@ -359,11 +359,17 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk())
 			.andReturn();
 
+		AuthLoginResponse loginResponse = objectMapper.readValue(
+			loginResult.getResponse().getContentAsString(),
+			AuthLoginResponse.class
+		);
+		String accessToken = loginResponse.accessToken();
 		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
 		assertThat(refreshCookie).isNotNull();
 
 		// when: 로그아웃 요청
 		MvcResult logoutResult = mockMvc.perform(post("/auth/logout")
+				.header("Authorization", "Bearer " + accessToken)
 				.cookie(refreshCookie))
 			.andExpect(status().isOk())
 			.andDo(print())

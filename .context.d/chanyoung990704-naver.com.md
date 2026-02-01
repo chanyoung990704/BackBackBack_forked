@@ -6,6 +6,9 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-01 | 작업: prod 보안/운영 설정 정비 | 결과: 공개 경로 축소, CORS origins 외부화, prod actuator/health/swagger 설정 보강 | 이슈: 없음
+- 2026-02-01 | 작업: prod compose에서 mysql 비활성화 | 결과: docker-compose.prod.yml에 mysql profiles=dev 추가 | 이슈: 없음
+- 2026-02-01 | 작업: storage_key 테스트 복구 | 결과: H2 마이그레이션 추가 및 test Turnstile 시크릿 기본값 설정, 전체 테스트 통과 | 이슈: 없음
 - 2026-01-31 | 작업: 리프레시 토큰 쿠키 정책 분리 | 결과: SameSite/secure 설정을 프로파일별로 적용하고 테스트 보강 | 이슈: MockBean deprecated 경고
 - 2026-01-31 | 작업: 헬스체크 접근 테스트 안정화 | 결과: 테스트용 컨트롤러 분리 및 MockMvc 테스트 통과 | 이슈: MockBean deprecated 경고
 - 2026-01-31 | 작업: 헬스체크 엔드포인트 접근 허용 | 결과: /actuator/health permitAll 추가 | 이슈: 없음
