@@ -1,4 +1,4 @@
-package com.aivle.project.common.controller;
+package com.aivle.project.category.controller;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.aivle.project.auth.service.TurnstileService;
 import com.aivle.project.category.dto.CategorySummaryResponse;
 import com.aivle.project.category.entity.CategoriesEntity;
 import com.aivle.project.category.mapper.CategoryMapper;
@@ -20,19 +19,14 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(controllers = DevConsoleController.class)
+@WebMvcTest(controllers = CategoryController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@ActiveProfiles({"test", "dev"})
-class DevConsoleControllerTest {
+class CategoryControllerTest {
 
 	@Autowired
 	private MockMvc mockMvc;
-
-	@MockBean
-	private TurnstileService turnstileService;
 
 	@MockBean
 	private CategoriesRepository categoriesRepository;
@@ -47,8 +41,8 @@ class DevConsoleControllerTest {
 	private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
 	@Test
-	@DisplayName("개발용 카테고리 조회가 성공한다")
-	void listCategories_shouldReturnCategories() throws Exception {
+	@DisplayName("카테고리 목록 조회가 성공한다")
+	void list_shouldReturnCategories() throws Exception {
 		CategoriesEntity category = CategoriesEntity.create("공지", "공지사항", 1, true);
 		CategorySummaryResponse response = new CategorySummaryResponse(1L, "공지", "공지사항", 1, true);
 
@@ -57,7 +51,7 @@ class DevConsoleControllerTest {
 		given(categoryMapper.toSummaryResponse(any(CategoriesEntity.class)))
 			.willReturn(response);
 
-		mockMvc.perform(get("/dev/categories"))
+		mockMvc.perform(get("/categories"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.success").value(true))
 			.andExpect(jsonPath("$.data[0].name").value("공지"));

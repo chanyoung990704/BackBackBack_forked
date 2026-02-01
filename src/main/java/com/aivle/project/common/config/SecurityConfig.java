@@ -97,10 +97,10 @@ public class SecurityConfig {
 					"/actuator/health/**",
 					"/error"
 				).permitAll();
-				authorize.requestMatchers(HttpMethod.GET, "/posts", "/posts/*", "/posts/*/comments")
+				authorize.requestMatchers(HttpMethod.GET, "/posts", "/posts/*", "/posts/*/comments", "/categories")
 					.permitAll();
 				if (isDevProfile()) {
-					authorize.requestMatchers("/dev/**", "/auth/console/**").permitAll();
+					authorize.requestMatchers("/dev/**").permitAll();
 				}
 				authorize.requestMatchers("/admin/**").hasRole("ADMIN");
 				authorize.anyRequest().authenticated();

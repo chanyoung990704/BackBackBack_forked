@@ -1,6 +1,8 @@
 package com.aivle.project.file.controller;
 
+import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.security.CurrentUser;
+import com.aivle.project.file.dto.FileDownloadUrlResponse;
 import com.aivle.project.file.entity.FilesEntity;
 import com.aivle.project.file.exception.FileErrorCode;
 import com.aivle.project.file.exception.FileException;
@@ -25,6 +27,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 /**
  * 파일 조회/다운로드 API.
@@ -83,5 +86,39 @@ public class FileDownloadController {
 		} catch (Exception ex) {
 			throw new FileException(FileErrorCode.FILE_500_STORAGE);
 		}
+	}
+
+	@GetMapping("/{fileId}/url")
+	@SecurityRequirement(name = "bearerAuth")
+	@Operation(summary = "파일 다운로드 URL 조회", description = "파일 다운로드 URL(프리사인드 포함)을 반환합니다.")
+	@ApiResponses({
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "URL 조회 성공"),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "권한 없음"),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "파일 없음"),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
+	})
+	public ResponseEntity<ApiResponse<FileDownloadUrlResponse>> downloadUrl(
+		@CurrentUser UserEntity user,
+		@Parameter(description = "파일 ID", example = "1")
+		@PathVariable Long fileId
+	) {
+		FilesEntity file = fileService.getFile(fileId, user);
+		String storageUrl = file.getStorageUrl();
+		String resolvedUrl = resolveDownloadUrl(file, storageUrl, fileId);
+		if (!StringUtils.hasText(resolvedUrl)) {
+			throw new FileException(FileErrorCode.FILE_404_NOT_FOUND);
+		}
+		return ResponseEntity.ok(ApiResponse.ok(new FileDownloadUrlResponse(resolvedUrl)));
+	}
+
+	private String resolveDownloadUrl(FilesEntity file, String storageUrl, Long fileId) {
+		if (StringUtils.hasText(storageUrl) && storageUrl.startsWith("http")) {
+			return fileDownloadUrlResolver.resolve(file).orElse(storageUrl);
+		}
+		return ServletUriComponentsBuilder.fromCurrentContextPath()
+			.path("/files/")
+			.path(fileId.toString())
+			.toUriString();
 	}
 }

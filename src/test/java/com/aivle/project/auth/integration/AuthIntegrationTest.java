@@ -395,7 +395,7 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk());
 
 		// then: 기존 토큰으로 클레임 조회 시 실패
-		mockMvc.perform(get("/auth/console/claims")
+		mockMvc.perform(get("/dev/auth/console/claims")
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isUnauthorized());
 	}
@@ -448,7 +448,7 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk());
 
 		// then: 기존 토큰으로 클레임 조회 시 실패
-		mockMvc.perform(get("/auth/console/claims")
+		mockMvc.perform(get("/dev/auth/console/claims")
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isUnauthorized());
 	}

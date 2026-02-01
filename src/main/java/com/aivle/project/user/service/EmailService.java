@@ -83,6 +83,6 @@ public class EmailService {
         String baseUrl = verificationBaseUrl.endsWith("/")
             ? verificationBaseUrl.substring(0, verificationBaseUrl.length() - 1)
             : verificationBaseUrl;
-        return baseUrl + "/api/auth/verify-email?token=" + verificationToken;
+        return baseUrl + "/api/auth/verify-email?token=" + verificationToken + "&redirect=true";
     }
 }
