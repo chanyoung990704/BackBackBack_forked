@@ -3,6 +3,7 @@ package com.aivle.project.report.controller;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aivle.project.common.config.TestSecurityConfig;
@@ -49,8 +50,29 @@ class ReportFileDownloadControllerTest {
 		// when & then
 		mockMvc.perform(get("/api/reports/files/" + pdf.getId())
 					.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
-				.andExpect(status().isFound())
-				.andExpect(header().string("Location", "http://example.com/report.pdf"));
+					.andExpect(status().isFound())
+					.andExpect(header().string("Location", "http://example.com/report.pdf"));
+	}
+
+	@Test
+	@DisplayName("ROLE_USER 보고서 PDF 다운로드 URL 조회는 공통 응답으로 반환된다")
+	void downloadReportPdfUrl_returnsApiResponse() throws Exception {
+		// given
+		FilesEntity pdf = filesRepository.save(FilesEntity.create(
+			FileUsageType.REPORT_PDF,
+			"http://example.com/report.pdf",
+			null,
+			"report.pdf",
+			1200L,
+			"application/pdf"
+		));
+
+		// when & then
+		mockMvc.perform(get("/api/reports/files/" + pdf.getId() + "/url")
+					.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.url").value("http://example.com/report.pdf"));
 	}
 
 	@Test
@@ -62,10 +84,27 @@ class ReportFileDownloadControllerTest {
 	}
 
 	@Test
+	@DisplayName("보고서 PDF URL 조회는 인증이 없으면 401을 반환한다")
+	void downloadReportPdfUrl_unauthorized() throws Exception {
+		// when & then
+		mockMvc.perform(get("/api/reports/files/1/url"))
+			.andExpect(status().isUnauthorized());
+	}
+
+	@Test
 	@DisplayName("보고서 PDF 다운로드는 ROLE_ADMIN만으로는 403을 반환한다")
 	void downloadReportPdf_forbiddenForAdminOnly() throws Exception {
 		// when & then
 		mockMvc.perform(get("/api/reports/files/1")
+				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@DisplayName("보고서 PDF URL 조회는 ROLE_ADMIN만으로는 403을 반환한다")
+	void downloadReportPdfUrl_forbiddenForAdminOnly() throws Exception {
+		// when & then
+		mockMvc.perform(get("/api/reports/files/1/url")
 				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
 			.andExpect(status().isForbidden());
 	}

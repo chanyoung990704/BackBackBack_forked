@@ -139,10 +139,16 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 토큰 응답이 반환된다
-		AuthLoginResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), AuthLoginResponse.class);
-		assertThat(response.accessToken()).isNotBlank();
-		assertThat(response.refreshToken()).isNull(); // @JsonIgnore ensures this is null in JSON
-		assertThat(response.tokenType()).isEqualTo("Bearer");
+			ApiResponse<AuthLoginResponse> apiResponse = objectMapper.readValue(
+				result.getResponse().getContentAsString(),
+				new TypeReference<ApiResponse<AuthLoginResponse>>() {}
+			);
+			assertThat(apiResponse.success()).isTrue();
+			assertThat(apiResponse.data()).isNotNull();
+			AuthLoginResponse response = apiResponse.data();
+			assertThat(response.accessToken()).isNotBlank();
+			assertThat(response.refreshToken()).isNull(); // @JsonIgnore ensures this is null in JSON
+			assertThat(response.tokenType()).isEqualTo("Bearer");
 		
 		// then: 사용자 정보가 포함되어 있다
 		assertThat(response.user()).isNotNull();
@@ -232,8 +238,13 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 회원가입 성공 응답 반환
-		SignupResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), SignupResponse.class);
-		assertThat(response.email()).isEqualTo("newuser@test.com");
+			ApiResponse<SignupResponse> apiResponse = objectMapper.readValue(
+				result.getResponse().getContentAsString(),
+				new TypeReference<ApiResponse<SignupResponse>>() {}
+			);
+			assertThat(apiResponse.success()).isTrue();
+			assertThat(apiResponse.data()).isNotNull();
+			assertThat(apiResponse.data().email()).isEqualTo("newuser@test.com");
 
 		// 데이터베이스에 사용자가 생성되었는지 확인
 		UserEntity createdUser = userRepository.findByEmail("newuser@test.com").orElse(null);
@@ -334,12 +345,35 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 새로운 액세스 토큰이 발급되고 새 쿠키가 설정된다
-		TokenResponse response = objectMapper.readValue(refreshResult.getResponse().getContentAsString(), TokenResponse.class);
-		assertThat(response.accessToken()).isNotBlank();
+			ApiResponse<TokenResponse> apiResponse = objectMapper.readValue(
+				refreshResult.getResponse().getContentAsString(),
+				new TypeReference<ApiResponse<TokenResponse>>() {}
+			);
+			assertThat(apiResponse.success()).isTrue();
+			assertThat(apiResponse.data()).isNotNull();
+			assertThat(apiResponse.data().accessToken()).isNotBlank();
 		
 		Cookie newCookie = refreshResult.getResponse().getCookie("refresh_token");
-		assertThat(newCookie).isNotNull();
-		assertThat(newCookie.getValue()).isNotEqualTo(refreshCookie.getValue());
+			assertThat(newCookie).isNotNull();
+			assertThat(newCookie.getValue()).isNotEqualTo(refreshCookie.getValue());
+		}
+
+	@Test
+	@DisplayName("리프레시 토큰 없이 재발급 요청하면 공통 에러 응답을 반환한다")
+	void refresh_withoutToken_shouldReturnApiError() throws Exception {
+		// when
+		MvcResult result = mockMvc.perform(post("/auth/refresh"))
+			.andExpect(status().isUnauthorized())
+			.andReturn();
+
+		// then
+		ApiResponse<Void> response = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<Void>>() {}
+		);
+		assertThat(response.success()).isFalse();
+		assertThat(response.error()).isNotNull();
+		assertThat(response.error().code()).isEqualTo("AUTH_401");
 	}
 
 	@Test
@@ -359,11 +393,13 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk())
 			.andReturn();
 
-		AuthLoginResponse loginResponse = objectMapper.readValue(
-			loginResult.getResponse().getContentAsString(),
-			AuthLoginResponse.class
-		);
-		String accessToken = loginResponse.accessToken();
+			ApiResponse<AuthLoginResponse> loginApiResponse = objectMapper.readValue(
+				loginResult.getResponse().getContentAsString(),
+				new TypeReference<ApiResponse<AuthLoginResponse>>() {}
+			);
+			assertThat(loginApiResponse.success()).isTrue();
+			assertThat(loginApiResponse.data()).isNotNull();
+			String accessToken = loginApiResponse.data().accessToken();
 		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
 		assertThat(refreshCookie).isNotNull();
 
@@ -416,8 +452,13 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk())
 			.andReturn();
 		
-		AuthLoginResponse response = objectMapper.readValue(loginResult.getResponse().getContentAsString(), AuthLoginResponse.class);
-		String accessToken = response.accessToken();
+			ApiResponse<AuthLoginResponse> loginApiResponse = objectMapper.readValue(
+				loginResult.getResponse().getContentAsString(),
+				new TypeReference<ApiResponse<AuthLoginResponse>>() {}
+			);
+			assertThat(loginApiResponse.success()).isTrue();
+			assertThat(loginApiResponse.data()).isNotNull();
+			String accessToken = loginApiResponse.data().accessToken();
 		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
 
 		// when: 전체 로그아웃 요청 (인증 필요)
@@ -466,9 +507,14 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk())
 			.andReturn();
 
-		AuthLoginResponse response = objectMapper.readValue(result.getResponse().getContentAsString(), AuthLoginResponse.class);
-		return response.accessToken();
-	}
+			ApiResponse<AuthLoginResponse> apiResponse = objectMapper.readValue(
+				result.getResponse().getContentAsString(),
+				new TypeReference<ApiResponse<AuthLoginResponse>>() {}
+			);
+			assertThat(apiResponse.success()).isTrue();
+			assertThat(apiResponse.data()).isNotNull();
+			return apiResponse.data().accessToken();
+		}
 
 	private UserEntity createActiveUserWithRole(String email, String rawPassword, RoleName roleName) {
 		UserEntity user = newUser(email, rawPassword);

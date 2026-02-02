@@ -6,6 +6,15 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-02 | 작업: 전체 테스트 실패 수정 | 결과: ReportFileDownloadControllerTest 경로를 `/api` 접두사로 정합화하고 SecurityConfig에 `/api/reports/files/*/url` ROLE_USER 규칙 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
+- 2026-02-02 | 작업: 공통 응답(ApiResponse) 전면 적용 1단계(Auth) | 결과: AuthController를 ApiResponse 기반으로 통일하고 refresh 누락 토큰을 예외 처리로 전환, AuthIntegrationTest 보강 후 통과 | 이슈: 없음
+- 2026-02-02 | 작업: 공통 응답(ApiResponse) 전면 적용 2단계(이메일 인증) | 결과: EmailVerificationController의 JSON/재전송 응답을 ApiResponse로 통일하고 WebMvc 테스트 보강 후 통과 | 이슈: 없음
+- 2026-02-02 | 작업: 공통 응답(ApiResponse) 전면 적용 3단계(보고서 파일 URL) | 결과: `/reports/files/{id}/url` 엔드포인트 추가, 보안 규칙 반영, ReportFileDownloadControllerTest 보강 후 통과 | 이슈: 없음
+- 2026-02-02 | 작업: 보고서 PDF 다운로드 API USER 권한 전환 3차 | 결과: `/reports/files/{id}` 경로로 이관하고 ROLE_USER 전용 보안 규칙, 다운로드 URL 경로 반영, 401/403/302 테스트 추가 | 이슈: 없음
+- 2026-02-02 | 작업: 보고서 지표 조회 API USER 권한 전환 2차 | 결과: `/reports/metrics/*` 경로로 이관하고 ROLE_USER 전용 보안 규칙 및 grouped/predict-latest 401/403/200 테스트 추가 | 이슈: 없음
+- 2026-02-02 | 작업: 기업 검색 API USER 권한 전환 1차 | 결과: `/admin/companies/search`를 `/companies/search`로 변경하고 ROLE_USER 전용 보안 규칙 및 401/403/200 테스트 추가 | 이슈: 없음
+- 2026-02-02 | 작업: 이메일 인증 JSON 응답 모드 정비 | 결과: redirect=false에서 status/message JSON 응답을 반환하도록 DTO 추가 및 WebMvc 테스트 보강 | 이슈: 없음
+- 2026-02-02 | 작업: 이메일 인증 리다이렉트 정책 강화 | 결과: verify-email에 status 매핑(success/expired/invalid/already_verified/error), returnUrl 화이트리스트 검증, redirect=true 302 처리 및 WebMvc 테스트 보강 | 이슈: 없음
 - 2026-02-02 | 작업: 보고서 PDF 다운로드 API USER 권한 전환 3차 | 결과: `/reports/files/{id}` 경로로 이관하고 ROLE_USER 전용 보안 규칙, 다운로드 URL 경로 반영, 401/403/302 테스트 추가 | 이슈: 없음
 - 2026-02-02 | 작업: 보고서 지표 조회 API USER 권한 전환 2차 | 결과: `/reports/metrics/*` 경로로 이관하고 ROLE_USER 전용 보안 규칙 및 grouped/predict-latest 401/403/200 테스트 추가 | 이슈: 없음
 - 2026-02-02 | 작업: 기업 검색 API USER 권한 전환 1차 | 결과: `/admin/companies/search`를 `/companies/search`로 변경하고 ROLE_USER 전용 보안 규칙 및 401/403/200 테스트 추가 | 이슈: 없음

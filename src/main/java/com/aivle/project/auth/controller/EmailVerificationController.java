@@ -1,11 +1,14 @@
 package com.aivle.project.auth.controller;
 
 import com.aivle.project.auth.dto.EmailVerificationResultResponse;
+import com.aivle.project.common.dto.ApiResponse;
+import com.aivle.project.common.error.ErrorResponse;
 import com.aivle.project.user.service.EmailVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -52,7 +55,8 @@ public class EmailVerificationController {
         @Parameter(description = "프론트 리다이렉트 여부", example = "true")
         @RequestParam(required = false, defaultValue = "false") boolean redirect,
         @Parameter(description = "인증 결과를 전달받을 프론트 복귀 URL", example = "https://front.example.com/auth/signup")
-        @RequestParam(required = false) String returnUrl
+        @RequestParam(required = false) String returnUrl,
+        @Parameter(hidden = true) HttpServletRequest request
     ) {
         try {
             emailVerificationService.verifyEmail(token);
@@ -61,10 +65,7 @@ public class EmailVerificationController {
                     .location(URI.create(buildRedirectUrl(VerificationRedirectStatus.SUCCESS, returnUrl)))
                     .build();
             }
-            return ResponseEntity.ok(new EmailVerificationResultResponse(
-                VerificationRedirectStatus.SUCCESS.value,
-                "이메일 인증이 완료되었습니다."
-            ));
+            return ResponseEntity.ok(ApiResponse.ok(successResponse("이메일 인증이 완료되었습니다.")));
         } catch (IllegalArgumentException e) {
             log.warn("이메일 인증 실패: {}", e.getMessage());
             VerificationRedirectStatus status = mapStatus(e.getMessage());
@@ -73,7 +74,9 @@ public class EmailVerificationController {
                     .location(URI.create(buildRedirectUrl(status, returnUrl)))
                     .build();
             }
-            return ResponseEntity.badRequest().body(new EmailVerificationResultResponse(status.value, e.getMessage()));
+            return ResponseEntity.badRequest().body(ApiResponse.fail(
+                ErrorResponse.of("EMAIL_VERIFICATION_" + status.name(), e.getMessage(), request.getRequestURI())
+            ));
         } catch (Exception e) {
             log.error("이메일 인증 처리 중 서버 오류", e);
             if (redirect) {
@@ -81,12 +84,13 @@ public class EmailVerificationController {
                     .location(URI.create(buildRedirectUrl(VerificationRedirectStatus.ERROR, returnUrl)))
                     .build();
             }
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                new EmailVerificationResultResponse(
-                    VerificationRedirectStatus.ERROR.value,
-                    "이메일 인증 처리 중 오류가 발생했습니다."
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponse.fail(
+                ErrorResponse.of(
+                    "EMAIL_VERIFICATION_ERROR",
+                    "이메일 인증 처리 중 오류가 발생했습니다.",
+                    request.getRequestURI()
                 )
-            );
+            ));
         }
     }
 
@@ -100,17 +104,23 @@ public class EmailVerificationController {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "재전송 실패"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
-    public ResponseEntity<String> resendVerification(
+    public ResponseEntity<ApiResponse<EmailVerificationResultResponse>> resendVerification(
         @Parameter(description = "사용자 ID", example = "1")
         @RequestParam Long userId
     ) {
         try {
             emailVerificationService.resendVerificationEmail(userId);
-            return ResponseEntity.ok("인증 이메일이 재전송되었습니다.");
+            return ResponseEntity.ok(ApiResponse.ok(successResponse("인증 이메일이 재전송되었습니다.")));
         } catch (IllegalStateException | IllegalArgumentException e) {
             log.warn("인증 이메일 재전송 실패: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.fail(
+                ErrorResponse.of("EMAIL_VERIFICATION_RESEND_FAILED", e.getMessage(), "/api/auth/resend-verification")
+            ));
         }
+    }
+
+    private EmailVerificationResultResponse successResponse(String message) {
+        return new EmailVerificationResultResponse(VerificationRedirectStatus.SUCCESS.value, message);
     }
 
     private String buildRedirectUrl(VerificationRedirectStatus status, String returnUrl) {
