@@ -5,13 +5,19 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.net.URI;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * 이메일 인증 컨트롤러.
@@ -25,6 +31,9 @@ public class EmailVerificationController {
 
     private final EmailVerificationService emailVerificationService;
 
+    @Value("${app.email.verification.redirect-base-url:}")
+    private String redirectBaseUrl;
+
     /**
      * 이메일 인증 처리.
      */
@@ -37,13 +46,25 @@ public class EmailVerificationController {
     })
     public ResponseEntity<String> verifyEmail(
         @Parameter(description = "이메일 인증 토큰", example = "a1b2c3d4")
-        @RequestParam String token
+        @RequestParam String token,
+        @Parameter(description = "프론트 리다이렉트 여부", example = "true")
+        @RequestParam(required = false, defaultValue = "false") boolean redirect
     ) {
         try {
             emailVerificationService.verifyEmail(token);
+            if (redirect) {
+                return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(URI.create(buildRedirectUrl("success", null)))
+                    .build();
+            }
             return ResponseEntity.ok("이메일 인증이 완료되었습니다.");
         } catch (IllegalArgumentException e) {
             log.warn("이메일 인증 실패: {}", e.getMessage());
+            if (redirect) {
+                return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(URI.create(buildRedirectUrl("fail", mapReason(e.getMessage()))))
+                    .build();
+            }
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -69,5 +90,35 @@ public class EmailVerificationController {
             log.warn("인증 이메일 재전송 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    private String buildRedirectUrl(String status, String reason) {
+        String baseUrl = StringUtils.hasText(redirectBaseUrl)
+            ? redirectBaseUrl
+            : ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
+        String normalizedBaseUrl = baseUrl.endsWith("/")
+            ? baseUrl.substring(0, baseUrl.length() - 1)
+            : baseUrl;
+
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(normalizedBaseUrl)
+            .path("/auth/verify-email")
+            .queryParam("status", status);
+        if (StringUtils.hasText(reason)) {
+            builder.queryParam("reason", reason);
+        }
+        return builder.toUriString();
+    }
+
+    private String mapReason(String message) {
+        if (message == null) {
+            return "invalid";
+        }
+        if (message.contains("만료")) {
+            return "expired";
+        }
+        if (message.contains("이미")) {
+            return "already";
+        }
+        return "invalid";
     }
 }

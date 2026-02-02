@@ -185,6 +185,7 @@ public class CompanyReportMetricPublishService {
 		FilesEntity entity = FilesEntity.create(
 			FileUsageType.REPORT_PDF,
 			stored.storageUrl(),
+			stored.storageKey(),
 			stored.originalFilename(),
 			stored.fileSize(),
 			stored.contentType()

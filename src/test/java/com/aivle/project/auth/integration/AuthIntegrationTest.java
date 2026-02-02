@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.aivle.project.auth.config.AuthCookieProperties;
 import com.aivle.project.auth.dto.AuthLoginResponse;
 import com.aivle.project.auth.dto.LoginRequest;
 import com.aivle.project.auth.dto.PasswordChangeRequest;
@@ -96,6 +97,9 @@ class AuthIntegrationTest {
 	@Autowired
 	private StringRedisTemplate redisTemplate;
 
+	@Autowired
+	private AuthCookieProperties authCookieProperties;
+
 	@PersistenceContext
 	private EntityManager entityManager;
 
@@ -150,7 +154,9 @@ class AuthIntegrationTest {
 		Cookie cookie = result.getResponse().getCookie("refresh_token");
 		assertThat(cookie).isNotNull();
 		assertThat(cookie.isHttpOnly()).isTrue();
-		assertThat(cookie.getSecure()).isTrue();
+		assertThat(cookie.getSecure()).isEqualTo(authCookieProperties.isSecure());
+		String setCookieHeader = result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+		assertThat(setCookieHeader).contains("SameSite=" + authCookieProperties.getSameSite());
 
 		String refreshToken = cookie.getValue();
 		String refreshKey = "refresh:" + refreshToken;
@@ -353,11 +359,17 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk())
 			.andReturn();
 
+		AuthLoginResponse loginResponse = objectMapper.readValue(
+			loginResult.getResponse().getContentAsString(),
+			AuthLoginResponse.class
+		);
+		String accessToken = loginResponse.accessToken();
 		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
 		assertThat(refreshCookie).isNotNull();
 
 		// when: 로그아웃 요청
 		MvcResult logoutResult = mockMvc.perform(post("/auth/logout")
+				.header("Authorization", "Bearer " + accessToken)
 				.cookie(refreshCookie))
 			.andExpect(status().isOk())
 			.andDo(print())
@@ -383,7 +395,7 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk());
 
 		// then: 기존 토큰으로 클레임 조회 시 실패
-		mockMvc.perform(get("/auth/console/claims")
+		mockMvc.perform(get("/dev/auth/console/claims")
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isUnauthorized());
 	}
@@ -436,7 +448,7 @@ class AuthIntegrationTest {
 			.andExpect(status().isOk());
 
 		// then: 기존 토큰으로 클레임 조회 시 실패
-		mockMvc.perform(get("/auth/console/claims")
+		mockMvc.perform(get("/dev/auth/console/claims")
 				.header("Authorization", "Bearer " + accessToken))
 			.andExpect(status().isUnauthorized());
 	}

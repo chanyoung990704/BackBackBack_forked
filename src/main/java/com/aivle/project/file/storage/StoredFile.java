@@ -8,6 +8,6 @@ public record StoredFile(
 	String originalFilename,
 	long fileSize,
 	String contentType,
-	String storedKey
+	String storageKey
 ) {
 }

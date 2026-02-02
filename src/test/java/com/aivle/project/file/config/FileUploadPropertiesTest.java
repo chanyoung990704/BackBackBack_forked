@@ -7,22 +7,27 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
-import org.springframework.context.annotation.Import;
-import com.aivle.project.common.config.TestSecurityConfig;
 
-@SpringBootTest(properties = {
-	"app.file.upload.max-size=12345",
-	"app.file.upload.max-files=7",
-	"app.file.upload.allowed-content-types[0]=image/png",
-	"app.file.upload.allowed-content-types[1]=application/pdf",
-	"app.file.upload.allowed-extensions[0]=png",
-	"app.file.upload.allowed-extensions[1]=pdf",
-	"app.file.upload.validate-signature=true",
-	"app.file.upload.upload-dir=/tmp/uploads-test",
-	"spring.servlet.multipart.max-file-size=2MB",
-	"spring.servlet.multipart.max-request-size=3MB"
-})
-@Import(TestSecurityConfig.class)
+@SpringBootTest(
+	classes = FileStorageConfig.class,
+	webEnvironment = SpringBootTest.WebEnvironment.NONE,
+	properties = {
+		"app.file.upload.max-size=12345",
+		"app.file.upload.max-files=7",
+		"app.file.upload.allowed-content-types[0]=image/png",
+		"app.file.upload.allowed-content-types[1]=application/pdf",
+		"app.file.upload.allowed-extensions[0]=png",
+		"app.file.upload.allowed-extensions[1]=pdf",
+		"app.file.upload.validate-signature=true",
+		"app.file.upload.upload-dir=/tmp/uploads-test",
+		"spring.servlet.multipart.max-file-size=2MB",
+		"spring.servlet.multipart.max-request-size=3MB",
+		"spring.autoconfigure.exclude="
+			+ "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
+			+ "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
+			+ "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration"
+	}
+)
 class FileUploadPropertiesTest {
 
 	@Autowired

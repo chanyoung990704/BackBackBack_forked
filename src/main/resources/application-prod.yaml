@@ -1,8 +1,15 @@
 app:
+  cors:
+    allowed-origins: ${APP_BASE_URL}
+  auth:
+    cookie:
+      secure: true
+      same-site: None
   email:
     verification:
       skip: false
       base-url: ${APP_BASE_URL}
+      redirect-base-url: ${APP_BASE_URL}
   file:
     storage:
       s3:
@@ -10,7 +17,7 @@ app:
         region: ${AWS_REGION}
         prefix: ${AWS_S3_PREFIX:uploads}
     upload:
-      max-size: ${FILE_MAX_SIZE:10485760}
+      max-size: ${FILE_MAX_SIZE_BYTES:10485760}
       max-files: ${FILE_MAX_COUNT:5}
       validate-signature: true
       upload-dir: ${UPLOAD_DIR:/var/app/uploads}
@@ -27,6 +34,25 @@ spring:
     multipart:
       max-file-size: ${FILE_MAX_SIZE:10MB}
       max-request-size: ${REQUEST_MAX_SIZE:20MB}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+  health:
+    mail:
+      enabled: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 
 turnstile:
   secret-key: ${TURNSTILE_SECRET_KEY}

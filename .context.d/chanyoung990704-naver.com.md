@@ -6,6 +6,24 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-01 | 작업: favicon 요청 처리 추가 | 결과: favicon 컨트롤러 및 테스트 추가로 예외 로그 제거 | 이슈: MockBean deprecated 경고
+- 2026-02-01 | 작업: dev 카테고리 API 통합 | 결과: DevCategoryController 제거 후 DevConsoleController로 통합, dev 전용 테스트 추가 | 이슈: MockBean deprecated 경고
+- 2026-02-01 | 작업: dev 인증 콘솔 컨트롤러 통합 | 결과: AuthConsoleController 제거 후 DevConsoleController로 통합 | 이슈: 없음
+- 2026-02-01 | 작업: dev 콘솔 경로 정리 | 결과: /dev/auth/console로 경로 이관 및 템플릿 링크 정합화 | 이슈: 없음
+- 2026-02-01 | 작업: 이메일 인증 리다이렉트 옵션 추가 | 결과: redirect 파라미터 지원 및 프론트 리다이렉트 URL 응답, 관련 MockMvc 테스트 추가 | 이슈: MockBean deprecated 경고
+- 2026-02-01 | 작업: 파일 다운로드 URL 조회 API 추가 | 결과: /files/{id}/url 응답 및 MockMvc 테스트 추가 | 이슈: MockBean deprecated 경고
+- 2026-02-01 | 작업: 카테고리 조회 API 추가 | 결과: /categories 컨트롤러 및 MockMvc 테스트 추가, 공개 경로 허용 | 이슈: MockBean deprecated 경고
+- 2026-02-01 | 작업: prod 보안/운영 설정 정비 | 결과: 공개 경로 축소, CORS origins 외부화, prod actuator/health/swagger 설정 보강 | 이슈: 없음
+- 2026-02-01 | 작업: prod compose에서 mysql 비활성화 | 결과: docker-compose.prod.yml에 mysql profiles=dev 추가 | 이슈: 없음
+- 2026-02-01 | 작업: storage_key 테스트 복구 | 결과: H2 마이그레이션 추가 및 test Turnstile 시크릿 기본값 설정, 전체 테스트 통과 | 이슈: 없음
+- 2026-01-31 | 작업: 리프레시 토큰 쿠키 정책 분리 | 결과: SameSite/secure 설정을 프로파일별로 적용하고 테스트 보강 | 이슈: MockBean deprecated 경고
+- 2026-01-31 | 작업: 헬스체크 접근 테스트 안정화 | 결과: 테스트용 컨트롤러 분리 및 MockMvc 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-01-31 | 작업: 헬스체크 엔드포인트 접근 허용 | 결과: /actuator/health permitAll 추가 | 이슈: 없음
+- 2026-01-31 | 작업: 다운로드 리다이렉트 통합 테스트 추가 | 결과: presigned URL 응답 흐름 검증 | 이슈: MockBean deprecated 경고
+- 2026-01-31 | 작업: S3 presigned URL 다운로드 준비 | 결과: resolver 추가 및 presigner 설정, 단위 테스트 통과 | 이슈: 없음
+- 2026-01-31 | 작업: files에 storage_key 추가 | 결과: 저장 메타데이터 확장 및 저장소 테스트 보강 | 이슈: 없음
+- 2026-01-31 | 작업: 파일 업로드 크기 설정 분리 | 결과: FILE_MAX_SIZE_BYTES 도입 및 바인딩 테스트 보강 | 이슈: 없음
+- 2026-01-31 | 작업: prod에서 Redis만 compose로 실행 | 결과: start-server에서 prod 프로필 감지 시 Redis만 기동 | 이슈: 없음
 - 2026-01-31 | 작업: README 환경변수 요약 추가 | 결과: 공통/메일/S3 필수 변수 정리 | 이슈: 없음
 - 2026-01-31 | 작업: .env.example 환경변수 목록 정리 | 결과: 공통/DB(dev/prod 예시) 변수 한눈에 정리 | 이슈: 없음
 - 2026-01-31 | 작업: prod 이메일 설정 import 추가 | 결과: prod 프로파일에서도 application-email.yml 로딩 | 이슈: 없음

@@ -1,6 +1,10 @@
 version: "3.8"
 
 services:
+  mysql:
+    profiles:
+      - dev
+
   redis:
     command:
       - "redis-server"
@@ -8,3 +12,5 @@ services:
       - "yes"
       - "--requirepass"
       - "${REDIS_PASSWORD}"
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"

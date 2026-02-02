@@ -312,7 +312,7 @@
 					<button class="ghost" id="logout-all-btn" type="button">전체 로그아웃</button>
 					<button class="ghost" id="claims-btn" type="button">보호 API 호출</button>
 				</div>
-				<p class="footer-note">보호 API는 <strong>/auth/console/claims</strong>를 호출합니다.</p>
+				<p class="footer-note">보호 API는 <strong>/dev/auth/console/claims</strong>를 호출합니다.</p>
 			</div>
 
 			<div class="card" style="animation-delay: 0.15s;">
@@ -539,7 +539,7 @@
 
 		document.getElementById("claims-btn").addEventListener("click", async () => {
 			try {
-				const response = await apiFetch("/auth/console/claims", { method: "GET" });
+				const response = await apiFetch("/dev/auth/console/claims", { method: "GET" });
 				if (response.status === 401 || response.status === 403) {
 					state.accessToken = "";
 					state.refreshToken = "";

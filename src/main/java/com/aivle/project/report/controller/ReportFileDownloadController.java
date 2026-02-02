@@ -5,6 +5,7 @@ import com.aivle.project.file.entity.FilesEntity;
 import com.aivle.project.file.exception.FileErrorCode;
 import com.aivle.project.file.exception.FileException;
 import com.aivle.project.file.repository.FilesRepository;
+import com.aivle.project.file.storage.FileDownloadUrlResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class ReportFileDownloadController {
 
 	private final FilesRepository filesRepository;
+	private final FileDownloadUrlResolver fileDownloadUrlResolver;
 
 	@GetMapping("/{fileId}")
 	@Operation(summary = "보고서 PDF 다운로드", description = "보고서 PDF를 다운로드하거나 외부 URL로 리다이렉트합니다.")
@@ -42,7 +44,14 @@ public class ReportFileDownloadController {
 		}
 
 		String storageUrl = file.getStorageUrl();
-		if (storageUrl != null && (storageUrl.startsWith("http") || storageUrl.startsWith("memory://"))) {
+		if (storageUrl != null && storageUrl.startsWith("http")) {
+			String redirectUrl = fileDownloadUrlResolver.resolve(file)
+				.orElse(storageUrl);
+			return ResponseEntity.status(HttpStatus.FOUND)
+				.location(URI.create(redirectUrl))
+				.build();
+		}
+		if (storageUrl != null && storageUrl.startsWith("memory://")) {
 			return ResponseEntity.status(HttpStatus.FOUND)
 				.location(URI.create(storageUrl))
 				.build();

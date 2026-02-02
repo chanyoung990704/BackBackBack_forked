@@ -30,10 +30,17 @@ logging:
     # org.hibernate.hql.internal.ast.QueryTranslatorImpl: debug
 
 app:
+  cors:
+    allowed-origins: ${APP_BASE_URL:http://localhost:3000}
+  auth:
+    cookie:
+      secure: false
+      same-site: Lax
   email:
     verification:
       skip: true
       base-url: ${APP_BASE_URL:http://localhost:8080}
+      redirect-base-url: ${APP_BASE_URL:http://localhost:3000}
   file:
     upload:
       max-size: 5242880

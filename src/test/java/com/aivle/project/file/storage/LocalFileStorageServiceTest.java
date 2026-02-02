@@ -43,6 +43,7 @@ class LocalFileStorageServiceTest {
 		Path savedPath = Path.of(stored.storageUrl().replace("/", java.io.File.separator));
 		assertThat(Files.exists(savedPath)).isTrue();
 		assertThat(Files.readAllBytes(savedPath)).isEqualTo("hello".getBytes(StandardCharsets.UTF_8));
+		assertThat(stored.storageKey()).isNull();
 	}
 
 	@Test

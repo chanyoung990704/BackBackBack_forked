@@ -33,6 +33,9 @@ public class FilesEntity extends BaseEntity {
 	@Column(name = "storage_url", nullable = false, length = 500)
 	private String storageUrl;
 
+	@Column(name = "storage_key", length = 500)
+	private String storageKey;
+
 	@Column(name = "original_filename", nullable = false, length = 255)
 	private String originalFilename;
 
@@ -45,6 +48,7 @@ public class FilesEntity extends BaseEntity {
 	public static FilesEntity create(
 		FileUsageType usageType,
 		String storageUrl,
+		String storageKey,
 		String originalFilename,
 		long fileSize,
 		String contentType
@@ -52,6 +56,7 @@ public class FilesEntity extends BaseEntity {
 		FilesEntity file = new FilesEntity();
 		file.usageType = usageType;
 		file.storageUrl = storageUrl;
+		file.storageKey = storageKey;
 		file.originalFilename = originalFilename;
 		file.fileSize = fileSize;
 		file.contentType = contentType;

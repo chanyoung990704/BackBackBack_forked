@@ -42,7 +42,7 @@ public class LocalFileStorageService implements FileStorageService {
 			Path target = targetDir.resolve(storedName).normalize();
 			Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
 			String storageUrl = target.toString().replace("\\", "/");
-			return new StoredFile(storageUrl, originalFilename, file.getSize(), file.getContentType(), storedName);
+			return new StoredFile(storageUrl, originalFilename, file.getSize(), file.getContentType(), null);
 		} catch (IOException ex) {
 			throw new FileException(FileErrorCode.FILE_500_STORAGE);
 		}

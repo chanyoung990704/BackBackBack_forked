@@ -13,11 +13,14 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
@@ -41,6 +44,9 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * 공통 보안 설정.
@@ -56,14 +62,20 @@ public class SecurityConfig {
 	private final RestAuthenticationEntryPoint authenticationEntryPoint;
 	private final RestAccessDeniedHandler accessDeniedHandler;
 	private final AccessTokenBlacklistService accessTokenBlacklistService;
+	private final Environment environment;
+
+	@Value("${app.cors.allowed-origins:http://localhost:3000}")
+	private String allowedOrigins;
 
 	@Bean
 	public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
 		throws Exception {
 		http
+			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
 			.csrf(AbstractHttpConfigurer::disable)
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-			.authorizeHttpRequests(authorize -> authorize
+			.authorizeHttpRequests(authorize -> {
+				authorize
 				.requestMatchers(
 					"/favicon.ico",
 					"/css/**",
@@ -78,21 +90,21 @@ public class SecurityConfig {
 					"/openapi/**",
 					"/auth/login",
 					"/auth/refresh",
-					"/auth/logout",
 					"/auth/signup",
-					"/auth/console/**",
 					"/api/auth/verify-email",
 					"/api/auth/resend-verification",
-					"/dev/console",
-					"/dev/file-console",
-					"/dev/report-predict-console",
+					"/actuator/health",
+					"/actuator/health/**",
 					"/error"
-				).permitAll()
-				.requestMatchers("/dev/categories").permitAll()
-				.requestMatchers(HttpMethod.GET, "/posts/**").permitAll()
-				.requestMatchers("/admin/**").hasRole("ADMIN")
-				.anyRequest().authenticated()
-			)
+				).permitAll();
+				authorize.requestMatchers(HttpMethod.GET, "/posts", "/posts/*", "/posts/*/comments", "/categories")
+					.permitAll();
+				if (isDevProfile()) {
+					authorize.requestMatchers("/dev/**").permitAll();
+				}
+				authorize.requestMatchers("/admin/**").hasRole("ADMIN");
+				authorize.anyRequest().authenticated();
+			})
 			.headers(headers -> headers.contentSecurityPolicy(csp -> csp
 				.policyDirectives(
 					"script-src 'self' https://challenges.cloudflare.com; "
@@ -114,6 +126,27 @@ public class SecurityConfig {
 			.formLogin(AbstractHttpConfigurer::disable);
 
 		return http.build();
+	}
+
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		List<String> origins = Arrays.stream(allowedOrigins.split(","))
+			.map(String::trim)
+			.filter(origin -> !origin.isBlank())
+			.toList();
+		if (origins.isEmpty()) {
+			origins = List.of("http://localhost:3000");
+		}
+		configuration.setAllowedOrigins(origins);
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+		configuration.setAllowCredentials(true);
+		configuration.setMaxAge(3600L);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
 	}
 
 	@Bean
@@ -196,6 +229,10 @@ public class SecurityConfig {
 			return trimmed;
 		}
 		return allowLegacyPrefix ? "ROLE_" + trimmed : null;
+	}
+
+	private boolean isDevProfile() {
+		return Arrays.asList(environment.getActiveProfiles()).contains("dev");
 	}
 
 	private boolean containsLegacyPrefix(List<String> roles) {

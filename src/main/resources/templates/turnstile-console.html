@@ -236,7 +236,7 @@
 					<button class="primary" type="button" id="verify-btn">검증 요청</button>
 					<button class="ghost" type="button" id="reset-btn">위젯 리셋</button>
 				</div>
-				<p class="footer-note">/auth/console/turnstile/verify로 서버 검증을 실행합니다.</p>
+				<p class="footer-note">/dev/auth/console/turnstile/verify로 서버 검증을 실행합니다.</p>
 			</div>
 
 			<div class="card" style="animation-delay: 0.08s;">
@@ -320,7 +320,7 @@
 				return;
 			}
 			try {
-				const response = await fetch("/auth/console/turnstile/verify", {
+				const response = await fetch("/dev/auth/console/turnstile/verify", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ token })
