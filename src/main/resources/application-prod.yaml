@@ -8,7 +8,7 @@ app:
   email:
     verification:
       skip: false
-      base-url: ${APP_BASE_URL}
+      base-url: ${API_BASE_URL}
       redirect-base-url: ${APP_BASE_URL}
   file:
     storage:
@@ -50,9 +50,9 @@ management:
 
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
   swagger-ui:
-    enabled: false
+    enabled: true
 
 turnstile:
   secret-key: ${TURNSTILE_SECRET_KEY}
