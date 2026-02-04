@@ -411,23 +411,24 @@
 			};
 
 			try {
-				const response = await fetch("/auth/login", {
+				const response = await fetch("/api/auth/login", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(payload)
 				});
-				const data = await response.json();
+				const body = await response.json();
 				if (!response.ok) {
-					setLog(data);
+					setLog(body);
 					return;
 				}
-				state.accessToken = data.accessToken;
+				const data = body.data || {};
+				state.accessToken = data.accessToken || "";
 				state.refreshToken = data.refreshToken || "";
-				state.accessExpiresIn = data.expiresIn;
+				state.accessExpiresIn = data.accessExpiresIn || 0;
 				state.refreshExpiresIn = data.refreshExpiresIn || 0;
 				saveState();
 				updateTokenView();
-				setLog({ status: response.status, data });
+				setLog({ status: response.status, data: body });
 			} catch (error) {
 				setLog({ error: error.message });
 			}
@@ -443,13 +444,13 @@
 			const payload = {
 				email: document.getElementById("signup-email").value,
 				password: document.getElementById("signup-password").value,
-				username: document.getElementById("signup-name").value,
+				name: document.getElementById("signup-name").value,
 				admin: document.getElementById("signup-admin")?.checked === true,
 				turnstileToken: turnstileToken
 			};
 
 			try {
-				const response = await fetch("/auth/signup", {
+				const response = await fetch("/api/auth/signup", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(payload)
@@ -491,7 +492,7 @@
 
 		document.getElementById("logout-btn").addEventListener("click", async () => {
 			try {
-				const response = await apiFetch("/auth/logout", { method: "POST" });
+				const response = await apiFetch("/api/auth/logout", { method: "POST" });
 				if (response.status === 404 || response.status === 405) {
 					setLog("현재 /auth/logout API가 제공되지 않습니다. 콘솔 버튼을 비활성화합니다.");
 					document.getElementById("logout-btn").disabled = true;
@@ -515,7 +516,7 @@
 
 		document.getElementById("logout-all-btn").addEventListener("click", async () => {
 			try {
-				const response = await apiFetch("/auth/logout-all", { method: "POST" });
+				const response = await apiFetch("/api/auth/logout-all", { method: "POST" });
 				if (response.status === 404 || response.status === 405) {
 					setLog("현재 /auth/logout-all API가 제공되지 않습니다. 콘솔 버튼을 비활성화합니다.");
 					document.getElementById("logout-all-btn").disabled = true;

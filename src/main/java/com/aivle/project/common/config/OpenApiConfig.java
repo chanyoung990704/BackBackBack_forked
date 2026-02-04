@@ -8,7 +8,6 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.util.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
@@ -19,14 +18,11 @@ public class OpenApiConfig {
 
 	private static final String SECURITY_SCHEME_NAME = "bearerAuth";
 	private final String apiVersion;
-	private final String apiBasePath;
 
 	public OpenApiConfig(
-		@Value("${app.api.version:v1}") String apiVersion,
-		@Value("${app.api.base-path:}") String apiBasePath
+		@Value("${app.api.version:v1}") String apiVersion
 	) {
 		this.apiVersion = apiVersion;
-		this.apiBasePath = apiBasePath;
 	}
 
 	@Bean
@@ -41,11 +37,8 @@ public class OpenApiConfig {
 					.name(SECURITY_SCHEME_NAME)
 					.type(SecurityScheme.Type.HTTP)
 					.scheme("bearer")
-					.bearerFormat("JWT")));
-
-		if (StringUtils.hasText(apiBasePath)) {
-			openAPI.addServersItem(new Server().url(apiBasePath));
-		}
+					.bearerFormat("JWT")))
+			.addServersItem(new Server().url("/"));
 
 		return openAPI;
 	}

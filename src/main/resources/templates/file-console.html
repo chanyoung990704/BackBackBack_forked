@@ -250,7 +250,7 @@
 			</div>
 
 			<ul class="list" style="margin-top: 12px;">
-				<li>요청 경로: <code>/posts/{postId}/files</code></li>
+				<li>요청 경로: <code>/api/posts/{postId}/files</code></li>
 				<li>파일은 multipart/form-data로 전송됩니다.</li>
 				<li>토큰이 없다면 Auth Console에서 로그인 후 다시 시도하세요.</li>
 			</ul>
@@ -344,7 +344,7 @@
 			setLog("업로드 요청 중...");
 
 			try {
-				const response = await fetch(`/posts/${postId}/files`, {
+				const response = await fetch(`/api/posts/${postId}/files`, {
 					method: "POST",
 					headers: {
 						Authorization: "Bearer " + state.accessToken
@@ -377,7 +377,7 @@
 
 			setLog("파일 목록 조회 중...");
 			try {
-				const response = await fetch(`/posts/${postId}/files`, {
+				const response = await fetch(`/api/posts/${postId}/files`, {
 					method: "GET",
 					headers: {
 						Authorization: "Bearer " + state.accessToken
@@ -446,7 +446,7 @@
 		};
 
 		const fetchFileBlob = async (fileId) => {
-			const response = await fetch(`/files/${fileId}`, {
+			const response = await fetch(`/api/files/${fileId}`, {
 				method: "GET",
 				headers: {
 					Authorization: "Bearer " + state.accessToken

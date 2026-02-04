@@ -88,3 +88,7 @@ jwt:
 turnstile:
   verify-url: ${TURNSTILE_VERIFY_URL:https://challenges.cloudflare.com/turnstile/v0/siteverify}
   timeout: ${TURNSTILE_TIMEOUT:5000} # API 호출 타임아웃 (ms)
+
+ai:
+  server:
+    url: ${AI_SERVER_URL:https://bigbig-ai-server.azurewebsites.net}
