@@ -1,0 +1,2 @@
+ALTER TABLE metrics
+ADD COLUMN is_risk_indicator BOOLEAN NOT NULL DEFAULT FALSE;

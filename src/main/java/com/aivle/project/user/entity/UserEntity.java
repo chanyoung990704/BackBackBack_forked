@@ -30,9 +30,6 @@ public class UserEntity extends BaseEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "company_id")
-	private Long companyId;
-
 	@JdbcTypeCode(SqlTypes.BINARY)
 	@Column(name = "uuid", nullable = false, columnDefinition = "BINARY(16)")
 	private UUID uuid;

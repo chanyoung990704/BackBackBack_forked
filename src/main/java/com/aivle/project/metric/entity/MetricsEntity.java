@@ -36,4 +36,7 @@ public class MetricsEntity extends BaseEntity {
 	@Column(name = "unit", length = 20)
 	private String unit;
 
+	@Column(name = "is_risk_indicator", nullable = false)
+	private boolean isRiskIndicator;
+
 }

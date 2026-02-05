@@ -21,6 +21,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
@@ -44,6 +45,38 @@ class CompanyReportMetricValuesRepositoryTest {
 
 	@Autowired
 	private MetricsRepository metricsRepository;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+
+	@Test
+	@DisplayName("시드된 metrics 데이터는 isRiskIndicator 기본값 false를 가진다")
+	void seededMetricHasDefaultRiskIndicatorFalse() {
+		// given
+		MetricsEntity metric = metricsRepository.findByMetricCode("ROA").orElseThrow();
+
+		// when & then
+		assertThat(metric.isRiskIndicator()).isFalse();
+	}
+
+	@Test
+	@DisplayName("metrics 삽입 시 is_risk_indicator 미지정이면 DB 기본값 0이 저장된다")
+	void insertMetricWithoutRiskIndicatorStoresDefaultZero() {
+		// given
+		jdbcTemplate.update(
+			"INSERT INTO metrics (metric_code, metric_name_ko, metric_name_en, unit) VALUES (?, ?, ?, ?)",
+			"TEST_RISK_DEFAULT",
+			"테스트 리스크 기본값",
+			"test_risk_default",
+			"%"
+		);
+
+		// when
+		MetricsEntity metric = metricsRepository.findByMetricCode("TEST_RISK_DEFAULT").orElseThrow();
+
+		// then
+		assertThat(metric.isRiskIndicator()).isFalse();
+	}
 
 	@Test
 	@DisplayName("최신 버전 기준으로 분기 범위 지표를 조회한다")
