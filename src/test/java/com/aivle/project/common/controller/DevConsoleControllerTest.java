@@ -5,6 +5,7 @@ import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import com.aivle.project.auth.service.TurnstileService;
 import com.aivle.project.category.dto.CategorySummaryResponse;
@@ -61,5 +62,13 @@ class DevConsoleControllerTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.success").value(true))
 			.andExpect(jsonPath("$.data[0].name").value("공지"));
+	}
+
+	@Test
+	@DisplayName("개발용 API 콘솔 페이지에 기업 AI 분석 테스트 UI가 노출된다")
+	void console_shouldContainCompanyAiSection() throws Exception {
+		mockMvc.perform(get("/dev/console"))
+			.andExpect(status().isOk())
+			.andExpect(content().string(org.hamcrest.Matchers.containsString("ai-analysis-query")));
 	}
 }

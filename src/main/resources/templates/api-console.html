@@ -358,7 +358,7 @@
 				<div class="actions">
 					<button class="primary" type="button" id="dart-corp-sync">기업 목록 동기화 실행</button>
 				</div>
-				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /admin/dart/corp-sync</p>
+				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/admin/dart/corp-sync</p>
 			</div>
 
 			<div class="card" style="animation-delay: 0.07s;">
@@ -374,7 +374,7 @@
 				<div class="actions">
 					<button class="secondary" type="button" id="report-import">업로드 실행</button>
 				</div>
-				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /admin/reports/metrics/import</p>
+				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/admin/reports/metrics/import</p>
 			</div>
 
 			<div class="card" style="animation-delay: 0.072s;">
@@ -394,7 +394,7 @@
 				<div class="actions">
 					<button class="secondary" type="button" id="predict-import">예측값 적재</button>
 				</div>
-				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /admin/reports/metrics/predict</p>
+				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/admin/reports/metrics/predict</p>
 			</div>
 
 			<div class="card" style="animation-delay: 0.073s;">
@@ -423,7 +423,7 @@
 				<div class="actions">
 					<button class="secondary" type="button" id="publish-report">발행 실행</button>
 				</div>
-				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /admin/reports/metrics/publish</p>
+				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/admin/reports/metrics/publish</p>
 			</div>
 
 			<div class="card" style="animation-delay: 0.075s;">
@@ -455,7 +455,45 @@
 				<div class="actions">
 					<button class="secondary" type="button" id="report-grouped-query">조회 실행</button>
 				</div>
-					<p class="footer-note">사용자 토큰(ROLE_USER) 필요. GET /reports/metrics/grouped</p>
+					<p class="footer-note">사용자 토큰(ROLE_USER) 필요. GET /api/reports/metrics/grouped</p>
+			</div>
+
+			<div class="card" style="animation-delay: 0.077s;">
+				<h2>기업 AI 분석 조회</h2>
+				<div class="row">
+					<div>
+						<label for="ai-company-keyword">기업명 검색</label>
+						<div class="inline-actions">
+							<input id="ai-company-keyword" type="text" placeholder="기업명/영문명">
+							<button class="ghost" type="button" id="ai-company-search">검색</button>
+						</div>
+					</div>
+				</div>
+				<div class="list" id="ai-company-results" aria-live="polite"></div>
+				<div class="row">
+					<div>
+						<label for="ai-company-code">companyCode</label>
+						<input id="ai-company-code" type="text" placeholder="005930">
+					</div>
+				</div>
+				<div class="actions">
+					<button class="secondary" type="button" id="ai-analysis-query">조회 실행</button>
+				</div>
+				<p class="footer-note">사용자 토큰(ROLE_USER) 필요. GET /api/companies/{companyCode}/ai-analysis</p>
+			</div>
+
+			<div class="card" style="animation-delay: 0.078s;">
+				<h2>기업 AI 리포트 PDF 생성/저장</h2>
+				<div class="row">
+					<div>
+						<label for="ai-report-company-code">companyCode</label>
+						<input id="ai-report-company-code" type="text" placeholder="005930">
+					</div>
+				</div>
+				<div class="actions">
+					<button class="secondary" type="button" id="ai-report-generate">생성 실행</button>
+				</div>
+				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/companies/{companyCode}/ai-report</p>
 			</div>
 
 			<div class="card" style="animation-delay: 0.08s;">
@@ -771,7 +809,7 @@
 
 		document.getElementById("dart-corp-sync")?.addEventListener("click", async () => {
 			try {
-				const response = await apiFetch("/admin/dart/corp-sync", { method: "POST" });
+				const response = await apiFetch("/api/admin/dart/corp-sync", { method: "POST" });
 				const data = await response.json();
 				setLog({ status: response.status, data });
 			} catch (e) {
@@ -798,7 +836,7 @@
 			formData.append("file", file);
 
 			try {
-				const response = await apiFetch("/admin/reports/metrics/import", {
+				const response = await apiFetch("/api/admin/reports/metrics/import", {
 					method: "POST",
 					body: formData
 				});
@@ -836,7 +874,7 @@
 			}
 
 			try {
-				const response = await apiFetch("/admin/reports/metrics/predict", {
+				const response = await apiFetch("/api/admin/reports/metrics/predict", {
 					method: "POST",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
@@ -893,7 +931,7 @@
 			formData.append("file", file);
 
 			try {
-				const response = await apiFetch("/admin/reports/metrics/publish", {
+				const response = await apiFetch("/api/admin/reports/metrics/publish", {
 					method: "POST",
 					body: formData
 				});
@@ -918,13 +956,127 @@
 			}
 
 			try {
-					const url = `/reports/metrics/grouped?stockCode=${encodeURIComponent(stockCode)}&fromQuarterKey=${fromQuarterKey}&toQuarterKey=${toQuarterKey}`;
+					const url = `/api/reports/metrics/grouped?stockCode=${encodeURIComponent(stockCode)}&fromQuarterKey=${fromQuarterKey}&toQuarterKey=${toQuarterKey}`;
 				const response = await apiFetch(url);
 				const data = await response.json();
 				setLog({ status: response.status, data });
 			} catch (e) {
 				setLog({ error: e.message });
 			}
+		});
+
+		document.getElementById("ai-analysis-query")?.addEventListener("click", async () => {
+			const companyCode = readText("ai-company-code");
+			if (!companyCode) {
+				setLog("companyCode를 입력해주세요.");
+				return;
+			}
+
+			try {
+				const url = `/api/companies/${encodeURIComponent(companyCode)}/ai-analysis`;
+				const response = await apiFetch(url);
+				const data = await response.json();
+				setLog({ status: response.status, data });
+			} catch (e) {
+				setLog({ error: e.message });
+			}
+		});
+
+		document.getElementById("ai-report-generate")?.addEventListener("click", async () => {
+			const companyCode = readText("ai-report-company-code");
+			if (!companyCode) {
+				setLog("companyCode를 입력해주세요.");
+				return;
+			}
+
+			try {
+				const url = `/api/companies/${encodeURIComponent(companyCode)}/ai-report`;
+				const response = await apiFetch(url, { method: "POST" });
+				const data = await response.json();
+				setLog({ status: response.status, data });
+			} catch (e) {
+				setLog({ error: e.message });
+			}
+		});
+
+		const aiKeywordInput = document.getElementById("ai-company-keyword");
+		const aiSearchButton = document.getElementById("ai-company-search");
+		const aiResultBox = document.getElementById("ai-company-results");
+		let aiSearchTimer = null;
+
+		const clearAiResults = () => {
+			if (aiResultBox) {
+				aiResultBox.innerHTML = "";
+			}
+		};
+
+		const renderAiResults = (items) => {
+			if (!aiResultBox) {
+				return;
+			}
+			aiResultBox.innerHTML = "";
+			if (!items || items.length === 0) {
+				const empty = document.createElement("div");
+				empty.className = "list-empty";
+				empty.textContent = "검색 결과가 없습니다.";
+				aiResultBox.appendChild(empty);
+				return;
+			}
+			items.forEach((item) => {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "list-item";
+				button.textContent = `${item.corpName} (${item.stockCode || "-"})`;
+				button.addEventListener("click", () => {
+					const codeInput = document.getElementById("ai-company-code");
+					if (codeInput) {
+						codeInput.value = item.stockCode || "";
+					}
+					setLog(`AI 분석 대상 선택: ${item.corpName} / ${item.stockCode || "-"}`);
+				});
+				aiResultBox.appendChild(button);
+			});
+		};
+
+		const fetchAiCompanyResults = async (keyword) => {
+			if (!keyword || keyword.length < 2) {
+				setLog("기업명 검색은 2자 이상 입력해주세요.");
+				clearAiResults();
+				return;
+			}
+			try {
+				const url = `/api/companies/search?keyword=${encodeURIComponent(keyword)}`;
+				const response = await apiFetch(url);
+				const payload = await response.json();
+				if (!response.ok || !payload.success) {
+					setLog({ status: response.status, data: payload });
+					clearAiResults();
+					return;
+				}
+				renderAiResults(payload.data || []);
+			} catch (e) {
+				setLog({ error: e.message });
+				clearAiResults();
+			}
+		};
+
+		aiSearchButton?.addEventListener("click", () => {
+			const keyword = (aiKeywordInput?.value || "").trim();
+			fetchAiCompanyResults(keyword);
+		});
+
+		aiKeywordInput?.addEventListener("input", () => {
+			const keyword = (aiKeywordInput.value || "").trim();
+			if (aiSearchTimer) {
+				clearTimeout(aiSearchTimer);
+			}
+			aiSearchTimer = setTimeout(() => {
+				if (keyword.length >= 2) {
+					fetchAiCompanyResults(keyword);
+				} else {
+					clearAiResults();
+				}
+			}, 300);
 		});
 
 		const companyKeywordInput = document.getElementById("report-company-keyword");
@@ -973,7 +1125,7 @@
 				return;
 			}
 			try {
-					const url = `/companies/search?keyword=${encodeURIComponent(keyword)}`;
+					const url = `/api/companies/search?keyword=${encodeURIComponent(keyword)}`;
 				const response = await apiFetch(url);
 				const payload = await response.json();
 				if (!response.ok || !payload.success) {

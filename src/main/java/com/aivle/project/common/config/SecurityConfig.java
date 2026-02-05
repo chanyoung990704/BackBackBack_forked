@@ -100,6 +100,11 @@ public class SecurityConfig {
 				authorize.requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*", "/api/posts/*/comments", "/api/categories")
 					.permitAll();
 				authorize.requestMatchers(HttpMethod.GET, "/api/companies/search").hasRole("USER");
+				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/dashboard").hasRole("USER");
+				authorize.requestMatchers(HttpMethod.POST, "/api/watchlists").hasRole("USER");
+				authorize.requestMatchers(HttpMethod.DELETE, "/api/watchlists/*").hasRole("USER");
+				authorize.requestMatchers(HttpMethod.GET, "/api/companies/*/ai-analysis").hasRole("USER");
+				authorize.requestMatchers(HttpMethod.POST, "/api/companies/*/ai-report").hasRole("ADMIN");
 					authorize.requestMatchers(HttpMethod.GET, "/api/reports/metrics/grouped", "/api/reports/metrics/predict-latest")
 						.hasRole("USER");
 					authorize.requestMatchers(HttpMethod.GET, "/api/reports/files/*", "/api/reports/files/*/url")

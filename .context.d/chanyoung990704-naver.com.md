@@ -6,6 +6,15 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-05 | 작업: watchlist 대시보드 기반 기능 및 users.company_id 제거 | 결과: company_watchlists 생성(V11), users.company_id 제거(V12, MySQL/H2), Watchlist 등록/삭제/대시보드 API 및 서비스 추가(비위험 ACTUAL 최신버전 + 위험도 분리 조회), 보안 경로 반영, 서비스 테스트 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
+- 2026-02-05 | 작업: 분기별 비위험 지표 통계(metric_averages) 집계 기능 추가 | 결과: metric_averages 테이블 마이그레이션(V10, MySQL/H2) 추가, 비위험(`is_risk_indicator=0`) + ACTUAL + 최신 보고서 버전 기준 집계 쿼리/서비스 구현(avg/median/min/max/stddev/company_count), 집계 테스트 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
+- 2026-02-05 | 작업: 위험도 요약 집계(risk_score_summaries) 기능 추가 | 결과: risk_score_summaries 테이블 마이그레이션(V9, MySQL/H2) 추가, RiskLevel(UNDEFINED 포함)·RiskScoreSummary 엔티티/리포지토리/계산 서비스 구현, `is_risk_indicator=1` + `ACTUAL`만 집계하도록 쿼리 추가, 위험도 계산/UNDEFINED 처리 테스트 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
+- 2026-02-05 | 작업: metrics is_risk_indicator 컬럼 추가 및 기본값 회귀 검증 | 결과: MySQL/H2 Flyway 마이그레이션(V8) 추가, MetricsEntity 필드 매핑(boolean) 반영, 시드 기본값(false) 및 컬럼 미지정 INSERT 기본값(0) 검증 테스트 2건 추가 후 관련 테스트 통과 | 이슈: 없음
+- 2026-02-05 | 작업: Swagger 서버 URL 상대 경로화 | 결과: OpenApiConfig의 servers를 `/`로 고정해 절대 URL(`http://...`) 주입을 제거하고 Mixed Content/CORS 위험을 차단, OpenApiConfigTest 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
+- 2026-02-04 | 작업: CompanyAiService PDF 생성/저장 기능 API 및 dev 콘솔 연동 | 결과: `/api/companies/{companyCode}/ai-report`(POST) 추가, ROLE_ADMIN 보안 규칙 반영, api-console에 PDF 생성 버튼/입력 추가, 관련 테스트 및 `SPRING_PROFILES_ACTIVE=test ./gradlew test` 전체 통과 | 이슈: 없음
+- 2026-02-04 | 작업: api-console 기업 AI 분석 테스트 UX 보완 및 테스트 재검증 | 결과: 기업명 검색(디바운스/선택)으로 AI 분석 companyCode 자동 입력 기능 추가, `SPRING_PROFILES_ACTIVE=test ./gradlew test` 전체 통과 확인 | 이슈: 기본 프로필(dev)로 전체 테스트 시 로컬 MySQL 미기동이면 실패 가능
+- 2026-02-04 | 작업: CompanyAiService 호출용 조회 컨트롤러 및 dev 콘솔 연동 추가 | 결과: `/api/companies/{companyCode}/ai-analysis` 엔드포인트와 권한(ROLE_USER) 규칙을 추가하고, api-console에 기업 AI 조회 섹션/호출 스크립트를 연결. CompanyAiControllerTest/DevConsoleControllerTest 통과 | 이슈: 없음
+- 2026-02-04 | 작업: dev 콘솔 템플릿 API 경로 정합화 및 AI 응답 DTO 누락 보완 | 결과: templates 내 fetch 경로를 `/api/*` 실제 컨트롤러 매핑에 맞게 수정하고 AiAnalysisResponse DTO 및 ai.server.url 설정을 추가, `./gradlew test` 통과 | 이슈: 없음
 - 2026-02-02 | 작업: 전체 테스트 실패 수정 | 결과: ReportFileDownloadControllerTest 경로를 `/api` 접두사로 정합화하고 SecurityConfig에 `/api/reports/files/*/url` ROLE_USER 규칙 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
 - 2026-02-02 | 작업: 공통 응답(ApiResponse) 전면 적용 1단계(Auth) | 결과: AuthController를 ApiResponse 기반으로 통일하고 refresh 누락 토큰을 예외 처리로 전환, AuthIntegrationTest 보강 후 통과 | 이슈: 없음
 - 2026-02-02 | 작업: 공통 응답(ApiResponse) 전면 적용 2단계(이메일 인증) | 결과: EmailVerificationController의 JSON/재전송 응답을 ApiResponse로 통일하고 WebMvc 테스트 보강 후 통과 | 이슈: 없음

@@ -248,7 +248,7 @@
 				renderMetrics([]);
 				return;
 			}
-				const url = `/reports/metrics/predict-latest?stockCode=${encodeURIComponent(stockCode)}&quarterKey=${quarterKey}`;
+				const url = `/api/reports/metrics/predict-latest?stockCode=${encodeURIComponent(stockCode)}&quarterKey=${quarterKey}`;
 			try {
 				const response = await apiFetch(url);
 				const payload = await response.json();

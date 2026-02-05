@@ -21,3 +21,5 @@ app:
     verification:
       expire-minutes: 30
       token-length: 32
+      base-url: ${API_BASE_URL:http://localhost:8080}
+      redirect-base-url: ${APP_BASE_URL:http://localhost:3000}

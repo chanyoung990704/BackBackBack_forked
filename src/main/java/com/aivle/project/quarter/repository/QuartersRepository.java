@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface QuartersRepository extends JpaRepository<QuartersEntity, Long> {
 
 	Optional<QuartersEntity> findByQuarterKey(int quarterKey);
+
+	Optional<QuartersEntity> findByYearAndQuarter(short year, byte quarter);
 }
