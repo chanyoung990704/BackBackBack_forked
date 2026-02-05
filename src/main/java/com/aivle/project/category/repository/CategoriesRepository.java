@@ -12,5 +12,7 @@ public interface CategoriesRepository extends JpaRepository<CategoriesEntity, Lo
 
 	Optional<CategoriesEntity> findByIdAndDeletedAtIsNull(Long id);
 
+	Optional<CategoriesEntity> findByNameAndDeletedAtIsNull(String name);
+
 	List<CategoriesEntity> findAllByDeletedAtIsNullOrderBySortOrderAscIdAsc();
 }

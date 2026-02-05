@@ -52,6 +52,9 @@ public class PostsEntity extends BaseEntity {
 	@OneToOne(mappedBy = "post", fetch = FetchType.LAZY)
 	private PostViewCountsEntity viewCountEntity;
 
+	@jakarta.persistence.OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+	private java.util.List<com.aivle.project.comment.entity.CommentsEntity> replies = new java.util.ArrayList<>();
+
 	@Column(name = "is_pinned", nullable = false)
 	private boolean isPinned = false;
 
