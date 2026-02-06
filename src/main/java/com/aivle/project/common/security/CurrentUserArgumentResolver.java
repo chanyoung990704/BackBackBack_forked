@@ -41,17 +41,17 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 	) {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 		if (authentication == null || !authentication.isAuthenticated()) {
-			throw new CommonException(CommonErrorCode.COMMON_403);
+			return null;
 		}
 
 		Jwt jwt = extractJwt(authentication);
 		if (jwt == null) {
-			throw new CommonException(CommonErrorCode.COMMON_403);
+			return null;
 		}
 
 		UUID userUuid = parseUserUuid(jwt.getSubject());
 		return userRepository.findByUuidAndDeletedAtIsNull(userUuid)
-			.orElseThrow(() -> new CommonException(CommonErrorCode.COMMON_404));
+			.orElse(null);
 	}
 
 	private Jwt extractJwt(Authentication authentication) {

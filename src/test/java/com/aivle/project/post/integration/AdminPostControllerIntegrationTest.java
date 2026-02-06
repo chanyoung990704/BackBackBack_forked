@@ -12,9 +12,9 @@ import com.aivle.project.category.entity.CategoriesEntity;
 import com.aivle.project.common.config.TestSecurityConfig;
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.dto.PageResponse;
+import com.aivle.project.post.dto.PostAdminCreateRequest;
+import com.aivle.project.post.dto.PostAdminUpdateRequest;
 import com.aivle.project.post.dto.PostResponse;
-import com.aivle.project.post.dto.PostUserCreateRequest;
-import com.aivle.project.post.dto.PostUserUpdateRequest;
 import com.aivle.project.post.entity.PostStatus;
 import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.user.entity.UserEntity;
@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 @ActiveProfiles("test")
 @Transactional
 @Import(TestSecurityConfig.class)
-class PostControllerIntegrationTest {
+class AdminPostControllerIntegrationTest {
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -57,11 +58,13 @@ class PostControllerIntegrationTest {
 
 	private CategoriesEntity qnaCategory;
 	private CategoriesEntity noticesCategory;
+	private UserEntity admin;
 
 	@BeforeEach
 	void setUp() {
 		qnaCategory = findOrCreateCategory("qna");
 		noticesCategory = findOrCreateCategory("notices");
+		admin = persistUser("admin-controller@test.com");
 	}
 
 	private CategoriesEntity findOrCreateCategory(String name) {
@@ -80,31 +83,23 @@ class PostControllerIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("QnA 보드에 게시글을 생성한다")
-	void create_shouldCreatePostInQna() throws Exception {
+	@DisplayName("관리자는 공지사항 보드에 글을 생성할 수 있다 (상단고정/상태 설정 포함)")
+	void create_shouldCreateNotice() throws Exception {
 		// given
-		UserEntity user = persistUser("qna-creator@test.com");
-		PostUserCreateRequest request = new PostUserCreateRequest();
-		request.setTitle("질문입니다");
-		request.setContent("내용입니다");
+		PostAdminCreateRequest request = new PostAdminCreateRequest();
+		request.setTitle("중요 공지");
+		request.setContent("필독");
+		request.setPinned(true);
+		request.setStatus(PostStatus.PUBLISHED);
 
 		// when
-		MvcResult result = null;
-		try {
-			result = mockMvc.perform(post("/api/posts/qna")
-					.with(jwt().jwt(jwt -> jwt.subject(user.getUuid().toString()))
-						.authorities(new SimpleGrantedAuthority("ROLE_USER")))
-					.contentType(MediaType.APPLICATION_JSON)
-					.content(objectMapper.writeValueAsString(request)))
-				.andReturn();
-			System.out.println("DEBUG STATUS: " + result.getResponse().getStatus());
-			System.out.println("DEBUG RESPONSE: " + result.getResponse().getContentAsString());
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw e;
-		}
-
-		assertThat(result.getResponse().getStatus()).isEqualTo(201);
+		MvcResult result = mockMvc.perform(post("/api/admin/posts/notices")
+				.with(jwt().jwt(jwt -> jwt.subject(admin.getUuid().toString()))
+					.authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isCreated())
+			.andReturn();
 
 		// then
 		ApiResponse<PostResponse> apiResponse = objectMapper.readValue(
@@ -113,42 +108,25 @@ class PostControllerIntegrationTest {
 		);
 
 		assertThat(apiResponse.success()).isTrue();
-		assertThat(apiResponse.data().title()).isEqualTo("질문입니다");
-		assertThat(apiResponse.data().categoryId()).isEqualTo(qnaCategory.getId());
+		assertThat(apiResponse.data().isPinned()).isTrue();
+		assertThat(apiResponse.data().categoryId()).isEqualTo(noticesCategory.getId());
 	}
 
 	@Test
-	@DisplayName("Notices 보드에 일반 사용자가 글을 쓰면 403 Forbidden을 반환한다")
-	void create_shouldFailInNotices() throws Exception {
+	@DisplayName("관리자는 타인의 QnA 게시글을 수정할 수 있다")
+	void update_shouldUpdateOtherPost() throws Exception {
 		// given
-		UserEntity user = persistUser("notice-hacker@test.com");
-		PostUserCreateRequest request = new PostUserCreateRequest();
-		request.setTitle("공지 해킹");
-		request.setContent("내용");
+		UserEntity otherUser = persistUser("other@test.com");
+		PostsEntity post = persistPost(otherUser, qnaCategory, "원본", "원본");
 
-		// when & then
-		mockMvc.perform(post("/api/posts/notices")
-				.with(jwt().jwt(jwt -> jwt.subject(user.getUuid().toString())))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
-			.andExpect(status().isForbidden());
-	}
-
-	@Test
-	@DisplayName("QnA 보드에서 본인의 글을 수정한다")
-	void update_shouldUpdateOwnPost() throws Exception {
-		// given
-		UserEntity user = persistUser("qna-updater@test.com");
-		PostsEntity post = persistPost(user, qnaCategory, "원본 제목", "원본 내용");
-
-		PostUserUpdateRequest request = new PostUserUpdateRequest();
-		request.setTitle("수정된 제목");
-		request.setContent("수정된 내용");
+		PostAdminUpdateRequest request = new PostAdminUpdateRequest();
+		request.setTitle("관리자 수정");
+		request.setIsPinned(true);
 
 		// when
-		MvcResult result = mockMvc.perform(patch("/api/posts/qna/{postId}", post.getId())
-				.with(jwt().jwt(jwt -> jwt.subject(user.getUuid().toString()))
-					.authorities(new SimpleGrantedAuthority("ROLE_USER")))
+		MvcResult result = mockMvc.perform(patch("/api/admin/posts/qna/{postId}", post.getId())
+				.with(jwt().jwt(jwt -> jwt.subject(admin.getUuid().toString()))
+					.authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(objectMapper.writeValueAsString(request)))
 			.andExpect(status().isOk())
@@ -159,62 +137,21 @@ class PostControllerIntegrationTest {
 			result.getResponse().getContentAsString(),
 			new TypeReference<ApiResponse<PostResponse>>() {}
 		);
-		assertThat(apiResponse.data().title()).isEqualTo("수정된 제목");
+		assertThat(apiResponse.data().title()).isEqualTo("관리자 수정");
+		assertThat(apiResponse.data().isPinned()).isTrue();
 	}
 
 	@Test
-	@DisplayName("QnA 보드에서 타인의 글을 수정하면 403 Forbidden을 반환한다")
-	void update_shouldFailForOtherPost() throws Exception {
+	@DisplayName("관리자는 타인의 게시글을 삭제할 수 있다")
+	void delete_shouldDeletePost() throws Exception {
 		// given
-		UserEntity owner = persistUser("owner@test.com");
-		UserEntity hacker = persistUser("hacker@test.com");
-		PostsEntity post = persistPost(owner, qnaCategory, "원본", "원본");
-
-		PostUserUpdateRequest request = new PostUserUpdateRequest();
-		request.setTitle("해킹");
-
-		// when & then
-		mockMvc.perform(patch("/api/posts/qna/{postId}", post.getId())
-				.with(jwt().jwt(jwt -> jwt.subject(hacker.getUuid().toString()))
-					.authorities(new SimpleGrantedAuthority("ROLE_USER")))
-				.contentType(MediaType.APPLICATION_JSON)
-				.content(objectMapper.writeValueAsString(request)))
-			.andExpect(status().isForbidden());
-	}
-
-	@Test
-	@DisplayName("Notices 보드의 글 목록은 누구나 조회 가능하다")
-	void list_shouldReturnNotices() throws Exception {
-		// given
-		UserEntity admin = persistUser("admin@test.com"); // 작성자용 (실제론 어드민만 가능)
-		for (int i = 0; i < 5; i++) {
-			persistPost(admin, noticesCategory, "공지-" + i, "내용");
-		}
+		UserEntity otherUser = persistUser("to-delete@test.com");
+		PostsEntity post = persistPost(otherUser, qnaCategory, "삭제대상", "내용");
 
 		// when
-		MvcResult result = mockMvc.perform(get("/api/posts/notices"))
-			.andExpect(status().isOk())
-			.andReturn();
-
-		// then
-		ApiResponse<PageResponse<PostResponse>> apiResponse = objectMapper.readValue(
-			result.getResponse().getContentAsString(),
-			new TypeReference<ApiResponse<PageResponse<PostResponse>>>() {}
-		);
-		assertThat(apiResponse.data().content()).hasSize(5);
-	}
-
-	@Test
-	@DisplayName("QnA 보드에서 본인의 글을 삭제한다")
-	void delete_shouldDeleteOwnPost() throws Exception {
-		// given
-		UserEntity user = persistUser("qna-deleter@test.com");
-		PostsEntity post = persistPost(user, qnaCategory, "삭제용", "내용");
-
-		// when
-		mockMvc.perform(delete("/api/posts/qna/{postId}", post.getId())
-				.with(jwt().jwt(jwt -> jwt.subject(user.getUuid().toString()))
-					.authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+		mockMvc.perform(delete("/api/admin/posts/qna/{postId}", post.getId())
+				.with(jwt().jwt(jwt -> jwt.subject(admin.getUuid().toString()))
+					.authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
 			.andExpect(status().isOk());
 
 		// then
@@ -222,12 +159,30 @@ class PostControllerIntegrationTest {
 		assertThat(found.getDeletedAt()).isNotNull();
 	}
 
+	@Test
+	@DisplayName("일반 사용자가 관리자 API에 접근하면 403을 반환한다")
+	void create_forbiddenForUser() throws Exception {
+		// given
+		UserEntity user = persistUser("user@test.com");
+		PostAdminCreateRequest request = new PostAdminCreateRequest();
+		request.setTitle("권한없음");
+		request.setContent("내용");
+
+		// when & then
+		mockMvc.perform(post("/api/admin/posts/notices")
+				.with(jwt().jwt(jwt -> jwt.subject(user.getUuid().toString()))
+					.authorities(new SimpleGrantedAuthority("ROLE_USER")))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isForbidden());
+	}
+
 	private UserEntity persistUser(String email) {
 		UserEntity user = newEntity(UserEntity.class);
 		ReflectionTestUtils.setField(user, "uuid", UUID.randomUUID());
 		ReflectionTestUtils.setField(user, "email", email);
 		ReflectionTestUtils.setField(user, "password", "encoded");
-		ReflectionTestUtils.setField(user, "name", "test-user");
+		ReflectionTestUtils.setField(user, "name", "admin-tester");
 		ReflectionTestUtils.setField(user, "status", UserStatus.ACTIVE);
 		entityManager.persist(user);
 		return user;

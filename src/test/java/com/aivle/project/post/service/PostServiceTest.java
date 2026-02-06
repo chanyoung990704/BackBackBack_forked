@@ -3,6 +3,7 @@ package com.aivle.project.post.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -10,10 +11,13 @@ import com.aivle.project.category.entity.CategoriesEntity;
 import com.aivle.project.category.repository.CategoriesRepository;
 import com.aivle.project.common.dto.PageRequest;
 import com.aivle.project.common.dto.PageResponse;
+import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
-import com.aivle.project.post.dto.PostCreateRequest;
+import com.aivle.project.post.dto.PostAdminCreateRequest;
+import com.aivle.project.post.dto.PostAdminUpdateRequest;
 import com.aivle.project.post.dto.PostResponse;
-import com.aivle.project.post.dto.PostUpdateRequest;
+import com.aivle.project.post.dto.PostUserCreateRequest;
+import com.aivle.project.post.dto.PostUserUpdateRequest;
 import com.aivle.project.post.entity.PostStatus;
 import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.post.entity.PostViewCountsEntity;
@@ -53,156 +57,175 @@ class PostServiceTest {
 	@Mock
 	private com.aivle.project.post.mapper.PostMapper postMapper;
 
+	// User Operations Tests
+
 	@Test
-	@DisplayName("페이징 요청으로 게시글 목록을 조회한다")
-	void list_shouldReturnPageResponse() {
+	@DisplayName("사용자는 'notices' 보드에 글을 작성할 수 없다 (403 Forbidden)")
+	void create_shouldFailForNotices() {
 		// given
-		PageRequest pageRequest = new PageRequest();
-		pageRequest.setPage(1);
-		pageRequest.setSize(2);
-		pageRequest.setSortBy("createdAt");
+		UserEntity user = newUser(1L);
+		PostUserCreateRequest request = new PostUserCreateRequest();
+		request.setTitle("title");
+		request.setContent("content");
 
-		UserEntity user = newUser(1L, UUID.randomUUID());
-		CategoriesEntity category = newCategory(10L);
-		PostsEntity first = newPost(100L, user, category, "title-1", "content-1");
-		PostsEntity second = newPost(101L, user, category, "title-2", "content-2");
-		Page<PostsEntity> page = new PageImpl<>(List.of(first, second), pageRequest.toPageable(), 2);
-
-		given(postsRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc(any(Pageable.class)))
-			.willReturn(page);
-		
-		given(postMapper.toResponse(first)).willReturn(new PostResponse(100L, 1L, 10L, "title-1", "content-1", 0, false, PostStatus.PUBLISHED, null, null));
-		given(postMapper.toResponse(second)).willReturn(new PostResponse(101L, 1L, 10L, "title-2", "content-2", 0, false, PostStatus.PUBLISHED, null, null));
-
-		// when
-		PageResponse<PostResponse> response = postService.list(pageRequest);
-
-		// then
-		assertThat(response.totalElements()).isEqualTo(2);
-		assertThat(response.content()).hasSize(2);
-		assertThat(response.content().get(0).id()).isEqualTo(100L);
-		assertThat(response.content().get(1).id()).isEqualTo(101L);
+		// when & then
+		assertThatThrownBy(() -> postService.create("notices", user, request))
+			.isInstanceOf(CommonException.class)
+			.extracting(ex -> ((CommonException) ex).getErrorCode())
+			.isEqualTo(CommonErrorCode.COMMON_403);
 	}
 
 	@Test
-	@DisplayName("게시글 생성 시 제목과 내용이 trim 처리된다")
-	void create_shouldTrimFields() {
+	@DisplayName("사용자는 'qna' 보드에 글을 작성할 수 있다")
+	void create_shouldSucceedForQna() {
 		// given
-		UserEntity user = newUser(1L, UUID.randomUUID());
-		CategoriesEntity category = newCategory(10L);
+		UserEntity user = newUser(1L);
+		CategoriesEntity category = newCategory(2L, "qna");
+		PostUserCreateRequest request = new PostUserCreateRequest();
+		request.setTitle("qna title");
+		request.setContent("qna content");
 
-		PostCreateRequest request = new PostCreateRequest();
-		request.setCategoryId(10L);
-		request.setTitle(" 제목 ");
-		request.setContent(" 내용 ");
-
-		given(categoriesRepository.findByIdAndDeletedAtIsNull(10L)).willReturn(Optional.of(category));
+		given(categoriesRepository.findByNameAndDeletedAtIsNull("qna")).willReturn(Optional.of(category));
 		given(postsRepository.save(any(PostsEntity.class))).willAnswer(invocation -> {
-			PostsEntity saved = invocation.getArgument(0);
-			ReflectionTestUtils.setField(saved, "id", 100L);
-			return saved;
+			PostsEntity p = invocation.getArgument(0);
+			ReflectionTestUtils.setField(p, "id", 100L);
+			return p;
 		});
-		given(postViewCountsRepository.save(any(PostViewCountsEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
-		given(postMapper.toResponse(any(PostsEntity.class))).willAnswer(invocation -> {
-			PostsEntity post = invocation.getArgument(0);
-			return new PostResponse(post.getId(), post.getUser().getId(), post.getCategory().getId(), post.getTitle(), post.getContent(), 0, post.isPinned(), post.getStatus(), null, null);
-		});
+		given(postMapper.toResponse(any(PostsEntity.class))).willReturn(new PostResponse(100L, 1L, 2L, "qna title", "qna content", 0, false, PostStatus.PUBLISHED, null, null));
 
 		// when
-		PostResponse response = postService.create(user, request);
+		PostResponse response = postService.create("qna", user, request);
 
 		// then
 		assertThat(response.id()).isEqualTo(100L);
-		assertThat(response.title()).isEqualTo("제목");
-		assertThat(response.content()).isEqualTo("내용");
-		assertThat(response.userId()).isEqualTo(1L);
-		assertThat(response.categoryId()).isEqualTo(10L);
+		verify(postViewCountsRepository).save(any(PostViewCountsEntity.class));
 	}
 
 	@Test
-	@DisplayName("게시글 수정 시 작성자 검증과 필드 변경이 반영된다")
-	void update_shouldApplyChanges() {
+	@DisplayName("사용자는 본인의 글을 수정할 수 있다")
+	void update_shouldSucceedForOwner() {
 		// given
-		UserEntity user = newUser(1L, UUID.randomUUID());
-		CategoriesEntity category = newCategory(10L);
-		CategoriesEntity nextCategory = newCategory(20L);
-		PostsEntity post = newPost(100L, user, category, "before", "before");
+		UserEntity user = newUser(1L);
+		PostsEntity post = newPost(100L, user, newCategory(2L, "qna"));
+		PostUserUpdateRequest request = new PostUserUpdateRequest();
+		request.setTitle("updated");
 
-		PostUpdateRequest request = new PostUpdateRequest();
-		request.setTitle(" after ");
-		request.setContent(" after ");
-		request.setCategoryId(20L);
-
-		given(postsRepository.findByIdAndDeletedAtIsNull(100L)).willReturn(Optional.of(post));
-		given(categoriesRepository.findByIdAndDeletedAtIsNull(20L)).willReturn(Optional.of(nextCategory));
-		given(postMapper.toResponse(any(PostsEntity.class))).willAnswer(invocation -> {
-			PostsEntity p = invocation.getArgument(0);
-			return new PostResponse(p.getId(), p.getUser().getId(), p.getCategory().getId(), p.getTitle(), p.getContent(), 0, p.isPinned(), p.getStatus(), null, null);
-		});
+		given(postsRepository.findByIdAndCategoryNameAndDeletedAtIsNull(100L, "qna"))
+			.willReturn(Optional.of(post));
+		given(postMapper.toResponse(post)).willReturn(new PostResponse(100L, 1L, 2L, "updated", "content", 0, false, PostStatus.PUBLISHED, null, null));
 
 		// when
-		PostResponse response = postService.update(user, 100L, request);
+		PostResponse response = postService.update("qna", user, 100L, request);
 
 		// then
-		assertThat(response.title()).isEqualTo("after");
-		assertThat(response.content()).isEqualTo("after");
-		assertThat(response.categoryId()).isEqualTo(20L);
+		assertThat(response.title()).isEqualTo("updated");
 	}
 
 	@Test
-	@DisplayName("작성자가 아니면 게시글 수정이 실패한다")
-	void update_shouldFailWhenNotOwner() {
+	@DisplayName("사용자는 타인의 글을 수정할 수 없다 (403 Forbidden)")
+	void update_shouldFailForNonOwner() {
 		// given
-		UserEntity requester = newUser(1L, UUID.randomUUID());
-		UserEntity owner = newUser(2L, UUID.randomUUID());
-		CategoriesEntity category = newCategory(10L);
-		PostsEntity post = newPost(100L, owner, category, "title", "content");
+		UserEntity owner = newUser(1L);
+		UserEntity other = newUser(2L);
+		PostsEntity post = newPost(100L, owner, newCategory(2L, "qna"));
+		PostUserUpdateRequest request = new PostUserUpdateRequest();
 
-		PostUpdateRequest request = new PostUpdateRequest();
-		request.setTitle("changed");
-
-		given(postsRepository.findByIdAndDeletedAtIsNull(100L)).willReturn(Optional.of(post));
+		given(postsRepository.findByIdAndCategoryNameAndDeletedAtIsNull(100L, "qna"))
+			.willReturn(Optional.of(post));
 
 		// when & then
-		assertThatThrownBy(() -> postService.update(requester, 100L, request))
+		assertThatThrownBy(() -> postService.update("qna", other, 100L, request))
 			.isInstanceOf(CommonException.class);
 	}
 
-	@Test
-	@DisplayName("게시글 삭제 시 소프트 삭제가 반영된다")
-	void delete_shouldMarkDeleted() {
-		// given
-		UserEntity user = newUser(1L, UUID.randomUUID());
-		CategoriesEntity category = newCategory(10L);
-		PostsEntity post = newPost(100L, user, category, "title", "content");
+	// Admin Operations Tests
 
-		given(postsRepository.findByIdAndDeletedAtIsNull(100L)).willReturn(Optional.of(post));
+	@Test
+	@DisplayName("관리자는 'notices' 보드에 글을 작성할 수 있다")
+	void createAdmin_shouldSucceedForNotices() {
+		// given
+		UserEntity admin = newUser(99L);
+		CategoriesEntity category = newCategory(1L, "notices");
+		PostAdminCreateRequest request = new PostAdminCreateRequest();
+		request.setTitle("notice");
+		request.setContent("content");
+		request.setPinned(true);
+		request.setStatus(PostStatus.PUBLISHED);
+
+		given(categoriesRepository.findByNameAndDeletedAtIsNull("notices")).willReturn(Optional.of(category));
+		given(postsRepository.save(any(PostsEntity.class))).willAnswer(invocation -> {
+			PostsEntity p = invocation.getArgument(0);
+			ReflectionTestUtils.setField(p, "id", 200L);
+			return p;
+		});
+		given(postMapper.toResponse(any(PostsEntity.class))).willReturn(new PostResponse(200L, 99L, 1L, "notice", "content", 0, true, PostStatus.PUBLISHED, null, null));
 
 		// when
-		postService.delete(user, 100L);
+		PostResponse response = postService.createAdmin("notices", admin, request);
+
+		// then
+		assertThat(response.id()).isEqualTo(200L);
+		assertThat(response.isPinned()).isTrue();
+	}
+
+	@Test
+	@DisplayName("관리자는 타인의 글도 수정할 수 있다")
+	void updateAdmin_shouldSucceedForAnyPost() {
+		// given
+		UserEntity user = newUser(1L);
+		PostsEntity post = newPost(100L, user, newCategory(2L, "qna"));
+		PostAdminUpdateRequest request = new PostAdminUpdateRequest();
+		request.setTitle("admin updated");
+		request.setIsPinned(true);
+
+		given(postsRepository.findByIdAndCategoryNameAndDeletedAtIsNull(100L, "qna"))
+			.willReturn(Optional.of(post));
+		given(postMapper.toResponse(post)).willReturn(new PostResponse(100L, 1L, 2L, "admin updated", "content", 0, true, PostStatus.PUBLISHED, null, null));
+
+		// when
+		PostResponse response = postService.updateAdmin("qna", 100L, request);
+
+		// then
+		assertThat(response.title()).isEqualTo("admin updated");
+		assertThat(response.isPinned()).isTrue();
+	}
+
+	@Test
+	@DisplayName("관리자는 타인의 글을 삭제할 수 있다")
+	void deleteAdmin_shouldSucceed() {
+		// given
+		UserEntity user = newUser(1L);
+		PostsEntity post = newPost(100L, user, newCategory(2L, "qna"));
+
+		given(postsRepository.findByIdAndCategoryNameAndDeletedAtIsNull(100L, "qna"))
+			.willReturn(Optional.of(post));
+
+		// when
+		postService.deleteAdmin("qna", 100L);
 
 		// then
 		assertThat(post.isDeleted()).isTrue();
-		verify(postsRepository).findByIdAndDeletedAtIsNull(100L);
 	}
 
-	private UserEntity newUser(Long id, UUID uuid) {
+	// Helpers
+
+	private UserEntity newUser(Long id) {
 		UserEntity user = newEntity(UserEntity.class);
 		ReflectionTestUtils.setField(user, "id", id);
-		ReflectionTestUtils.setField(user, "uuid", uuid);
+		ReflectionTestUtils.setField(user, "uuid", UUID.randomUUID());
 		ReflectionTestUtils.setField(user, "status", UserStatus.ACTIVE);
 		return user;
 	}
 
-	private CategoriesEntity newCategory(Long id) {
+	private CategoriesEntity newCategory(Long id, String name) {
 		CategoriesEntity category = newEntity(CategoriesEntity.class);
 		ReflectionTestUtils.setField(category, "id", id);
-		ReflectionTestUtils.setField(category, "name", "category");
+		ReflectionTestUtils.setField(category, "name", name);
 		return category;
 	}
 
-	private PostsEntity newPost(Long id, UserEntity user, CategoriesEntity category, String title, String content) {
-		PostsEntity post = PostsEntity.create(user, category, title, content, false, PostStatus.PUBLISHED);
+	private PostsEntity newPost(Long id, UserEntity user, CategoriesEntity category) {
+		PostsEntity post = PostsEntity.create(user, category, "title", "content", false, PostStatus.PUBLISHED);
 		ReflectionTestUtils.setField(post, "id", id);
 		return post;
 	}
@@ -213,7 +236,7 @@ class PostServiceTest {
 			ctor.setAccessible(true);
 			return ctor.newInstance();
 		} catch (ReflectiveOperationException ex) {
-			throw new IllegalStateException("엔티티 생성에 실패했습니다", ex);
+			throw new IllegalStateException("엔티티 생성 실패", ex);
 		}
 	}
 }

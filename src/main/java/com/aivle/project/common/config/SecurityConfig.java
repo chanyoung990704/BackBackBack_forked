@@ -97,8 +97,10 @@ public class SecurityConfig {
 					"/actuator/health/**",
 					"/error"
 				).permitAll();
-				authorize.requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*", "/api/posts/*/comments", "/api/categories")
-					.permitAll();
+				authorize.requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/categories").permitAll();
+				authorize.requestMatchers(HttpMethod.POST, "/api/posts/**").authenticated();
+				authorize.requestMatchers(HttpMethod.PATCH, "/api/posts/**").authenticated();
+				authorize.requestMatchers(HttpMethod.DELETE, "/api/posts/**").authenticated();
 				authorize.requestMatchers(HttpMethod.GET, "/api/companies/search").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/dashboard").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/metric-averages").hasRole("USER");

@@ -93,10 +93,16 @@ public class PostsEntity extends BaseEntity {
 	/**
 	 * 게시글 수정.
 	 */
-	public void update(String title, String content, CategoriesEntity category) {
+	public void update(String title, String content, CategoriesEntity category, Boolean isPinned, PostStatus status) {
 		this.title = title;
 		this.content = content;
 		this.category = category;
+		if (isPinned != null) {
+			this.isPinned = isPinned;
+		}
+		if (status != null) {
+			this.status = status;
+		}
 	}
 
 	/**

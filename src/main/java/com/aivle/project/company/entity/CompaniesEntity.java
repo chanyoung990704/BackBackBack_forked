@@ -39,7 +39,7 @@ public class CompaniesEntity extends BaseEntity {
 
 	//TODO : DB에서 industry_code 반영한 후 optional=false 적용해야함
 	@ManyToOne(fetch = FetchType.LAZY)//, optional = false)
-	@JoinColumn(name = "industry_code", referencedColumnName = "industry_code")
+	@JoinColumn(name = "industry_code_id")
 	private IndustryEntity industryCode;
 
 	/**
