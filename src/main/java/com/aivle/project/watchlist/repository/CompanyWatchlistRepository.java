@@ -50,6 +50,13 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
 			)
 			and (:metricCodesEmpty = true or m.metricCode in :metricCodes)
 		order by c.corpName, m.metricCode
@@ -113,6 +120,13 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
 			)
 		order by c.corpName, m.metricCode
 		""")
@@ -156,6 +170,13 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
 			)
 		order by q.year, q.quarter, c.corpName, m.metricCode
 		""")
@@ -191,6 +212,13 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
 			)
 			and (:metricCodesEmpty = true or m.metricCode in :metricCodes)
 		group by m.id, m.metricCode, m.metricNameKo
