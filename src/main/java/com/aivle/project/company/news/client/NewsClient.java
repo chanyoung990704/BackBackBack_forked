@@ -33,8 +33,8 @@ public class NewsClient {
      * @param companyName 기업명
      * @return 뉴스 분석 응답
      */
-    public NewsApiResponse fetchNews(String companyCode, String companyName) {
-        log.info("Requesting news for company: {} ({})", companyCode, companyName);
+	public NewsApiResponse fetchNews(String companyCode, String companyName) {
+		log.info("Requesting news for company: {} ({})", companyCode, companyName);
 
         try {
             return webClient.post()
@@ -44,12 +44,36 @@ public class NewsClient {
                     .retrieve()
                     .bodyToMono(NewsApiResponse.class)
                     .block();
-        } catch (DecodingException e) {
-            log.error("Failed to decode AI news response for company {}: {}", companyCode, e.getMessage());
-            throw new RuntimeException("AI Server response format error: invalid datetime field", e);
-        } catch (Exception e) {
-            log.error("Failed to fetch news for company {}: {}", companyCode, e.getMessage());
-            throw new RuntimeException("AI Server connection failed", e);
-        }
-    }
+		} catch (DecodingException e) {
+			log.error("Failed to decode AI news response for company {}: {}", companyCode, e.getMessage());
+			throw new RuntimeException("AI Server response format error: invalid datetime field", e);
+		} catch (Exception e) {
+			log.error("Failed to fetch news for company {}: {}", companyCode, e.getMessage());
+			throw new RuntimeException("AI Server connection failed", e);
+		}
+	}
+
+	/**
+	 * AI 서버에서 사업보고서 분석 데이터를 가져옵니다.
+	 *
+	 * @param companyCode 기업 코드 (stock_code)
+	 * @return 사업보고서 분석 응답
+	 */
+	public com.aivle.project.company.reportanalysis.dto.ReportApiResponse fetchReport(String companyCode) {
+		log.info("Requesting report analysis for company: {}", companyCode);
+
+		try {
+			return webClient.get()
+				.uri("/api/v1/news/{companyCode}/report", companyCode)
+				.retrieve()
+				.bodyToMono(com.aivle.project.company.reportanalysis.dto.ReportApiResponse.class)
+				.block();
+		} catch (DecodingException e) {
+			log.error("Failed to decode AI report response for company {}: {}", companyCode, e.getMessage());
+			throw new RuntimeException("AI Server response format error: invalid datetime field", e);
+		} catch (Exception e) {
+			log.error("Failed to fetch report analysis for company {}: {}", companyCode, e.getMessage());
+			throw new RuntimeException("AI Server connection failed", e);
+		}
+	}
 }

@@ -67,9 +67,9 @@ public class CompanyReportPdfPublishService {
 			quarter.getId()
 		).orElseGet(() -> companyReportsRepository.save(CompanyReportsEntity.create(company.get(), quarter, null)));
 
-		CompanyReportVersionsEntity version = createNewVersion(report);
+		CompanyReportVersionsEntity version = resolvePdfVersion(report);
 		FilesEntity pdfEntity = savePdf(report, version, pdfFile);
-		version.publishWithPdf(pdfEntity);
+		version.attachPdf(pdfEntity);
 		companyReportVersionsRepository.save(version);
 
 		log.info(
@@ -79,6 +79,12 @@ public class CompanyReportPdfPublishService {
 			version.getVersionNo()
 		);
 		return new ReportPdfPublishResult(1, 0, version.getVersionNo(), pdfEntity.getId());
+	}
+
+	private CompanyReportVersionsEntity resolvePdfVersion(CompanyReportsEntity report) {
+		return companyReportVersionsRepository.findTopByCompanyReportAndPublishedFalseOrderByVersionNoDesc(report)
+			.filter(existing -> existing.getPdfFile() == null)
+			.orElseGet(() -> createNewVersion(report));
 	}
 
 	private CompanyReportVersionsEntity createNewVersion(CompanyReportsEntity report) {

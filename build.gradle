@@ -93,4 +93,5 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 	jvmArgs "-javaagent:${configurations.mockitoAgent.singleFile}"
+	systemProperty "spring.profiles.active", "test"
 }

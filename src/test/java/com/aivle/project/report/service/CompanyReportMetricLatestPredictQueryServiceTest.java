@@ -129,4 +129,58 @@ class CompanyReportMetricLatestPredictQueryServiceTest {
 		assertThat(response.pdfFileId()).isEqualTo(pdf.getId());
 		assertThat(response.metrics()).hasSize(2);
 	}
+
+	@Test
+	@DisplayName("최신 버전에 PREDICT가 없으면 최신 PREDICT 버전을 조회한다")
+	void fetchLatestPredictMetrics_fallbackToLatestPredictVersion() {
+		// given
+		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create(
+			"00000002",
+			"테스트기업2",
+			"TEST_CO2",
+			"000030",
+			LocalDate.of(2025, 1, 1)
+		));
+		YearQuarter yearQuarter = QuarterCalculator.parseQuarterKey(20253);
+		QuartersEntity quarter = quartersRepository.save(QuartersEntity.create(
+			yearQuarter.year(),
+			yearQuarter.quarter(),
+			20253,
+			QuarterCalculator.startDate(yearQuarter),
+			QuarterCalculator.endDate(yearQuarter)
+		));
+		CompanyReportsEntity report = companyReportsRepository.save(CompanyReportsEntity.create(company, quarter, null));
+		CompanyReportVersionsEntity predictVersion = companyReportVersionsRepository.save(CompanyReportVersionsEntity.create(
+			report,
+			1,
+			LocalDateTime.now().minusDays(1),
+			false,
+			null
+		));
+		companyReportVersionsRepository.save(CompanyReportVersionsEntity.create(
+			report,
+			2,
+			LocalDateTime.now(),
+			false,
+			null
+		));
+
+		MetricsEntity roa = metricsRepository.findByMetricCode("ROA").orElseThrow();
+		companyReportMetricValuesRepository.save(CompanyReportMetricValuesEntity.create(
+			predictVersion,
+			roa,
+			quarter,
+			new BigDecimal("4.56"),
+			MetricValueType.PREDICTED
+		));
+
+		// when
+		ReportLatestPredictResponse response = companyReportMetricQueryService
+			.fetchLatestPredictMetrics("30", 20253);
+
+		// then
+		assertThat(response.versionNo()).isEqualTo(1);
+		assertThat(response.metrics()).hasSize(1);
+		assertThat(response.metrics().get(0).metricValue()).isEqualByComparingTo("4.56");
+	}
 }

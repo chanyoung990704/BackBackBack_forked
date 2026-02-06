@@ -2,14 +2,6 @@ package com.aivle.project.report.service;
 
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
-import com.aivle.project.file.entity.FileUsageType;
-import com.aivle.project.file.entity.FilesEntity;
-import com.aivle.project.file.exception.FileErrorCode;
-import com.aivle.project.file.exception.FileException;
-import com.aivle.project.file.repository.FilesRepository;
-import com.aivle.project.file.storage.FileStorageService;
-import com.aivle.project.file.storage.StoredFile;
-import com.aivle.project.file.validator.FileValidator;
 import com.aivle.project.metric.entity.MetricValueType;
 import com.aivle.project.metric.entity.MetricsEntity;
 import com.aivle.project.metric.repository.MetricsRepository;
@@ -35,10 +27,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
- * 보고서 지표 적재 및 PDF 발행 서비스.
+ * 보고서 지표 수동 적재 서비스.
  */
 @Slf4j
 @Service
@@ -51,17 +42,13 @@ public class CompanyReportMetricPublishService {
 	private final CompanyReportsRepository companyReportsRepository;
 	private final CompanyReportVersionsRepository companyReportVersionsRepository;
 	private final CompanyReportMetricValuesRepository companyReportMetricValuesRepository;
-	private final FileStorageService fileStorageService;
-	private final FileValidator fileValidator;
-	private final FilesRepository filesRepository;
 
 	@Transactional
 	public ReportPublishResult publishMetrics(
 		String stockCode,
 		int quarterKey,
 		MetricValueType valueType,
-		Map<String, BigDecimal> metrics,
-		MultipartFile pdfFile
+		Map<String, BigDecimal> metrics
 	) {
 		if (metrics == null || metrics.isEmpty()) {
 			return ReportPublishResult.empty();
@@ -70,16 +57,14 @@ public class CompanyReportMetricPublishService {
 		String normalizedStockCode = normalizeStockCode(stockCode);
 		if (normalizedStockCode.isBlank()) {
 			log.info("보고서 발행 스킵: 기업 코드 누락");
-			return new ReportPublishResult(metrics.size(), 0, 0, 1, null, null);
+			return new ReportPublishResult(metrics.size(), 0, 0, 1, null);
 		}
 
 		Optional<CompaniesEntity> company = companiesRepository.findByStockCode(normalizedStockCode);
 		if (company.isEmpty()) {
 			log.info("보고서 발행 스킵: 기업 코드 미존재 (stockCode={})", normalizedStockCode);
-			return new ReportPublishResult(metrics.size(), 0, 0, 1, null, null);
+			return new ReportPublishResult(metrics.size(), 0, 0, 1, null);
 		}
-
-		validatePdf(pdfFile);
 
 		YearQuarter baseQuarter = QuarterCalculator.parseQuarterKey(quarterKey);
 		QuartersEntity quarter = getOrCreateQuarter(quarterKey, baseQuarter);
@@ -88,7 +73,7 @@ public class CompanyReportMetricPublishService {
 			quarter.getId()
 		).orElseGet(() -> companyReportsRepository.save(CompanyReportsEntity.create(company.get(), quarter, null)));
 
-		CompanyReportVersionsEntity version = createNewVersion(report);
+		CompanyReportVersionsEntity version = resolveMetricVersion(report, valueType);
 
 		Map<String, MetricsEntity> metricMap = metricsRepository.findAllByMetricNameEnIn(
 				metrics.keySet().stream()
@@ -130,12 +115,8 @@ public class CompanyReportMetricPublishService {
 
 		companyReportMetricValuesRepository.saveAll(values);
 
-		FilesEntity pdfEntity = savePdf(report, version, pdfFile);
-		version.publishWithPdf(pdfEntity);
-		companyReportVersionsRepository.save(version);
-
 		log.info(
-			"보고서 발행 완료: stockCode={}, quarterKey={}, valueType={}, total={}, saved={}, skippedMetrics={}, versionNo={}",
+			"보고서 지표 저장 완료: stockCode={}, quarterKey={}, valueType={}, total={}, saved={}, skippedMetrics={}, versionNo={}",
 			normalizedStockCode,
 			quarterKey,
 			valueType,
@@ -149,9 +130,15 @@ public class CompanyReportMetricPublishService {
 			values.size(),
 			skippedMetrics,
 			0,
-			version.getVersionNo(),
-			pdfEntity.getId()
+			version.getVersionNo()
 		);
+	}
+
+	private CompanyReportVersionsEntity resolveMetricVersion(CompanyReportsEntity report, MetricValueType valueType) {
+		return companyReportVersionsRepository.findTopByCompanyReportAndPublishedFalseOrderByVersionNoDesc(report)
+			.filter(existing -> !companyReportMetricValuesRepository
+				.existsByReportVersionAndValueTypeAndMetricValueIsNotNull(existing, valueType))
+			.orElseGet(() -> createNewVersion(report));
 	}
 
 	private CompanyReportVersionsEntity createNewVersion(CompanyReportsEntity report) {
@@ -177,32 +164,6 @@ public class CompanyReportMetricPublishService {
 				QuarterCalculator.startDate(yearQuarter),
 				QuarterCalculator.endDate(yearQuarter)
 			)));
-	}
-
-	private FilesEntity savePdf(CompanyReportsEntity report, CompanyReportVersionsEntity version, MultipartFile file) {
-		String keyPrefix = "reports/" + report.getId() + "/v" + version.getVersionNo();
-		StoredFile stored = fileStorageService.store(file, keyPrefix);
-		FilesEntity entity = FilesEntity.create(
-			FileUsageType.REPORT_PDF,
-			stored.storageUrl(),
-			stored.storageKey(),
-			stored.originalFilename(),
-			stored.fileSize(),
-			stored.contentType()
-		);
-		return filesRepository.save(entity);
-	}
-
-	private void validatePdf(MultipartFile file) {
-		fileValidator.validate(file);
-		String contentType = file.getContentType();
-		if (contentType == null || !"application/pdf".equalsIgnoreCase(contentType)) {
-			throw new FileException(FileErrorCode.FILE_400_CONTENT_TYPE);
-		}
-		String filename = file.getOriginalFilename();
-		if (filename == null || !filename.toLowerCase().endsWith(".pdf")) {
-			throw new FileException(FileErrorCode.FILE_400_EXTENSION);
-		}
 	}
 
 	private String normalizeStockCode(String stockCode) {

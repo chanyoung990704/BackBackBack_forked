@@ -2,7 +2,7 @@ package com.aivle.project.report.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aivle.project.company.entity.CompaniesEntity;
@@ -26,7 +26,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -55,8 +54,8 @@ class ReportMetricPublishControllerTest {
 	private CompanyReportMetricValuesRepository companyReportMetricValuesRepository;
 
 	@Test
-	@DisplayName("관리자 API로 지표와 PDF를 동시에 발행한다")
-	void publishMetrics_shouldPersistValuesAndPdf() throws Exception {
+	@DisplayName("관리자 API로 지표를 수동 적재한다")
+	void publishMetrics_shouldPersistValues() throws Exception {
 		// given
 		companiesRepository.save(CompaniesEntity.create(
 			"00000001",
@@ -68,22 +67,16 @@ class ReportMetricPublishControllerTest {
 		Map<String, BigDecimal> metrics = new LinkedHashMap<>();
 		metrics.put("ROA", new BigDecimal("1.23"));
 		metrics.put("OperatingProfitMargin", new BigDecimal("2.34"));
-
-		MockMultipartFile pdf = new MockMultipartFile(
-			"file",
-			"report.pdf",
-			MediaType.APPLICATION_PDF_VALUE,
-			"%PDF-1.4".getBytes()
-		);
-		String metricsJson = new ObjectMapper().writeValueAsString(metrics);
+		Map<String, Object> payload = new LinkedHashMap<>();
+		payload.put("stockCode", "000020");
+		payload.put("quarterKey", 20253);
+		payload.put("valueType", MetricValueType.ACTUAL.name());
+		payload.put("metrics", metrics);
 
 		// when
-		mockMvc.perform(multipart("/api/admin/reports/metrics/publish")
-				.file(pdf)
-				.param("stockCode", "000020")
-				.param("quarterKey", "20253")
-				.param("valueType", MetricValueType.ACTUAL.name())
-				.param("metrics", metricsJson)
+		mockMvc.perform(post("/api/admin/reports/metrics")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(new ObjectMapper().writeValueAsBytes(payload))
 				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
 			.andExpect(status().isOk());
 
@@ -92,8 +85,8 @@ class ReportMetricPublishControllerTest {
 		assertThat(companyReportVersionsRepository.count()).isEqualTo(1);
 		assertThat(companyReportMetricValuesRepository.count()).isEqualTo(2);
 		CompanyReportVersionsEntity version = companyReportVersionsRepository.findAll().get(0);
-		assertThat(version.isPublished()).isTrue();
-		assertThat(version.getPdfFile()).isNotNull();
+		assertThat(version.isPublished()).isFalse();
+		assertThat(version.getPdfFile()).isNull();
 		for (CompanyReportMetricValuesEntity value : companyReportMetricValuesRepository.findAll()) {
 			assertThat(value.getValueType()).isEqualTo(MetricValueType.ACTUAL);
 		}

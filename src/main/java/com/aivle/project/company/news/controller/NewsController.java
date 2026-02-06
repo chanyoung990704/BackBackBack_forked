@@ -90,27 +90,31 @@ public class NewsController {
      * @param end       종료 일시 (ISO-8601)
      * @return 뉴스 분석 이력 목록
      */
-    @GetMapping("/{stockCode}/news/history")
-    @Operation(summary = "뉴스 분석 이력 조회", description = "특정 기간의 뉴스 분석 이력을 조회합니다.")
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "뉴스 이력 조회 성공",
-                    content = @Content(schema = @Schema(implementation = com.aivle.project.common.dto.ApiResponse.class))),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
-    })
-    public ResponseEntity<ApiResponse<java.util.List<NewsAnalysisResponse>>> getNewsHistory(
-            @Parameter(description = "기업 코드 (stock_code)", example = "000020")
-            @PathVariable String stockCode,
-            @Parameter(description = "시작 일시 (ISO-8601)", example = "2026-01-01T00:00:00")
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @Parameter(description = "종료 일시 (ISO-8601)", example = "2026-12-31T23:59:59")
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) LocalDateTime end
-    ) {
-        LocalDateTime startDate = start != null ? start : LocalDateTime.now().minusMonths(1);
-        LocalDateTime endDate = end != null ? end : LocalDateTime.now();
+	@GetMapping("/{stockCode}/news/history")
+	@Operation(summary = "뉴스 분석 이력 조회", description = "특정 기간의 뉴스 분석 이력을 조회합니다.")
+	@SecurityRequirement(name = "bearerAuth")
+	@ApiResponses({
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "뉴스 이력 조회 성공",
+			content = @Content(schema = @Schema(implementation = com.aivle.project.common.dto.ApiResponse.class))),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
+		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
+	})
+	public ResponseEntity<ApiResponse<java.util.List<NewsAnalysisResponse>>> getNewsHistory(
+		@Parameter(description = "기업 코드 (stock_code)", example = "000020")
+		@PathVariable String stockCode,
+		@Parameter(description = "시작 일시 (ISO-8601)", example = "2026-01-01T00:00:00")
+		@RequestParam(required = false)
+		@org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+		LocalDateTime start,
+		@Parameter(description = "종료 일시 (ISO-8601)", example = "2026-12-31T23:59:59")
+		@RequestParam(required = false)
+		@org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
+		LocalDateTime end
+	) {
+		LocalDateTime startDate = start != null ? start : LocalDateTime.now().minusMonths(1);
+		LocalDateTime endDate = end != null ? end : LocalDateTime.now();
 
-        java.util.List<NewsAnalysisResponse> result = newsService.getNewsHistory(stockCode, startDate, endDate);
-        return ResponseEntity.ok(ApiResponse.ok(result));
-    }
+		java.util.List<NewsAnalysisResponse> result = newsService.getNewsHistory(stockCode, startDate, endDate);
+		return ResponseEntity.ok(ApiResponse.ok(result));
+	}
 }

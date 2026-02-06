@@ -398,7 +398,7 @@
 			</div>
 
 			<div class="card" style="animation-delay: 0.073s;">
-				<h2>보고서 지표+PDF 발행</h2>
+				<h2>보고서 지표 수동 적재</h2>
 				<div class="row">
 					<div>
 						<label for="publish-stock-code">stockCode</label>
@@ -418,12 +418,10 @@
 				</div>
 				<label for="publish-metrics" style="margin-top: 12px;">metrics (metric_name_en: value)</label>
 				<textarea id="publish-metrics" placeholder='{"ROA":1.23,"OperatingProfitMargin":2.34}'></textarea>
-				<label for="publish-file" style="margin-top: 12px;">PDF</label>
-				<input id="publish-file" type="file" accept="application/pdf">
 				<div class="actions">
-					<button class="secondary" type="button" id="publish-report">발행 실행</button>
+					<button class="secondary" type="button" id="publish-report">적재 실행</button>
 				</div>
-				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/admin/reports/metrics/publish</p>
+				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/admin/reports/metrics</p>
 			</div>
 
 			<div class="card" style="animation-delay: 0.074s;">
@@ -915,8 +913,6 @@
 			const quarterKey = readNumber("publish-quarter-key", null);
 			const valueType = document.getElementById("publish-value-type")?.value || "ACTUAL";
 			const metricsRaw = readText("publish-metrics");
-			const fileInput = document.getElementById("publish-file");
-			const file = fileInput?.files?.[0];
 
 			if (!stockCode) {
 				setLog("stockCode를 입력해주세요.");
@@ -930,11 +926,6 @@
 				setLog("metrics JSON을 입력해주세요.");
 				return;
 			}
-			if (!file) {
-				setLog("PDF 파일을 선택해주세요.");
-				return;
-			}
-
 			let metrics;
 			try {
 				metrics = JSON.parse(metricsRaw);
@@ -942,18 +933,18 @@
 				setLog("metrics JSON 파싱 실패: " + e.message);
 				return;
 			}
-
-			const formData = new FormData();
-			formData.append("stockCode", stockCode);
-			formData.append("quarterKey", String(quarterKey));
-			formData.append("valueType", valueType);
-			formData.append("metrics", JSON.stringify(metrics));
-			formData.append("file", file);
+			const payload = {
+				stockCode,
+				quarterKey,
+				valueType,
+				metrics
+			};
 
 			try {
-				const response = await apiFetch("/api/admin/reports/metrics/publish", {
+				const response = await apiFetch("/api/admin/reports/metrics", {
 					method: "POST",
-					body: formData
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload)
 				});
 				const data = await response.json();
 				setLog({ status: response.status, data });

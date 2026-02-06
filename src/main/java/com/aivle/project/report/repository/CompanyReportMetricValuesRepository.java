@@ -4,6 +4,7 @@ import com.aivle.project.report.dto.ReportMetricRowProjection;
 import com.aivle.project.report.dto.ReportPredictMetricRowProjection;
 import com.aivle.project.report.dto.MetricValueSampleProjection;
 import com.aivle.project.report.entity.CompanyReportMetricValuesEntity;
+import com.aivle.project.report.entity.CompanyReportVersionsEntity;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,6 +16,11 @@ import com.aivle.project.metric.entity.MetricValueType;
  * 보고서 지표 값 조회/저장 리포지토리.
  */
 public interface CompanyReportMetricValuesRepository extends JpaRepository<CompanyReportMetricValuesEntity, Long> {
+
+	boolean existsByReportVersionAndValueTypeAndMetricValueIsNotNull(
+		CompanyReportVersionsEntity reportVersion,
+		MetricValueType valueType
+	);
 
 	@Query("""
 		select c.corpName as corpName,
@@ -38,6 +44,13 @@ public interface CompanyReportMetricValuesRepository extends JpaRepository<Compa
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = com.aivle.project.metric.entity.MetricValueType.ACTUAL
+							and v2.metricValue is not null
+					)
 			)
 		order by q.quarterKey, m.metricCode
 		""")
@@ -74,6 +87,13 @@ public interface CompanyReportMetricValuesRepository extends JpaRepository<Compa
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
 			)
 		order by m.metricCode
 		""")
@@ -120,6 +140,13 @@ public interface CompanyReportMetricValuesRepository extends JpaRepository<Compa
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
 			)
 		""")
 	List<MetricValueSampleProjection> findNonRiskActualMetricSamplesByQuarterId(

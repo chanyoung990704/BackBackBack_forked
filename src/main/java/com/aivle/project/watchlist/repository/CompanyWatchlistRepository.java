@@ -35,7 +35,7 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 		join cw.company c
 		join CompanyReportsEntity cr on cr.company = c
 		join cr.quarter q
-		join CompanyReportVersionsEntity crv on crv.companyReport = cr and crv.published = true
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr
 		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
 		join crmv.metric m
 		left join MetricAverageEntity ma on ma.quarter = q and ma.metric = m
@@ -50,6 +50,13 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
 			)
 			and (:metricCodesEmpty = true or m.metricCode in :metricCodes)
 		order by c.corpName, m.metricCode
@@ -87,6 +94,102 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 	);
 
 	@Query("""
+		select cw.id as watchlistId,
+			c.id as companyId,
+			c.corpName as corpName,
+			c.corpCode as corpCode,
+			m.metricCode as metricCode,
+			m.metricNameKo as metricNameKo,
+			crmv.metricValue as metricValue,
+			q.year as year,
+			q.quarter as quarter
+		from CompanyWatchlistEntity cw
+		join cw.company c
+		join CompanyReportsEntity cr on cr.company = c
+		join cr.quarter q
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr
+		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
+		join crmv.metric m
+		where cw.user.id = :userId
+			and cw.deletedAt is null
+			and q.year = :year
+			and q.quarter = :quarter
+			and crmv.valueType = :valueType
+			and crmv.metricValue is not null
+			and crv.versionNo = (
+				select max(rv2.versionNo)
+				from CompanyReportVersionsEntity rv2
+				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
+			)
+		order by c.corpName, m.metricCode
+		""")
+	List<WatchlistMetricValueProjection> findWatchlistMetricValues(
+		@Param("userId") Long userId,
+		@Param("year") short year,
+		@Param("quarter") byte quarter,
+		@Param("valueType") MetricValueType valueType
+	);
+
+	@Query("""
+		select cw.id as watchlistId,
+			c.id as companyId,
+			c.corpName as corpName,
+			c.corpCode as corpCode,
+			m.metricCode as metricCode,
+			m.metricNameKo as metricNameKo,
+			crmv.metricValue as metricValue,
+			q.year as year,
+			q.quarter as quarter
+		from CompanyWatchlistEntity cw
+		join cw.company c
+		join CompanyReportsEntity cr on cr.company = c
+		join cr.quarter q
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr
+		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
+		join crmv.metric m
+		where cw.user.id = :userId
+			and cw.deletedAt is null
+			and (
+				q.year > :fromYear
+				or (q.year = :fromYear and q.quarter >= :fromQuarter)
+			)
+			and (
+				q.year < :toYear
+				or (q.year = :toYear and q.quarter <= :toQuarter)
+			)
+			and crmv.valueType = :valueType
+			and crmv.metricValue is not null
+			and crv.versionNo = (
+				select max(rv2.versionNo)
+				from CompanyReportVersionsEntity rv2
+				where rv2.companyReport = cr
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
+			)
+		order by q.year, q.quarter, c.corpName, m.metricCode
+		""")
+	List<WatchlistMetricValueProjection> findWatchlistMetricValuesInRange(
+		@Param("userId") Long userId,
+		@Param("fromYear") short fromYear,
+		@Param("fromQuarter") byte fromQuarter,
+		@Param("toYear") short toYear,
+		@Param("toQuarter") byte toQuarter,
+		@Param("valueType") MetricValueType valueType
+	);
+
+	@Query("""
 		select m.metricCode as metricCode,
 			m.metricNameKo as metricNameKo,
 			avg(crmv.metricValue) as avgValue,
@@ -95,7 +198,7 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 		join cw.company c
 		join CompanyReportsEntity cr on cr.company = c
 		join cr.quarter q
-		join CompanyReportVersionsEntity crv on crv.companyReport = cr and crv.published = true
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr
 		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
 		join crmv.metric m
 		where cw.user.id = :userId
@@ -109,7 +212,13 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
-					and rv2.published = true
+					and exists (
+						select 1
+						from CompanyReportMetricValuesEntity v2
+						where v2.reportVersion = rv2
+							and v2.valueType = :valueType
+							and v2.metricValue is not null
+					)
 			)
 			and (:metricCodesEmpty = true or m.metricCode in :metricCodes)
 		group by m.id, m.metricCode, m.metricNameKo

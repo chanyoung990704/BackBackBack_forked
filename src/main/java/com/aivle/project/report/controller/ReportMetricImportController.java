@@ -5,22 +5,18 @@ import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.report.dto.CompanyMetricValueCommand;
 import com.aivle.project.report.dto.ReportImportResult;
-import com.aivle.project.metric.entity.MetricValueType;
 import com.aivle.project.report.dto.ReportPredictRequest;
 import com.aivle.project.report.dto.ReportPredictResult;
 import com.aivle.project.report.dto.ReportPublishResult;
+import com.aivle.project.report.dto.ReportMetricPublishRequest;
 import com.aivle.project.report.importer.ExcelMetricParser;
 import com.aivle.project.report.service.CompanyReportMetricImportService;
 import com.aivle.project.report.service.CompanyReportMetricPredictService;
 import com.aivle.project.report.service.CompanyReportMetricPublishService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -48,7 +44,6 @@ public class ReportMetricImportController {
 	private final CompanyReportMetricImportService companyReportMetricImportService;
 	private final CompanyReportMetricPredictService companyReportMetricPredictService;
 	private final CompanyReportMetricPublishService companyReportMetricPublishService;
-	private final ObjectMapper objectMapper;
 
 	@PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@Operation(summary = "보고서 지표 엑셀 업로드", description = "관리자용 엑셀 업로드 API")
@@ -79,35 +74,17 @@ public class ReportMetricImportController {
 		return ResponseEntity.ok(ApiResponse.ok(result));
 	}
 
-	@PostMapping(value = "/publish", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-	@Operation(summary = "보고서 지표+PDF 발행", description = "관리자용 지표 적재 및 PDF 발행 API")
+	@PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+	@Operation(summary = "보고서 지표 수동 적재", description = "관리자용 지표 수동 적재 API")
 	public ResponseEntity<ApiResponse<ReportPublishResult>> publishMetrics(
-		@RequestParam("stockCode") String stockCode,
-		@RequestParam("quarterKey") int quarterKey,
-		@RequestParam("valueType") MetricValueType valueType,
-		@RequestParam("metrics") String metricsJson,
-		@RequestParam("file") MultipartFile file
+		@Valid @RequestBody ReportMetricPublishRequest request
 	) {
-		Map<String, BigDecimal> metrics = parseMetrics(metricsJson);
 		ReportPublishResult result = companyReportMetricPublishService.publishMetrics(
-			stockCode,
-			quarterKey,
-			valueType,
-			metrics,
-			file
+			request.stockCode(),
+			request.quarterKey(),
+			request.valueType(),
+			request.metrics()
 		);
 		return new ResponseEntity<>(ApiResponse.ok(result), HttpStatus.OK);
-	}
-
-	private Map<String, BigDecimal> parseMetrics(String metricsJson) {
-		if (metricsJson == null || metricsJson.isBlank()) {
-			throw new CommonException(CommonErrorCode.COMMON_400);
-		}
-		try {
-			return objectMapper.readValue(metricsJson, new TypeReference<Map<String, BigDecimal>>() {});
-		} catch (IOException ex) {
-			log.info("보고서 발행 metrics 파싱 실패: {}", ex.getMessage());
-			throw new CommonException(CommonErrorCode.COMMON_400);
-		}
 	}
 }

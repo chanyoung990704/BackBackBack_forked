@@ -31,6 +31,7 @@ import com.aivle.project.user.repository.UserRepository;
 import com.aivle.project.user.repository.UserRoleRepository;
 import com.aivle.project.watchlist.dto.WatchlistDashboardResponse;
 import com.aivle.project.watchlist.dto.WatchlistMetricAveragesResponse;
+import com.aivle.project.watchlist.dto.WatchlistMetricValuesResponse;
 import com.aivle.project.watchlist.error.WatchlistErrorCode;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -143,5 +144,65 @@ class CompanyWatchlistServiceTest {
 		assertThat(response.metrics().get(0).metricCode()).isEqualTo("ROE");
 		assertThat(response.metrics().get(0).avgValue()).isEqualByComparingTo("30.0000");
 		assertThat(response.metrics().get(0).sampleCompanyCount()).isEqualTo(2L);
+	}
+
+	@Test
+	@DisplayName("watchlist 지표 값 조회는 ACTUAL 최신 발행 버전만 반환한다")
+	void metricValuesReturnsActualLatestOnly() {
+		// given
+		UserEntity user = userRepository.save(UserEntity.create("values@test.com", "pw", "values", null, UserStatus.ACTIVE));
+		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		userRoleRepository.save(new UserRoleEntity(user, role));
+
+		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create("00000033", "기업C", "C", "333333", LocalDate.now()));
+		service.addWatchlist(user.getId(), company.getId(), "C");
+
+		QuartersEntity q = quartersRepository.save(QuartersEntity.create(2024, 4, 20244, LocalDate.of(2024, 10, 1), LocalDate.of(2024, 12, 31)));
+		CompanyReportsEntity report = companyReportsRepository.save(CompanyReportsEntity.create(company, q, null));
+		CompanyReportVersionsEntity v1 = companyReportVersionsRepository.save(CompanyReportVersionsEntity.create(report, 1, LocalDateTime.now().minusDays(1), true, null));
+		CompanyReportVersionsEntity v2 = companyReportVersionsRepository.save(CompanyReportVersionsEntity.create(report, 2, LocalDateTime.now(), true, null));
+		MetricsEntity roe = metricsRepository.findByMetricCode("ROE").orElseThrow();
+
+		metricValuesRepository.save(CompanyReportMetricValuesEntity.create(v1, roe, q, new BigDecimal("10"), MetricValueType.ACTUAL));
+		metricValuesRepository.save(CompanyReportMetricValuesEntity.create(v2, roe, q, new BigDecimal("20"), MetricValueType.ACTUAL));
+		metricValuesRepository.save(CompanyReportMetricValuesEntity.create(v2, roe, q, new BigDecimal("99"), MetricValueType.PREDICTED));
+
+		// when
+		WatchlistMetricValuesResponse response = service.getWatchlistMetricValuesByQuarter(user.getId(), 2024, 4);
+
+		// then
+		assertThat(response.quarters()).hasSize(1);
+		assertThat(response.quarters().get(0).items()).hasSize(1);
+		assertThat(response.quarters().get(0).items().get(0).metricValue()).isEqualByComparingTo("20.0000");
+	}
+
+	@Test
+	@DisplayName("watchlist 지표 값 범위 조회는 분기별로 그룹핑한다")
+	void metricValuesRangeGroupsByQuarter() {
+		// given
+		UserEntity user = userRepository.save(UserEntity.create("range@test.com", "pw", "range", null, UserStatus.ACTIVE));
+		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		userRoleRepository.save(new UserRoleEntity(user, role));
+
+		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create("00000044", "기업D", "D", "444444", LocalDate.now()));
+		service.addWatchlist(user.getId(), company.getId(), "D");
+
+		QuartersEntity q1 = quartersRepository.save(QuartersEntity.create(2023, 4, 20234, LocalDate.of(2023, 10, 1), LocalDate.of(2023, 12, 31)));
+		QuartersEntity q2 = quartersRepository.save(QuartersEntity.create(2024, 1, 20241, LocalDate.of(2024, 1, 1), LocalDate.of(2024, 3, 31)));
+		CompanyReportsEntity report1 = companyReportsRepository.save(CompanyReportsEntity.create(company, q1, null));
+		CompanyReportsEntity report2 = companyReportsRepository.save(CompanyReportsEntity.create(company, q2, null));
+		CompanyReportVersionsEntity v1 = companyReportVersionsRepository.save(CompanyReportVersionsEntity.create(report1, 1, LocalDateTime.now().minusDays(2), true, null));
+		CompanyReportVersionsEntity v2 = companyReportVersionsRepository.save(CompanyReportVersionsEntity.create(report2, 1, LocalDateTime.now().minusDays(1), true, null));
+		MetricsEntity roe = metricsRepository.findByMetricCode("ROE").orElseThrow();
+		metricValuesRepository.save(CompanyReportMetricValuesEntity.create(v1, roe, q1, new BigDecimal("11"), MetricValueType.ACTUAL));
+		metricValuesRepository.save(CompanyReportMetricValuesEntity.create(v2, roe, q2, new BigDecimal("22"), MetricValueType.ACTUAL));
+
+		// when
+		WatchlistMetricValuesResponse response = service.getWatchlistMetricValuesByQuarterRange(user.getId(), 2023, 4, 2024, 1);
+
+		// then
+		assertThat(response.quarters()).hasSize(2);
+		assertThat(response.quarters().get(0).year()).isEqualTo(2023);
+		assertThat(response.quarters().get(1).year()).isEqualTo(2024);
 	}
 }

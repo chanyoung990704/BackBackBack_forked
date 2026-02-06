@@ -6,6 +6,15 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-06 | 작업: 테스트 실패 정리 및 H2/Flyway 설정 보정 | 결과: test 프로필 Flyway 활성화 및 db/migration-h2 사용, H2 report_contents summary 타입 TEXT로 정합화, 중복 V16 마이그레이션 정리 후 ./gradlew test 통과 | 이슈: 없음
+- 2026-02-06 | 작업: 인사이트 폴링 첫 응답 빈 배열 이슈 수정 | 결과: CompanyInsightService.getInsights의 @Transactional 제거로 최신 커밋 데이터 조회 가능, 컨트롤러 테스트 통과 | 이슈: finalize() deprecated 경고 2건
+- 2026-02-06 | 작업: 보고서 PDF/지표 입력 분리 및 미발행 버전 재사용 로직 적용 | 결과: PDF/지표 수동/엑셀/예측 입력 모두 최신 미발행 버전 재사용(해당 타입 값/ PDF 없을 때)으로 개선, /api/admin/reports/metrics JSON 수동 적재 엔드포인트 및 콘솔 갱신, 관련 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-06 | 작업: 최신 지표 조회 시 ACTUAL/PREDICTED가 있는 최신 버전 선택 보정 | 결과: 최신 버전 서브쿼리에 값 존재 조건 추가 및 서비스 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-06 | 작업: 워치리스트 최신 버전 조회에서 발행 조건 제거 | 결과: published 필터 제거 및 관련 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-06 | 작업: 워치리스트 지표 값 범위 조회 API 확장 | 결과: from/to 파라미터 지원 및 컨트롤러 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-06 | 작업: 워치리스트 지표 값 범위 조회 서비스 추가 | 결과: 분기 범위( from/to ) 조회 쿼리와 그룹핑 응답 구현, 서비스 테스트 통과 | 이슈: 없음
+- 2026-02-06 | 작업: 워치리스트 지표 값 조회 API 추가 | 결과: /api/watchlists/metric-values 컨트롤러/보안 경로/Swagger 및 컨트롤러 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-06 | 작업: 워치리스트 분기별 지표 값 조회 서비스 추가 | 결과: ACTUAL + 최신 발행 버전 기준 조회(분기별 그룹 응답) 구현, 서비스 테스트 통과 | 이슈: 없음
 - 2026-02-06 | 작업: 워치리스트 등록 컨트롤러 테스트 추가 | 결과: /api/watchlists 등록 성공/중복(409) 응답 검증 테스트 통과 | 이슈: MockBean deprecated 경고
 - 2026-02-06 | 작업: 워치리스트 분기 지표 평균 조회 API 추가 | 결과: `/api/watchlists/metric-averages`(ACTUAL+비위험+최신 발행 버전 기준) 구현, 보안 경로/Swagger 반영, 서비스 테스트 및 전체 테스트 통과 | 이슈: 없음
 - 2026-02-06 | 작업: metric_averages 실행 추적 필드 확장 | 결과: 배치 결과에 triggerType/executionId 추가, 수동 API/스케줄러에서 실행 원인과 UUID 전달 및 로그 반영, 관련 테스트 통과 | 이슈: 없음

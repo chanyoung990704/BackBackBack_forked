@@ -125,7 +125,7 @@ public class CompanyReportMetricImportService {
 			for (Map.Entry<Long, List<MetricValueSeed>> quarterEntry : seedsByQuarter.entrySet()) {
 				QuartersEntity quarter = quarterEntry.getValue().get(0).quarter();
 				CompanyReportsEntity report = getOrCreateReport(company.get(), quarter);
-				CompanyReportVersionsEntity version = createNewVersion(report);
+				CompanyReportVersionsEntity version = resolveMetricVersion(report);
 
 				List<CompanyReportMetricValuesEntity> values = new ArrayList<>();
 				Map<MetricKey, MetricValueSeed> duplicateCheck = new HashMap<>();
@@ -179,6 +179,13 @@ public class CompanyReportMetricImportService {
 			skippedMetrics
 		);
 		return new ReportImportResult(commands.size(), savedValues, skippedCompanies, skippedMetrics);
+	}
+
+	private CompanyReportVersionsEntity resolveMetricVersion(CompanyReportsEntity report) {
+		return companyReportVersionsRepository.findTopByCompanyReportAndPublishedFalseOrderByVersionNoDesc(report)
+			.filter(existing -> !companyReportMetricValuesRepository
+				.existsByReportVersionAndValueTypeAndMetricValueIsNotNull(existing, MetricValueType.ACTUAL))
+			.orElseGet(() -> createNewVersion(report));
 	}
 
 	private Map<String, List<CompanyMetricValueCommand>> groupByCompany(List<CompanyMetricValueCommand> commands) {

@@ -83,6 +83,6 @@ class ReportPdfPublishControllerTest {
 		assertThat(companyReportVersionsRepository.count()).isEqualTo(1);
 		assertThat(companyReportMetricValuesRepository.count()).isEqualTo(0);
 		assertThat(filesRepository.count()).isEqualTo(1);
-		assertThat(companyReportVersionsRepository.findAll().get(0).isPublished()).isTrue();
+		assertThat(companyReportVersionsRepository.findAll().get(0).isPublished()).isFalse();
 	}
 }

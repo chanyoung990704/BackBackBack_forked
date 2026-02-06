@@ -16,6 +16,7 @@ import com.aivle.project.report.repository.CompanyReportVersionsRepository;
 import com.aivle.project.report.repository.CompanyReportsRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -118,5 +119,47 @@ class CompanyReportMetricImportServiceTest {
 		assertThat(result.skippedCompanies()).isEqualTo(1);
 		assertThat(result.skippedMetrics()).isEqualTo(1);
 		assertThat(companyReportMetricValuesRepository.count()).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("미발행 버전에 ACTUAL 값이 없으면 기존 버전에 적재한다")
+	void importMetrics_reusesUnpublishedVersion() {
+		// given
+		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create(
+			"00000003",
+			"세번째기업",
+			"THIRD_CO",
+			"000040",
+			LocalDate.of(2025, 1, 1)
+		));
+		QuartersEntity quarter = quartersRepository.save(QuartersEntity.create(
+			2025,
+			3,
+			20253,
+			com.aivle.project.quarter.support.QuarterCalculator.startDate(
+				com.aivle.project.quarter.support.QuarterCalculator.parseQuarterKey(20253)),
+			com.aivle.project.quarter.support.QuarterCalculator.endDate(
+				com.aivle.project.quarter.support.QuarterCalculator.parseQuarterKey(20253))
+		));
+		CompanyReportsEntity report = companyReportsRepository.save(CompanyReportsEntity.create(company, quarter, null));
+		CompanyReportVersionsEntity existingVersion = companyReportVersionsRepository.save(CompanyReportVersionsEntity.create(
+			report,
+			1,
+			LocalDateTime.now(),
+			false,
+			null
+		));
+		List<CompanyMetricValueCommand> commands = List.of(
+			new CompanyMetricValueCommand("000040", "ROA", 0, new BigDecimal("1.23"), 2, 3, "ROA_현재")
+		);
+
+		// when
+		ReportImportResult result = companyReportMetricImportService.importMetrics(20253, commands);
+
+		// then
+		assertThat(result.savedValues()).isEqualTo(1);
+		assertThat(companyReportVersionsRepository.count()).isEqualTo(1);
+		assertThat(companyReportMetricValuesRepository.findAll().get(0).getReportVersion().getId())
+			.isEqualTo(existingVersion.getId());
 	}
 }

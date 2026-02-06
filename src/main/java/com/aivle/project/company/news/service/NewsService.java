@@ -48,7 +48,7 @@ public class NewsService {
         log.info("Fetching news for company: {} ({})", company.getCorpName(), stockCode);
 
         // 2. AI 서버 API 호출
-        NewsApiResponse apiResponse = newsClient.fetchNews(stockCode, company.getCorpName());
+        NewsApiResponse apiResponse = fetchNewsWithRetry(stockCode, company.getCorpName());
 
         // 3. 분석 엔티티 생성 및 저장
         com.aivle.project.company.news.entity.NewsAnalysisEntity analysis =
@@ -76,6 +76,30 @@ public class NewsService {
 
         // 5. DTO로 변환하여 반환
         return NewsAnalysisResponse.from(company.getId(), savedAnalysis, articles);
+    }
+
+    private NewsApiResponse fetchNewsWithRetry(String stockCode, String companyName) {
+        int maxAttempts = 3;
+        long delayMillis = 500L;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            NewsApiResponse response = newsClient.fetchNews(stockCode, companyName);
+            if (response != null && response.news() != null && !response.news().isEmpty()) {
+                return response;
+            }
+            if (attempt < maxAttempts) {
+                sleep(delayMillis);
+            }
+        }
+        return newsClient.fetchNews(stockCode, companyName);
+    }
+
+    private void sleep(long delayMillis) {
+        try {
+            Thread.sleep(delayMillis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Retry sleep interrupted", e);
+        }
     }
 
     /**

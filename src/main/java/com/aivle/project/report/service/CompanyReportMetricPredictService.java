@@ -73,7 +73,7 @@ public class CompanyReportMetricPredictService {
 			report = companyReportsRepository.save(CompanyReportsEntity.create(company.get(), quarter, null));
 		}
 
-		CompanyReportVersionsEntity version = createNewVersion(report);
+		CompanyReportVersionsEntity version = resolveMetricVersion(report);
 
 		List<String> metricNameEns = request.metrics().keySet().stream()
 			.map(this::normalizeMetricNameEn)
@@ -122,6 +122,13 @@ public class CompanyReportMetricPredictService {
 			skippedMetrics
 		);
 		return new ReportPredictResult(request.metrics().size(), values.size(), skippedMetrics, 0, version.getVersionNo());
+	}
+
+	private CompanyReportVersionsEntity resolveMetricVersion(CompanyReportsEntity report) {
+		return companyReportVersionsRepository.findTopByCompanyReportAndPublishedFalseOrderByVersionNoDesc(report)
+			.filter(existing -> !companyReportMetricValuesRepository
+				.existsByReportVersionAndValueTypeAndMetricValueIsNotNull(existing, MetricValueType.PREDICTED))
+			.orElseGet(() -> createNewVersion(report));
 	}
 
 	private CompanyReportVersionsEntity createNewVersion(CompanyReportsEntity report) {

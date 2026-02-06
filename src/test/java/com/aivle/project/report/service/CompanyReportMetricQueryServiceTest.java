@@ -129,6 +129,61 @@ class CompanyReportMetricQueryServiceTest {
 	}
 
 	@Test
+	@DisplayName("최신 버전에 ACTUAL이 없으면 최신 ACTUAL 버전을 조회한다")
+	void fetchLatestMetrics_fallbackToLatestActualVersion() {
+		// given
+		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create(
+			"00000003",
+			"테스트기업3",
+			"TEST_CO3",
+			"000040",
+			LocalDate.of(2025, 1, 1)
+		));
+		QuartersEntity q20253 = quartersRepository.save(QuartersEntity.create(
+			2025,
+			3,
+			20253,
+			LocalDate.of(2025, 7, 1),
+			LocalDate.of(2025, 9, 30)
+		));
+		MetricsEntity metric = metricsRepository.findByMetricCode("ROA").orElseThrow();
+
+		CompanyReportsEntity report = companyReportsRepository.save(
+			CompanyReportsEntity.create(company, q20253, null)
+		);
+		CompanyReportVersionsEntity actualVersion = companyReportVersionsRepository.save(
+			CompanyReportVersionsEntity.create(report, 1, LocalDateTime.now().minusDays(1), false, null)
+		);
+		companyReportVersionsRepository.save(
+			CompanyReportVersionsEntity.create(report, 2, LocalDateTime.now(), false, null)
+		);
+
+		companyReportMetricValuesRepository.save(CompanyReportMetricValuesEntity.create(
+			actualVersion,
+			metric,
+			q20253,
+			new BigDecimal("9.99"),
+			MetricValueType.ACTUAL
+		));
+
+		org.mockito.BDDMockito.given(reportMapper.toRowDto(org.mockito.ArgumentMatchers.any())).willAnswer(invocation -> {
+			com.aivle.project.report.dto.ReportMetricRowProjection p = invocation.getArgument(0);
+			return new ReportMetricRowDto(
+				p.getCorpName(), p.getStockCode(), p.getMetricCode(), p.getMetricNameKo(),
+				p.getMetricValue(), p.getValueType(), p.getQuarterKey(), p.getVersionNo(), p.getGeneratedAt()
+			);
+		});
+
+		// when
+		List<ReportMetricRowDto> rows = companyReportMetricQueryService.fetchLatestMetrics("40", 20253, 20253);
+
+		// then
+		assertThat(rows).hasSize(1);
+		assertThat(rows.get(0).versionNo()).isEqualTo(1);
+		assertThat(rows.get(0).metricValue()).isEqualByComparingTo("9.99");
+	}
+
+	@Test
 	@DisplayName("분기별로 그룹핑된 지표 응답을 반환한다")
 	void fetchLatestMetricsGrouped() {
 		// given
