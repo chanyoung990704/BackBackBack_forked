@@ -79,11 +79,4 @@ public class CompanyReportVersionsEntity extends BaseEntity {
 	public void attachPdf(FilesEntity pdfFile) {
 		this.pdfFile = pdfFile;
 	}
-
-	/**
-	 * 발행 상태로 전환한다.
-	 */
-	public void publish() {
-		this.published = true;
-	}
 }
