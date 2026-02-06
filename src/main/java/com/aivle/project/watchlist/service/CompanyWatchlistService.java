@@ -131,6 +131,44 @@ public class CompanyWatchlistService {
 			MetricValueType.ACTUAL
 		);
 
+		return new WatchlistMetricValuesResponse(groupByQuarter(rows));
+	}
+
+	@Transactional(readOnly = true)
+	public WatchlistMetricValuesResponse getWatchlistMetricValuesByQuarterRange(
+		Long userId,
+		int fromYear,
+		int fromQuarter,
+		int toYear,
+		int toQuarter
+	) {
+		if (!isValidQuarterRange(fromYear, fromQuarter, toYear, toQuarter)) {
+			throw new IllegalArgumentException("유효하지 않은 분기 범위입니다.");
+		}
+
+		List<WatchlistMetricValueProjection> rows = companyWatchlistRepository.findWatchlistMetricValuesInRange(
+			userId,
+			(short) fromYear,
+			(byte) fromQuarter,
+			(short) toYear,
+			(byte) toQuarter,
+			MetricValueType.ACTUAL
+		);
+
+		return new WatchlistMetricValuesResponse(groupByQuarter(rows));
+	}
+
+	private boolean isValidQuarterRange(int fromYear, int fromQuarter, int toYear, int toQuarter) {
+		if (fromQuarter < 1 || fromQuarter > 4 || toQuarter < 1 || toQuarter > 4) {
+			return false;
+		}
+		if (fromYear > toYear) {
+			return false;
+		}
+		return fromYear != toYear || fromQuarter <= toQuarter;
+	}
+
+	private List<WatchlistQuarterMetricValues> groupByQuarter(List<WatchlistMetricValueProjection> rows) {
 		Map<String, WatchlistQuarterMetricValues> grouped = new LinkedHashMap<>();
 		for (WatchlistMetricValueProjection row : rows) {
 			String key = row.getYear() + "-" + row.getQuarter();
@@ -149,7 +187,6 @@ public class CompanyWatchlistService {
 				row.getMetricValue()
 			));
 		}
-
-		return new WatchlistMetricValuesResponse(new ArrayList<>(grouped.values()));
+		return new ArrayList<>(grouped.values());
 	}
 }
