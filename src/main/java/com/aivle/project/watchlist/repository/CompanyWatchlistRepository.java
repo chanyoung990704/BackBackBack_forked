@@ -35,7 +35,7 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 		join cw.company c
 		join CompanyReportsEntity cr on cr.company = c
 		join cr.quarter q
-		join CompanyReportVersionsEntity crv on crv.companyReport = cr and crv.published = true
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr
 		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
 		join crmv.metric m
 		left join MetricAverageEntity ma on ma.quarter = q and ma.metric = m
@@ -100,7 +100,7 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 		join cw.company c
 		join CompanyReportsEntity cr on cr.company = c
 		join cr.quarter q
-		join CompanyReportVersionsEntity crv on crv.companyReport = cr and crv.published = true
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr
 		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
 		join crmv.metric m
 		where cw.user.id = :userId
@@ -113,7 +113,6 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
-					and rv2.published = true
 			)
 		order by c.corpName, m.metricCode
 		""")
@@ -138,7 +137,7 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 		join cw.company c
 		join CompanyReportsEntity cr on cr.company = c
 		join cr.quarter q
-		join CompanyReportVersionsEntity crv on crv.companyReport = cr and crv.published = true
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr
 		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
 		join crmv.metric m
 		where cw.user.id = :userId
@@ -157,7 +156,6 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
-					and rv2.published = true
 			)
 		order by q.year, q.quarter, c.corpName, m.metricCode
 		""")
@@ -179,7 +177,7 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 		join cw.company c
 		join CompanyReportsEntity cr on cr.company = c
 		join cr.quarter q
-		join CompanyReportVersionsEntity crv on crv.companyReport = cr and crv.published = true
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr
 		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
 		join crmv.metric m
 		where cw.user.id = :userId
@@ -193,7 +191,6 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 				select max(rv2.versionNo)
 				from CompanyReportVersionsEntity rv2
 				where rv2.companyReport = cr
-					and rv2.published = true
 			)
 			and (:metricCodesEmpty = true or m.metricCode in :metricCodes)
 		group by m.id, m.metricCode, m.metricNameKo
