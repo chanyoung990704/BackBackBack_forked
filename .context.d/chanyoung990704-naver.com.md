@@ -6,6 +6,19 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-06 | 작업: 워치리스트 등록 컨트롤러 테스트 추가 | 결과: /api/watchlists 등록 성공/중복(409) 응답 검증 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-06 | 작업: 워치리스트 분기 지표 평균 조회 API 추가 | 결과: `/api/watchlists/metric-averages`(ACTUAL+비위험+최신 발행 버전 기준) 구현, 보안 경로/Swagger 반영, 서비스 테스트 및 전체 테스트 통과 | 이슈: 없음
+- 2026-02-06 | 작업: metric_averages 실행 추적 필드 확장 | 결과: 배치 결과에 triggerType/executionId 추가, 수동 API/스케줄러에서 실행 원인과 UUID 전달 및 로그 반영, 관련 테스트 통과 | 이슈: 없음
+- 2026-02-06 | 작업: metric_averages 수동/스케줄 저장 경로 추가 | 결과: 관리자 초기 실행 API(`/api/admin/metric-averages/initialize`)와 새벽 3시 스케줄러 추가, dev/prod 스케줄 설정 반영, 컨트롤러/스케줄러 테스트 통과 | 이슈: 없음
+- 2026-02-06 | 작업: metric_averages 저장 정책 분리(기존 데이터 skip) | 결과: 분기/전체 저장 결과 DTO 추가 및 insert-if-missing 서비스 메서드 구현, 관련 서비스 테스트 추가 통과 | 이슈: 없음
+- 2026-02-05 | 작업: Swagger 누락 컨트롤러 전수 보강 | 결과: CompanyWatchlistController에 Tag/Operation/ApiResponses/Parameter/보안요구 추가, DevHome/Favicon 컨트롤러는 @Hidden 처리, 전체 테스트 통과 | 이슈: 없음
+- 2026-02-05 | 작업: 뉴스 datetime 파싱 혼재 포맷 대응 | 결과: News DTO의 날짜 필드를 문자열로 수신하고 서비스에서 offset 포함/미포함을 모두 처리하는 파서(OffsetDateTime→LocalDateTime fallback) 추가, NewsArticleDto 변환 로직도 문자열 날짜 파싱 지원으로 보강, 관련 테스트 통과 | 이슈: 없음
+- 2026-02-05 | 작업: 뉴스 AI 응답 날짜 파싱 오류 대응 | 결과: NewsApiResponse/NewsItemResponse 날짜 타입을 LocalDateTime으로 변경하고 NewsService 저장 로직을 무오프셋 포맷에 맞게 수정, NewsClient에 DecodingException 분기 처리로 "AI Server response format error" 메시지 분리, 관련 뉴스 서비스/컨트롤러 테스트 통과 | 이슈: 없음
+- 2026-02-05 | 작업: 뉴스 컨트롤러 Swagger 문서 보강 | 결과: NewsController에 bearerAuth 보안 요구사항 및 200/401/404 응답 문서(@ApiResponses) 추가, 뉴스 컨트롤러 테스트 통과 | 이슈: 없음
+- 2026-02-05 | 작업: companies-업종 코드 외래키 마이그레이션 추가 | 결과: MySQL/H2에 V15__add_companies_industry_code_fk.sql 추가로 companies.industry_code_id 컬럼/인덱스/FK(fk_companies_industry_code, ON DELETE SET NULL) 반영 | 이슈: 없음
+- 2026-02-05 | 작업: watchlist 중복 저장 정책을 충돌 에러로 변경 | 결과: 중복 등록 시 restore 대신 WATCHLIST_DUPLICATE(409, '중복저장입니다.')를 ApiResponse 오류 포맷으로 반환하도록 WatchlistErrorCode/서비스/테스트 반영 | 이슈: 없음
+- 2026-02-05 | 작업: 분기 전체 대상 metric_averages 배치 서비스 구현 | 결과: quarters 전체 순회로 분기별 비위험 ACTUAL 최신버전 집계를 저장하는 MetricAverageBatchService 및 테스트 추가, 관련 테스트 통과 | 이슈: 없음
+- 2026-02-05 | 작업: 위험도 요약 전체 대상 배치 서비스 구현 | 결과: 최신 보고서 버전 기준(company+quarter별 max version_no)으로 risk_score_summaries를 페이지 배치 처리하는 RiskScoreBatchService/프로젝션/리포지토리 쿼리 추가, risk_level 저장(DANGER/CAUTION) 검증 테스트 포함 | 이슈: 없음
 - 2026-02-05 | 작업: watchlist 대시보드 기반 기능 및 users.company_id 제거 | 결과: company_watchlists 생성(V11), users.company_id 제거(V12, MySQL/H2), Watchlist 등록/삭제/대시보드 API 및 서비스 추가(비위험 ACTUAL 최신버전 + 위험도 분리 조회), 보안 경로 반영, 서비스 테스트 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
 - 2026-02-05 | 작업: 분기별 비위험 지표 통계(metric_averages) 집계 기능 추가 | 결과: metric_averages 테이블 마이그레이션(V10, MySQL/H2) 추가, 비위험(`is_risk_indicator=0`) + ACTUAL + 최신 보고서 버전 기준 집계 쿼리/서비스 구현(avg/median/min/max/stddev/company_count), 집계 테스트 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
 - 2026-02-05 | 작업: 위험도 요약 집계(risk_score_summaries) 기능 추가 | 결과: risk_score_summaries 테이블 마이그레이션(V9, MySQL/H2) 추가, RiskLevel(UNDEFINED 포함)·RiskScoreSummary 엔티티/리포지토리/계산 서비스 구현, `is_risk_indicator=1` + `ACTUAL`만 집계하도록 쿼리 추가, 위험도 계산/UNDEFINED 처리 테스트 추가 후 `./gradlew test` 전체 통과 | 이슈: 없음
@@ -197,3 +210,5 @@
 
 ## 3. History (이전 기록)
 - YYYY-MM-DD | 작업: ... | 결과: ... | 이슈: ...
+- 2026-02-06 | 작업: 보고서 PDF 단독 업로드 서비스 추가 | 결과: CompanyReportPdfPublishService 및 테스트 추가(기업 미존재 스킵), PDF만 업로드해 버전 발행 처리 | 이슈: 없음
+- 2026-02-06 | 작업: 보고서 PDF 단독 업로드 API 추가 | 결과: /api/admin/reports/pdf 컨트롤러 및 테스트 추가, PDF 단일 업로드 지원 | 이슈: 없음

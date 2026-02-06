@@ -37,6 +37,35 @@ public class MetricAverageCalculationService {
 	private final MetricsRepository metricsRepository;
 
 	@Transactional
+	public QuarterMetricAverageSaveResult calculateAndInsertMissingByQuarter(Long quarterId) {
+		List<MetricValueSampleProjection> samples = metricValuesRepository.findNonRiskActualMetricSamplesByQuarterId(
+			quarterId,
+			MetricValueType.ACTUAL
+		);
+
+		Map<Long, List<BigDecimal>> valuesByMetric = new HashMap<>();
+		for (MetricValueSampleProjection sample : samples) {
+			valuesByMetric.computeIfAbsent(sample.getMetricId(), ignored -> new ArrayList<>()).add(sample.getMetricValue());
+		}
+
+		LocalDateTime now = LocalDateTime.now();
+		int insertedCount = 0;
+		int skippedCount = 0;
+
+		for (Map.Entry<Long, List<BigDecimal>> entry : valuesByMetric.entrySet()) {
+			Long metricId = entry.getKey();
+			if (metricAverageRepository.existsByQuarterIdAndMetricId(quarterId, metricId)) {
+				skippedCount++;
+				continue;
+			}
+			MetricAverageResult result = calculate(metricId, entry.getValue());
+			insert(quarterId, result, now);
+			insertedCount++;
+		}
+		return new QuarterMetricAverageSaveResult(insertedCount, skippedCount);
+	}
+
+	@Transactional
 	public List<MetricAverageResult> calculateAndUpsertByQuarter(Long quarterId) {
 		List<MetricValueSampleProjection> samples = metricValuesRepository.findNonRiskActualMetricSamplesByQuarterId(
 			quarterId,
@@ -58,6 +87,21 @@ public class MetricAverageCalculationService {
 			results.add(result);
 		}
 		return results;
+	}
+
+	private void insert(Long quarterId, MetricAverageResult result, LocalDateTime now) {
+		MetricAverageEntity entity = createSkeleton(quarterId, result.metricId(), now);
+		entity.refresh(
+			result.avgValue(),
+			result.medianValue(),
+			result.minValue(),
+			result.maxValue(),
+			result.stddevValue(),
+			result.companyCount(),
+			now,
+			DATA_SOURCE_VERSION
+		);
+		metricAverageRepository.save(entity);
 	}
 
 	MetricAverageResult calculate(Long metricId, List<BigDecimal> values) {

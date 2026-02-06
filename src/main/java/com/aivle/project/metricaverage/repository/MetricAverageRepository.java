@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface MetricAverageRepository extends JpaRepository<MetricAverageEntity, Long> {
 
 	Optional<MetricAverageEntity> findByQuarterIdAndMetricId(Long quarterId, Long metricId);
+
+	boolean existsByQuarterIdAndMetricId(Long quarterId, Long metricId);
 }

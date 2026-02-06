@@ -85,4 +85,42 @@ public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchli
 		@Param("quarterId") Long quarterId,
 		@Param("riskLevel") RiskLevel riskLevel
 	);
+
+	@Query("""
+		select m.metricCode as metricCode,
+			m.metricNameKo as metricNameKo,
+			avg(crmv.metricValue) as avgValue,
+			count(distinct c.id) as sampleCompanyCount
+		from CompanyWatchlistEntity cw
+		join cw.company c
+		join CompanyReportsEntity cr on cr.company = c
+		join cr.quarter q
+		join CompanyReportVersionsEntity crv on crv.companyReport = cr and crv.published = true
+		join CompanyReportMetricValuesEntity crmv on crmv.reportVersion = crv and crmv.quarter = q
+		join crmv.metric m
+		where cw.user.id = :userId
+			and cw.deletedAt is null
+			and q.year = :year
+			and q.quarter = :quarter
+			and crmv.valueType = :valueType
+			and m.isRiskIndicator = false
+			and crmv.metricValue is not null
+			and crv.versionNo = (
+				select max(rv2.versionNo)
+				from CompanyReportVersionsEntity rv2
+				where rv2.companyReport = cr
+					and rv2.published = true
+			)
+			and (:metricCodesEmpty = true or m.metricCode in :metricCodes)
+		group by m.id, m.metricCode, m.metricNameKo
+		order by m.metricCode
+		""")
+	List<WatchlistMetricAverageProjection> findWatchlistMetricAverages(
+		@Param("userId") Long userId,
+		@Param("year") short year,
+		@Param("quarter") byte quarter,
+		@Param("valueType") MetricValueType valueType,
+		@Param("metricCodes") Collection<String> metricCodes,
+		@Param("metricCodesEmpty") boolean metricCodesEmpty
+	);
 }

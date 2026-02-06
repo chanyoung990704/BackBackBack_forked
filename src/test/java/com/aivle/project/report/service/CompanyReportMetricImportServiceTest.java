@@ -71,17 +71,26 @@ class CompanyReportMetricImportServiceTest {
 		// then
 		assertThat(result.savedValues()).isEqualTo(2);
 		QuartersEntity baseQuarter = quartersRepository.findByQuarterKey(20253).orElseThrow();
+		QuartersEntity previousQuarter = quartersRepository.findByQuarterKey(20252).orElseThrow();
 		CompanyReportsEntity report = companyReportsRepository.findByCompanyIdAndQuarterId(
 			company.getId(),
 			baseQuarter.getId()
 		).orElseThrow();
+		CompanyReportsEntity previousQuarterReport = companyReportsRepository.findByCompanyIdAndQuarterId(
+			company.getId(),
+			previousQuarter.getId()
+		).orElseThrow();
 		CompanyReportVersionsEntity version = companyReportVersionsRepository
 			.findTopByCompanyReportOrderByVersionNoDesc(report)
 			.orElseThrow();
+		CompanyReportVersionsEntity previousQuarterVersion = companyReportVersionsRepository
+			.findTopByCompanyReportOrderByVersionNoDesc(previousQuarterReport)
+			.orElseThrow();
 
 		assertThat(version.getVersionNo()).isEqualTo(1);
+		assertThat(previousQuarterVersion.getVersionNo()).isEqualTo(1);
+		assertThat(companyReportsRepository.count()).isEqualTo(2);
 		assertThat(companyReportMetricValuesRepository.count()).isEqualTo(2);
-		assertThat(quartersRepository.findByQuarterKey(20252)).isPresent();
 	}
 
 	@Test

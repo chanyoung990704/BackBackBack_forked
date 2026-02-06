@@ -426,6 +426,26 @@
 				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/admin/reports/metrics/publish</p>
 			</div>
 
+			<div class="card" style="animation-delay: 0.074s;">
+				<h2>보고서 PDF 단독 업로드</h2>
+				<div class="row">
+					<div>
+						<label for="pdf-only-stock-code">stockCode</label>
+						<input id="pdf-only-stock-code" type="text" placeholder="000020">
+					</div>
+					<div>
+						<label for="pdf-only-quarter-key">quarterKey</label>
+						<input id="pdf-only-quarter-key" type="number" placeholder="20253">
+					</div>
+				</div>
+				<label for="pdf-only-file" style="margin-top: 12px;">PDF</label>
+				<input id="pdf-only-file" type="file" accept="application/pdf">
+				<div class="actions">
+					<button class="secondary" type="button" id="pdf-only-upload">업로드 실행</button>
+				</div>
+				<p class="footer-note">관리자 토큰(ROLE_ADMIN) 필요. POST /api/admin/reports/pdf</p>
+			</div>
+
 			<div class="card" style="animation-delay: 0.075s;">
 				<h2>보고서 지표 조회(분기별)</h2>
 				<div class="row">
@@ -932,6 +952,42 @@
 
 			try {
 				const response = await apiFetch("/api/admin/reports/metrics/publish", {
+					method: "POST",
+					body: formData
+				});
+				const data = await response.json();
+				setLog({ status: response.status, data });
+			} catch (e) {
+				setLog({ error: e.message });
+			}
+		});
+
+		document.getElementById("pdf-only-upload")?.addEventListener("click", async () => {
+			const stockCode = readText("pdf-only-stock-code");
+			const quarterKey = readNumber("pdf-only-quarter-key", null);
+			const fileInput = document.getElementById("pdf-only-file");
+			const file = fileInput?.files?.[0];
+
+			if (!stockCode) {
+				setLog("stockCode를 입력해주세요.");
+				return;
+			}
+			if (!quarterKey) {
+				setLog("quarterKey를 입력해주세요.");
+				return;
+			}
+			if (!file) {
+				setLog("PDF 파일을 선택해주세요.");
+				return;
+			}
+
+			const formData = new FormData();
+			formData.append("stockCode", stockCode);
+			formData.append("quarterKey", String(quarterKey));
+			formData.append("file", file);
+
+			try {
+				const response = await apiFetch("/api/admin/reports/pdf", {
 					method: "POST",
 					body: formData
 				});

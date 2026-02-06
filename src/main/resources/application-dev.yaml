@@ -51,3 +51,8 @@ turnstile:
   secret-key: ${TURNSTILE_SECRET_KEY:}
   site-key: ${TURNSTILE_SITE_KEY:}
   debug-enabled: true
+
+metric-average:
+  schedule:
+    enabled: true
+    cron: ${METRIC_AVERAGE_SCHEDULE_CRON:0 0 3 * * *}

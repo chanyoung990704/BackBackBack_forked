@@ -72,11 +72,7 @@ public class CompanyReportMetricImportService {
 				continue;
 			}
 
-			CompanyReportsEntity report = companyReportsRepository.findByCompanyIdAndQuarterId(
-				company.get().getId(),
-				baseQuarterEntity.getId()
-			).orElse(null);
-			List<MetricValueSeed> seeds = new ArrayList<>();
+			Map<Long, List<MetricValueSeed>> seedsByQuarter = new LinkedHashMap<>();
 			for (CompanyMetricValueCommand command : entry.getValue()) {
 				String metricCode = normalizeMetricCode(command.metricCode());
 				if (metricCode.isBlank()) {
@@ -111,7 +107,7 @@ public class CompanyReportMetricImportService {
 					key -> getOrCreateQuarter(key, QuarterCalculator.parseQuarterKey(key))
 				);
 
-				seeds.add(new MetricValueSeed(
+				seedsByQuarter.computeIfAbsent(quarter.getId(), ignored -> new ArrayList<>()).add(new MetricValueSeed(
 					metric,
 					quarter,
 					command.metricValue(),
@@ -122,55 +118,55 @@ public class CompanyReportMetricImportService {
 				));
 			}
 
-			if (seeds.isEmpty()) {
+			if (seedsByQuarter.isEmpty()) {
 				log.info("지표 적재 스킵: 유효 지표 없음 (stockCode={})", stockCode);
 				continue;
 			}
+			for (Map.Entry<Long, List<MetricValueSeed>> quarterEntry : seedsByQuarter.entrySet()) {
+				QuartersEntity quarter = quarterEntry.getValue().get(0).quarter();
+				CompanyReportsEntity report = getOrCreateReport(company.get(), quarter);
+				CompanyReportVersionsEntity version = createNewVersion(report);
 
-			if (report == null) {
-				report = companyReportsRepository.save(CompanyReportsEntity.create(company.get(), baseQuarterEntity, null));
-			}
-
-			CompanyReportVersionsEntity version = createNewVersion(report);
-			List<CompanyReportMetricValuesEntity> values = new ArrayList<>();
-			Map<MetricKey, MetricValueSeed> duplicateCheck = new HashMap<>();
-			int duplicates = 0;
-			for (MetricValueSeed seed : seeds) {
-				MetricKey key = new MetricKey(seed.metric().getId(), seed.quarter().getId(), MetricValueType.ACTUAL);
-				MetricValueSeed existing = duplicateCheck.putIfAbsent(key, seed);
-				if (existing != null) {
-					duplicates++;
-					log.info(
-						"지표 중복 감지: stockCode={}, reportVersionId={}, metricId={}, quarterId={}, valueType={}, " +
-							"existing(row={}, col={}, header={}, offset={}), duplicate(row={}, col={}, header={}, offset={})",
-						stockCode,
-						version.getId(),
-						key.metricId(),
-						key.quarterId(),
-						key.valueType(),
-						existing.rowIndex(),
-						existing.colIndex(),
-						existing.headerName(),
-						existing.quarterOffset(),
-						seed.rowIndex(),
-						seed.colIndex(),
-						seed.headerName(),
-						seed.quarterOffset()
-					);
+				List<CompanyReportMetricValuesEntity> values = new ArrayList<>();
+				Map<MetricKey, MetricValueSeed> duplicateCheck = new HashMap<>();
+				int duplicates = 0;
+				for (MetricValueSeed seed : quarterEntry.getValue()) {
+					MetricKey key = new MetricKey(seed.metric().getId(), MetricValueType.ACTUAL);
+					MetricValueSeed existing = duplicateCheck.putIfAbsent(key, seed);
+					if (existing != null) {
+						duplicates++;
+						log.info(
+							"지표 중복 감지: stockCode={}, reportVersionId={}, metricId={}, quarterId={}, valueType={}, " +
+								"existing(row={}, col={}, header={}, offset={}), duplicate(row={}, col={}, header={}, offset={})",
+							stockCode,
+							version.getId(),
+							seed.metric().getId(),
+							seed.quarter().getId(),
+							MetricValueType.ACTUAL,
+							existing.rowIndex(),
+							existing.colIndex(),
+							existing.headerName(),
+							existing.quarterOffset(),
+							seed.rowIndex(),
+							seed.colIndex(),
+							seed.headerName(),
+							seed.quarterOffset()
+						);
+					}
+					values.add(CompanyReportMetricValuesEntity.create(
+						version,
+						seed.metric(),
+						seed.quarter(),
+						seed.metricValue(),
+						MetricValueType.ACTUAL
+					));
 				}
-				values.add(CompanyReportMetricValuesEntity.create(
-					version,
-					seed.metric(),
-					seed.quarter(),
-					seed.metricValue(),
-					MetricValueType.ACTUAL
-				));
-			}
 
-			companyReportMetricValuesRepository.saveAll(values);
-			savedValues += values.size();
-			if (duplicates > 0) {
-				log.info("지표 적재 중복 요약: stockCode={}, duplicates={}", stockCode, duplicates);
+				companyReportMetricValuesRepository.saveAll(values);
+				savedValues += values.size();
+				if (duplicates > 0) {
+					log.info("지표 적재 중복 요약: stockCode={}, quarterKey={}, duplicates={}", stockCode, quarter.getQuarterKey(), duplicates);
+				}
 			}
 		}
 
@@ -209,6 +205,11 @@ public class CompanyReportMetricImportService {
 
 	private MetricsEntity findMetric(String metricCode) {
 		return metricsRepository.findByMetricCode(metricCode).orElse(null);
+	}
+
+	private CompanyReportsEntity getOrCreateReport(CompaniesEntity company, QuartersEntity quarter) {
+		return companyReportsRepository.findByCompanyIdAndQuarterId(company.getId(), quarter.getId())
+			.orElseGet(() -> companyReportsRepository.save(CompanyReportsEntity.create(company, quarter, null)));
 	}
 
 	private CompanyReportVersionsEntity createNewVersion(CompanyReportsEntity report) {
@@ -273,6 +274,6 @@ public class CompanyReportMetricImportService {
 	) {
 	}
 
-	private record MetricKey(Long metricId, Long quarterId, MetricValueType valueType) {
+	private record MetricKey(Long metricId, MetricValueType valueType) {
 	}
 }
