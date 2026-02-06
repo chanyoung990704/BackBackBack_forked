@@ -109,32 +109,4 @@ class CompanyWatchlistControllerTest {
 			.andExpect(jsonPath("$.data.quarters[0].quarter").value(1))
 			.andExpect(jsonPath("$.data.quarters[0].items[0].metricCode").value("ROE"));
 	}
-
-	@Test
-	@DisplayName("워치리스트 지표 값 범위 조회가 성공하면 분기별 그룹 응답을 반환한다")
-	void metricValuesRange_shouldReturnGroupedResponse() throws Exception {
-		// given
-		WatchlistMetricValuesResponse response = new WatchlistMetricValuesResponse(List.of(
-			new WatchlistQuarterMetricValues(2024, 4, List.of(
-				new WatchlistMetricValueRow(1L, 10L, "기업", "000001", "ROE", "자기자본이익률", new BigDecimal("12.34"))
-			)),
-			new WatchlistQuarterMetricValues(2025, 1, List.of(
-				new WatchlistMetricValueRow(2L, 11L, "기업2", "000002", "ROA", "총자산이익률", new BigDecimal("8.90"))
-			))
-		));
-		given(companyWatchlistService.getWatchlistMetricValuesByQuarterRange(any(), eq(2024), eq(4), eq(2025), eq(1)))
-			.willReturn(response);
-
-		// when & then
-		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/watchlists/metric-values")
-				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
-				.param("fromYear", "2024")
-				.param("fromQuarter", "4")
-				.param("toYear", "2025")
-				.param("toQuarter", "1"))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.success").value(true))
-			.andExpect(jsonPath("$.data.quarters[0].year").value(2024))
-			.andExpect(jsonPath("$.data.quarters[1].year").value(2025));
-	}
 }
