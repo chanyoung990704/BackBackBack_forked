@@ -21,7 +21,7 @@ CREATE TABLE report_contents (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   report_analysis_id BIGINT NOT NULL,
   title VARCHAR(500) NOT NULL,
-  summary TEXT,
+  summary CLOB,
   score DECIMAL(10,6),
   published_at TIMESTAMP,
   link VARCHAR(2000),

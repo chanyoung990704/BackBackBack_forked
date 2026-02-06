@@ -135,42 +135,4 @@ public class CompanyWatchlistController {
 		}
 		return ResponseEntity.ok(com.aivle.project.common.dto.ApiResponse.ok(response));
 	}
-
-	@GetMapping("/metric-values")
-	@Operation(summary = "워치리스트 지표 값 조회", description = "선택한 분기(또는 분기 범위)에 대해 워치리스트 기업들의 ACTUAL 지표 값을 최신 발행 버전 기준으로 조회합니다.")
-	@ApiResponses({
-		@ApiResponse(responseCode = "200", description = "조회 성공"),
-		@ApiResponse(responseCode = "400", description = "요청 값 오류"),
-		@ApiResponse(responseCode = "401", description = "인증 필요")
-	})
-	public ResponseEntity<com.aivle.project.common.dto.ApiResponse<WatchlistMetricValuesResponse>> metricValues(
-		@CurrentUser Long userId,
-		@Parameter(description = "조회 연도", example = "2026") @RequestParam(required = false) Integer year,
-		@Parameter(description = "조회 분기", example = "1") @RequestParam(required = false) Integer quarter,
-		@Parameter(description = "조회 시작 연도", example = "2024") @RequestParam(required = false) Integer fromYear,
-		@Parameter(description = "조회 시작 분기", example = "1") @RequestParam(required = false) Integer fromQuarter,
-		@Parameter(description = "조회 종료 연도", example = "2024") @RequestParam(required = false) Integer toYear,
-		@Parameter(description = "조회 종료 분기", example = "4") @RequestParam(required = false) Integer toQuarter
-	) {
-		boolean hasRange = fromYear != null || fromQuarter != null || toYear != null || toQuarter != null;
-		WatchlistMetricValuesResponse response;
-		if (hasRange) {
-			if (fromYear == null || fromQuarter == null || toYear == null || toQuarter == null) {
-				throw new IllegalArgumentException("분기 범위 파라미터가 누락되었습니다.");
-			}
-			response = companyWatchlistService.getWatchlistMetricValuesByQuarterRange(
-				userId,
-				fromYear,
-				fromQuarter,
-				toYear,
-				toQuarter
-			);
-		} else {
-			if (year == null || quarter == null) {
-				throw new IllegalArgumentException("분기 파라미터가 누락되었습니다.");
-			}
-			response = companyWatchlistService.getWatchlistMetricValuesByQuarter(userId, year, quarter);
-		}
-		return ResponseEntity.ok(com.aivle.project.common.dto.ApiResponse.ok(response));
-	}
 }
