@@ -26,4 +26,10 @@ public class IndustryEntity extends BaseEntity {
     @Column(name = "industry_name", length = 100)
     private String industryName;
 
+    public static IndustryEntity create(String industryCode, String industryName) {
+        IndustryEntity entity = new IndustryEntity();
+        entity.industryCode = industryCode;
+        entity.industryName = industryName;
+        return entity;
+    }
 }

@@ -3,6 +3,7 @@ package com.aivle.project.watchlist.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.aivle.project.common.config.QuerydslConfig;
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.metric.entity.MetricValueType;
@@ -45,7 +46,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(CompanyWatchlistService.class)
+@Import({QuerydslConfig.class, CompanyWatchlistService.class})
 class CompanyWatchlistServiceTest {
 	@Autowired CompanyWatchlistService service;
 	@Autowired UserRepository userRepository;
@@ -58,6 +59,31 @@ class CompanyWatchlistServiceTest {
 	@Autowired CompanyReportMetricValuesRepository metricValuesRepository;
 	@Autowired MetricsRepository metricsRepository;
 	@Autowired RiskScoreSummaryRepository riskScoreSummaryRepository;
+
+	@Test
+	@DisplayName("사용자의 워치리스트 기업 목록을 조회한다")
+	void getWatchlist_shouldReturnList() {
+		// given
+		UserEntity user = userRepository.save(UserEntity.create("list@test.com", "pw", "list", null, UserStatus.ACTIVE));
+		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		userRoleRepository.save(new UserRoleEntity(user, role));
+
+		CompaniesEntity companyA = companiesRepository.save(CompaniesEntity.create("00000001", "기업A", "A", "000001", LocalDate.now()));
+		CompaniesEntity companyB = companiesRepository.save(CompaniesEntity.create("00000002", "기업B", "B", "000002", LocalDate.now()));
+
+		service.addWatchlist(user.getId(), companyA.getId(), "메모A");
+		service.addWatchlist(user.getId(), companyB.getId(), "메모B");
+
+		// when
+		com.aivle.project.watchlist.dto.WatchlistResponse response = service.getWatchlist(user.getId());
+
+		// then
+		assertThat(response.items()).hasSize(2);
+		assertThat(response.items()).extracting("corpName")
+			.containsExactlyInAnyOrder("기업A", "기업B");
+		assertThat(response.items()).extracting("note")
+			.containsExactlyInAnyOrder("메모A", "메모B");
+	}
 
 	@Test
 	@DisplayName("동일 기업을 중복 저장하면 CONFLICT 예외를 반환한다")

@@ -25,6 +25,8 @@ public interface NewsArticleRepository extends JpaRepository<NewsArticleEntity, 
 
 	boolean existsByNewsAnalysisId(Long newsAnalysisId);
 
+	java.util.Optional<NewsArticleEntity> findTopByNewsAnalysisCompanyIdOrderByPublishedAtDesc(Long companyId);
+
 	/**
 	 * 특정 기간의 뉴스 조회.
 	 */

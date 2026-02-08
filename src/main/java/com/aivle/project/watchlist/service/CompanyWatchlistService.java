@@ -17,6 +17,8 @@ import com.aivle.project.watchlist.dto.WatchlistMetricAveragesResponse;
 import com.aivle.project.watchlist.dto.WatchlistMetricValueRow;
 import com.aivle.project.watchlist.dto.WatchlistMetricValuesResponse;
 import com.aivle.project.watchlist.dto.WatchlistQuarterMetricValues;
+import com.aivle.project.watchlist.dto.WatchlistItem;
+import com.aivle.project.watchlist.dto.WatchlistResponse;
 import com.aivle.project.watchlist.entity.CompanyWatchlistEntity;
 import com.aivle.project.watchlist.error.WatchlistErrorCode;
 import com.aivle.project.watchlist.repository.CompanyWatchlistRepository;
@@ -60,6 +62,23 @@ public class CompanyWatchlistService {
 	}
 
 	@Transactional(readOnly = true)
+	public WatchlistResponse getWatchlist(Long userId) {
+		List<CompanyWatchlistEntity> watchlists = companyWatchlistRepository.findActiveByUserId(userId);
+		List<WatchlistItem> items = watchlists.stream()
+			.map(cw -> new WatchlistItem(
+				cw.getId(),
+				cw.getCompany().getId(),
+				cw.getCompany().getCorpName(),
+				cw.getCompany().getCorpCode(),
+				cw.getCompany().getStockCode(),
+				cw.getNote(),
+				cw.getCreatedAt()
+			))
+			.toList();
+		return new WatchlistResponse(items);
+	}
+
+	@Transactional(readOnly = true)
 	public WatchlistDashboardResponse getDashboard(
 		Long userId,
 		int year,
@@ -79,18 +98,13 @@ public class CompanyWatchlistService {
 			MetricValueType.ACTUAL,
 			emptyCodes ? List.of("__none__") : codes,
 			emptyCodes
-		).stream().map(p -> new WatchlistDashboardMetricRow(
-			p.getWatchlistId(), p.getCompanyId(), p.getCorpName(), p.getCorpCode(), p.getMetricCode(), p.getMetricNameKo(),
-			p.getMetricValue(), p.getMarketAvg(), p.getMarketN()
-		)).toList();
+		);
 
 		List<WatchlistDashboardRiskRow> risks = companyWatchlistRepository.findDashboardRisks(
 			userId,
 			quarterEntity.getId(),
 			riskLevel
-		).stream().map(p -> new WatchlistDashboardRiskRow(
-			p.getWatchlistId(), p.getCompanyId(), p.getCorpName(), p.getRiskScore(), p.getRiskLevel(), p.getRiskMetricsAvg(), p.getLastRefreshedAt()
-		)).toList();
+		);
 
 		return new WatchlistDashboardResponse(year, quarter, metrics, risks);
 	}
@@ -109,12 +123,7 @@ public class CompanyWatchlistService {
 			MetricValueType.ACTUAL,
 			emptyCodes ? List.of("__none__") : codes,
 			emptyCodes
-		).stream().map(p -> new WatchlistMetricAverageRow(
-			p.getMetricCode(),
-			p.getMetricNameKo(),
-			p.getAvgValue(),
-			p.getSampleCompanyCount()
-		)).toList();
+		);
 
 		return new WatchlistMetricAveragesResponse(year, quarter, metrics);
 	}

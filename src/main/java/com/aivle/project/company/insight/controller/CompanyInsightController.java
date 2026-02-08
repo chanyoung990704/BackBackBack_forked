@@ -1,7 +1,7 @@
 package com.aivle.project.company.insight.controller;
 
 import com.aivle.project.common.dto.ApiResponse;
-import com.aivle.project.company.insight.dto.CompanyInsightItem;
+import com.aivle.project.company.insight.dto.CompanyInsightDto;
 import com.aivle.project.company.insight.service.CompanyInsightService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,7 +44,7 @@ public class CompanyInsightController {
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
 	})
-	public ResponseEntity<ApiResponse<List<CompanyInsightItem>>> getCompanyInsights(
+	public ResponseEntity<ApiResponse<List<CompanyInsightDto>>> getCompanyInsights(
 		@Parameter(description = "기업 ID", example = "100")
 		@PathVariable Long companyId,
 		@Parameter(description = "뉴스 페이지", example = "0")

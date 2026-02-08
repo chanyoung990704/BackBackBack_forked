@@ -41,6 +41,8 @@ import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
@@ -66,6 +68,14 @@ public class SecurityConfig {
 
 	@Value("${app.cors.allowed-origins:http://localhost:3000}")
 	private String allowedOrigins;
+
+	@Bean
+	public RoleHierarchy roleHierarchy() {
+		return RoleHierarchyImpl.fromHierarchy("""
+			ROLE_ADMIN > ROLE_ANALYST
+			ROLE_ANALYST > ROLE_USER
+			""");
+	}
 
 	@Bean
 	public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
@@ -98,11 +108,11 @@ public class SecurityConfig {
 					"/error"
 				).permitAll();
 				authorize.requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/categories").permitAll();
+				authorize.requestMatchers(HttpMethod.GET, "/api/companies/search").permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/posts/**").authenticated();
 				authorize.requestMatchers(HttpMethod.PATCH, "/api/posts/**").authenticated();
 				authorize.requestMatchers(HttpMethod.DELETE, "/api/posts/**").authenticated();
-				authorize.requestMatchers(HttpMethod.GET, "/api/companies/search").hasRole("USER");
-				authorize.requestMatchers(HttpMethod.GET, "/api/companies/*/insights").hasAnyRole("USER", "ADMIN");
+				authorize.requestMatchers(HttpMethod.GET, "/api/companies/*/insights").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/dashboard").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/metric-averages").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/metric-values").hasRole("USER");

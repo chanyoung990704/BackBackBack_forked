@@ -38,6 +38,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
 	implementation 'org.springframework.boot:spring-boot-starter-aop'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
 	// Email
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
@@ -55,6 +56,12 @@ dependencies {
 	annotationProcessor 'org.mapstruct:mapstruct-processor:1.5.5.Final'
 	// Lombok과 MapStruct의 순서 충돌 방지를 위한 바인딩 라이브러리
 	annotationProcessor 'org.projectlombok:lombok-mapstruct-binding:0.2.0'
+
+	// QueryDSL
+	implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+	annotationProcessor "com.querydsl:querydsl-apt:5.0.0:jakarta"
+	annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+	annotationProcessor "jakarta.annotation:jakarta.annotation-api"
 
 	// DB Utilities
 	// P6Spy: 버전 명시 필요 (Boot 3 호환)

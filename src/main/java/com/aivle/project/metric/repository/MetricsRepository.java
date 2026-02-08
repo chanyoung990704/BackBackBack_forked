@@ -13,5 +13,7 @@ public interface MetricsRepository extends JpaRepository<MetricsEntity, Long> {
 
 	Optional<MetricsEntity> findByMetricCode(String metricCode);
 
+	List<MetricsEntity> findAllByMetricCodeIn(Collection<String> metricCodes);
+
 	List<MetricsEntity> findAllByMetricNameEnIn(Collection<String> metricNameEns);
 }

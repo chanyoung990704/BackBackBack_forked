@@ -2,6 +2,7 @@ package com.aivle.project.report.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.aivle.project.common.config.QuerydslConfig;
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.metric.entity.MetricValueType;
@@ -30,7 +31,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(CompanyReportMetricQueryService.class)
+@Import({QuerydslConfig.class, CompanyReportMetricQueryService.class})
 class CompanyReportMetricQueryServiceTest {
 
 	@Autowired

@@ -139,15 +139,15 @@ class ReportMetricQueryControllerTest {
 	}
 
 	@Test
-	@DisplayName("분기별 그룹 지표 조회는 ROLE_ADMIN만으로는 403을 반환한다")
-	void fetchGroupedMetrics_forbiddenForAdminOnly() throws Exception {
+	@DisplayName("분기별 그룹 지표 조회는 ROLE_ADMIN도 접근 가능하다 (권한 계층)")
+	void fetchGroupedMetrics_allowedForAdmin() throws Exception {
 		// when & then
 		mockMvc.perform(get("/api/reports/metrics/grouped")
 				.param("stockCode", "000020")
 				.param("fromQuarterKey", "20244")
 				.param("toQuarterKey", "20253")
 				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
-			.andExpect(status().isForbidden());
+			.andExpect(status().isOk());
 	}
 
 	@Test
@@ -218,13 +218,13 @@ class ReportMetricQueryControllerTest {
 	}
 
 	@Test
-	@DisplayName("최신 예측 지표 조회는 ROLE_ADMIN만으로는 403을 반환한다")
-	void fetchLatestPredictMetrics_forbiddenForAdminOnly() throws Exception {
+	@DisplayName("최신 예측 지표 조회는 ROLE_ADMIN도 접근 가능하다 (권한 계층)")
+	void fetchLatestPredictMetrics_allowedForAdmin() throws Exception {
 		// when & then
 		mockMvc.perform(get("/api/reports/metrics/predict-latest")
 				.param("stockCode", "000020")
 				.param("quarterKey", "20253")
 				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
-			.andExpect(status().isForbidden());
+			.andExpect(status().isOk());
 	}
 }

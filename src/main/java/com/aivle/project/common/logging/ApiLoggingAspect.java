@@ -82,6 +82,21 @@ public class ApiLoggingAspect {
 			return arg.getClass().getSimpleName();
 		}
 
+		// MultipartFile 처리 (파일 내용은 로깅하지 않음)
+		if (arg instanceof org.springframework.web.multipart.MultipartFile file) {
+			return String.format("MultipartFile(name=%s, size=%d)", file.getOriginalFilename(), file.getSize());
+		}
+
+		// Spring 에러 바인딩 처리
+		if (arg instanceof org.springframework.validation.BindingResult) {
+			return "BindingResult";
+		}
+
+		// InputStream/OutputStream 처리
+		if (arg instanceof java.io.InputStream || arg instanceof java.io.OutputStream) {
+			return arg.getClass().getSimpleName();
+		}
+
 		// String 타입 처리 (이메일, 비밀번호 등)
 		if (arg instanceof String str) {
 			return maskString(str);
@@ -97,8 +112,8 @@ public class ApiLoggingAspect {
 			String json = objectMapper.writeValueAsString(arg);
 			return maskJson(json);
 		} catch (Exception e) {
-			log.warn("Failed to mask argument: {}", e.getMessage());
-			return "[MASKED]";
+			log.debug("Skip masking for complex object: {}. Reason: {}", arg.getClass().getName(), e.getMessage());
+			return "[COMPLEX_OBJECT]";
 		}
 	}
 

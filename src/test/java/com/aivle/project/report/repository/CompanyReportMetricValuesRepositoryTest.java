@@ -2,6 +2,7 @@ package com.aivle.project.report.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.aivle.project.common.config.QuerydslConfig;
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.metric.entity.MetricValueType;
@@ -21,11 +22,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
+@Import(QuerydslConfig.class)
 class CompanyReportMetricValuesRepositoryTest {
 
 	@Autowired

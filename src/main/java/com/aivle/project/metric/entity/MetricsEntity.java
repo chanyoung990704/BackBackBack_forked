@@ -39,4 +39,13 @@ public class MetricsEntity extends BaseEntity {
 	@Column(name = "is_risk_indicator", nullable = false)
 	private boolean isRiskIndicator;
 
+	public static MetricsEntity create(String metricCode, String metricNameKo, String metricNameEn, boolean isRiskIndicator) {
+		MetricsEntity entity = new MetricsEntity();
+		entity.metricCode = metricCode;
+		entity.metricNameKo = metricNameKo;
+		entity.metricNameEn = metricNameEn;
+		entity.isRiskIndicator = isRiskIndicator;
+		return entity;
+	}
+
 }

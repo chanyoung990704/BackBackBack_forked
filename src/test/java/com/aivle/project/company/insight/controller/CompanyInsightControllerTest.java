@@ -1,9 +1,10 @@
 package com.aivle.project.company.insight.controller;
 
 import com.aivle.project.common.dto.ApiResponse;
-import com.aivle.project.company.insight.dto.CompanyInsightItem;
+import com.aivle.project.company.insight.dto.CompanyInsightDto;
 import com.aivle.project.company.insight.dto.CompanyInsightType;
 import com.aivle.project.company.insight.service.CompanyInsightService;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -42,16 +43,34 @@ class ㅋCompanyInsightControllerTest {
 	void getCompanyInsights_Success() {
 		// given
 		Long companyId = 100L;
-		List<CompanyInsightItem> items = List.of(
-			new CompanyInsightItem(1L, CompanyInsightType.REPORT, "보고서", null, "요약", null, "2026-02-06T00:00:00Z", null),
-			new CompanyInsightItem(2L, CompanyInsightType.NEWS, "뉴스", "본문", null, "NEU", "2026-02-06T00:00:00Z", "https://example.com")
+		List<CompanyInsightDto> items = List.of(
+			CompanyInsightDto.builder()
+				.id(1L)
+				.type(CompanyInsightType.REPORT)
+				.title("보고서")
+				.body("요약")
+				.content(null)
+				.source(null)
+				.publishedAt(LocalDateTime.of(2026, 2, 6, 0, 0))
+				.url(null)
+				.build(),
+			CompanyInsightDto.builder()
+				.id(2L)
+				.type(CompanyInsightType.NEWS)
+				.title("뉴스")
+				.body(null)
+				.content("본문")
+				.source("NEU")
+				.publishedAt(LocalDateTime.of(2026, 2, 6, 0, 0))
+				.url("https://example.com")
+				.build()
 		);
 
 		when(companyInsightService.getInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt()))
 			.thenReturn(new com.aivle.project.company.insight.service.CompanyInsightService.InsightResult(items, false));
 
 		// when
-		ResponseEntity<ApiResponse<List<CompanyInsightItem>>> result = companyInsightController
+		ResponseEntity<ApiResponse<List<CompanyInsightDto>>> result = companyInsightController
 			.getCompanyInsights(companyId, null, null, null, null);
 
 		// then

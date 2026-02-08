@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,7 +36,7 @@ public class FileController {
 
 	private final FileService fileService;
 
-	@PostMapping("/{postId}/files")
+	@PostMapping(value = "/{postId}/files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	@SecurityRequirement(name = "bearerAuth")
 	@Operation(summary = "파일 업로드", description = "게시글에 파일을 업로드합니다.")
 	@ApiResponses({
@@ -48,7 +49,7 @@ public class FileController {
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
 	})
 	public ResponseEntity<ApiResponse<List<FileResponse>>> upload(
-		@CurrentUser UserEntity user,
+		@Parameter(hidden = true) @CurrentUser UserEntity user,
 		@Parameter(description = "게시글 ID", example = "100")
 		@PathVariable Long postId,
 		@Parameter(description = "업로드 파일 목록")
@@ -70,7 +71,7 @@ public class FileController {
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
 	})
 	public ResponseEntity<ApiResponse<List<FileResponse>>> list(
-		@CurrentUser UserEntity user,
+		@Parameter(hidden = true) @CurrentUser UserEntity user,
 		@Parameter(description = "게시글 ID", example = "100")
 		@PathVariable Long postId
 	) {

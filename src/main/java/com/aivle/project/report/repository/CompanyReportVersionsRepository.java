@@ -34,4 +34,21 @@ public interface CompanyReportVersionsRepository extends JpaRepository<CompanyRe
 		order by cr.quarter.id, cr.company.id
 		""")
 	Page<RiskScoreBatchTargetProjection> findLatestRiskScoreTargets(Pageable pageable);
+
+	@Query("""
+		select rv
+		from CompanyReportVersionsEntity rv
+		join rv.companyReport cr
+		join cr.company c
+		join cr.quarter q
+		where c.stockCode = :stockCode
+		  and q.quarterKey = :quarterKey
+		  and rv.pdfFile is not null
+		order by rv.versionNo desc
+		""")
+	java.util.List<CompanyReportVersionsEntity> findLatestWithPdf(
+		@org.springframework.data.repository.query.Param("stockCode") String stockCode,
+		@org.springframework.data.repository.query.Param("quarterKey") int quarterKey,
+		Pageable pageable
+	);
 }

@@ -56,21 +56,21 @@ class CompanySearchControllerTest {
 	}
 
 	@Test
-	@DisplayName("기업명 검색은 인증이 없으면 401을 반환한다")
-	void searchCompanies_unauthorized() throws Exception {
+	@DisplayName("기업명 검색은 인증 없이도 가능하다 (PermitAll)")
+	void searchCompanies_public() throws Exception {
 		// when & then
 		mockMvc.perform(get("/api/companies/search")
 				.param("keyword", "테스트"))
-			.andExpect(status().isUnauthorized());
+			.andExpect(status().isOk());
 	}
 
 	@Test
-	@DisplayName("기업명 검색은 ROLE_ADMIN만으로는 403을 반환한다")
-	void searchCompanies_forbiddenForAdminOnly() throws Exception {
+	@DisplayName("기업명 검색은 ROLE_ADMIN도 접근 가능하다 (권한 계층)")
+	void searchCompanies_allowedForAdmin() throws Exception {
 		// when & then
 		mockMvc.perform(get("/api/companies/search")
 				.param("keyword", "테스트")
 				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
-			.andExpect(status().isForbidden());
+			.andExpect(status().isOk());
 	}
 }

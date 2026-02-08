@@ -2,6 +2,7 @@ package com.aivle.project.company.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.aivle.project.common.config.QuerydslConfig;
 import com.aivle.project.company.dto.CompanySearchResponse;
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
@@ -16,7 +17,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(CompanySearchService.class)
+@Import({QuerydslConfig.class, CompanySearchService.class})
 class CompanySearchServiceTest {
 
 	@Autowired

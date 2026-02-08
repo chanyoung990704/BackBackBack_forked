@@ -5,6 +5,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +28,7 @@ public class OpenApiConfig {
 
 	@Bean
 	public OpenAPI openAPI() {
-		OpenAPI openAPI = new OpenAPI()
+		return new OpenAPI()
 			.info(new Info()
 				.title("Project API")
 				.description("Project API 문서")
@@ -38,9 +39,20 @@ public class OpenApiConfig {
 					.type(SecurityScheme.Type.HTTP)
 					.scheme("bearer")
 					.bearerFormat("JWT")))
+			.addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
 			.addServersItem(new Server().url("/"));
+	}
 
-		return openAPI;
+	@Bean
+	public GroupedOpenApi adminApi() {
+		return GroupedOpenApi.builder()
+			.group("admin")
+			.packagesToScan(
+				"com.aivle.project.company.controller",
+				"com.aivle.project.report.controller",
+				"com.aivle.project.metricaverage.controller"
+			)
+			.build();
 	}
 
 	@Bean

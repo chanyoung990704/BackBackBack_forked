@@ -52,6 +52,16 @@ public class CompanyReportMetricValuesEntity extends BaseEntity {
 	@Column(name = "value_type", nullable = false, length = 20)
 	private MetricValueType valueType = MetricValueType.ACTUAL;
 
+	@Enumerated(EnumType.STRING)
+	@Column(name = "signal_color", length = 10)
+	private SignalColor signalColor;
+
+	@Column(name = "color_rationale", length = 255)
+	private String colorRationale;
+
+	@Column(name = "benchmark_value", precision = 20, scale = 4)
+	private BigDecimal benchmarkValue;
+
 	/**
 	 * 지표 값 생성.
 	 */
@@ -69,5 +79,14 @@ public class CompanyReportMetricValuesEntity extends BaseEntity {
 		value.metricValue = metricValue;
 		value.valueType = valueType;
 		return value;
+	}
+
+	/**
+	 * 지표 신호등 정보를 반영한다.
+	 */
+	public void applySignal(SignalColor signalColor, String colorRationale, BigDecimal benchmarkValue) {
+		this.signalColor = signalColor;
+		this.colorRationale = colorRationale;
+		this.benchmarkValue = benchmarkValue;
 	}
 }

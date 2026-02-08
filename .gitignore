@@ -41,3 +41,5 @@ out/
 
 ### LOG ###
 *.log
+.gemini/
+gha-creds-*.json

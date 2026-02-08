@@ -75,4 +75,11 @@ public class CompaniesEntity extends BaseEntity {
 	) {
 		return create(corpCode, corpName, corpEngName, stockCode, modifyDate, null);
 	}
+
+	/**
+	 * 업종 코드 업데이트.
+	 */
+	public void updateIndustryCode(IndustryEntity industryCode) {
+		this.industryCode = industryCode;
+	}
 }

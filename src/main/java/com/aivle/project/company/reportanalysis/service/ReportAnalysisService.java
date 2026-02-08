@@ -61,9 +61,7 @@ public class ReportAnalysisService {
 
 		ReportAnalysisEntity savedAnalysis = reportAnalysisRepository.save(analysis);
 
-		List<ReportContentEntity> contents = apiResponse.news().stream()
-			.map(item -> createReportContentEntity(savedAnalysis, item))
-			.toList();
+		List<ReportContentEntity> contents = buildReportContents(savedAnalysis, apiResponse);
 
 		reportContentRepository.saveAll(contents);
 
@@ -134,6 +132,31 @@ public class ReportAnalysisService {
 			.publishedAt(parseToUtcLocalDateTime(item.date(), "news.date"))
 			.link(item.link())
 			.sentiment(item.sentiment())
+			.build();
+	}
+
+	private List<ReportContentEntity> buildReportContents(
+		ReportAnalysisEntity savedAnalysis,
+		ReportApiResponse apiResponse
+	) {
+		if (apiResponse == null || apiResponse.news() == null || apiResponse.news().isEmpty()) {
+			log.warn("Report analysis response has no contents for analysisId: {}", savedAnalysis.getId());
+			return List.of(createPlaceholderContent(savedAnalysis));
+		}
+		return apiResponse.news().stream()
+			.map(item -> createReportContentEntity(savedAnalysis, item))
+			.toList();
+	}
+
+	private ReportContentEntity createPlaceholderContent(ReportAnalysisEntity analysis) {
+		return ReportContentEntity.builder()
+			.reportAnalysis(analysis)
+			.title("요약 데이터 없음")
+			.summary("요약 데이터가 제공되지 않았습니다.")
+			.score(null)
+			.publishedAt(analysis.getAnalyzedAt())
+			.link(null)
+			.sentiment(null)
 			.build();
 	}
 

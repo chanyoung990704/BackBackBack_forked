@@ -1,7 +1,7 @@
 package com.aivle.project.company.insight.service;
 
 import com.aivle.project.company.entity.CompaniesEntity;
-import com.aivle.project.company.insight.dto.CompanyInsightItem;
+import com.aivle.project.company.insight.dto.CompanyInsightDto;
 import com.aivle.project.company.insight.dto.CompanyInsightType;
 import com.aivle.project.company.news.entity.NewsAnalysisEntity;
 import com.aivle.project.company.news.entity.NewsArticleEntity;
@@ -14,15 +14,11 @@ import com.aivle.project.company.reportanalysis.repository.ReportAnalysisReposit
 import com.aivle.project.company.reportanalysis.repository.ReportContentRepository;
 import com.aivle.project.company.reportanalysis.service.ReportAnalysisService;
 import com.aivle.project.company.repository.CompaniesRepository;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -43,9 +39,6 @@ public class CompanyInsightService {
 	private final NewsService newsService;
 	private final ReportAnalysisService reportAnalysisService;
 
-	@Qualifier("insightExecutor")
-	private final Executor insightExecutor;
-
 	public InsightResult getInsights(
 		Long companyId,
 		int newsPage,
@@ -60,6 +53,7 @@ public class CompanyInsightService {
 		if (stockCode == null || stockCode.isBlank()) {
 			throw new IllegalArgumentException("Company has no stockCode: " + companyId);
 		}
+		String companyName = company.getCorpName();
 
 		Optional<ReportAnalysisEntity> latestReportOpt = reportAnalysisRepository
 			.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId);
@@ -71,59 +65,56 @@ public class CompanyInsightService {
 		boolean hasNews = latestNewsOpt.isPresent()
 			&& newsArticleRepository.existsByNewsAnalysisId(latestNewsOpt.get().getId());
 
-		boolean shouldFetch = !hasReport || !hasNews;
-		List<CompletableFuture<?>> futures = new ArrayList<>();
+		ReportAnalysisEntity latestReport = latestReportOpt.orElse(null);
+		NewsAnalysisEntity latestNews = latestNewsOpt.orElse(null);
+
 		if (!hasReport) {
-			futures.add(CompletableFuture.runAsync(() -> reportAnalysisService.fetchAndStoreReport(stockCode), insightExecutor));
-		}
-		if (!hasNews) {
-			futures.add(CompletableFuture.runAsync(() -> newsService.fetchAndStoreNews(stockCode), insightExecutor));
-		}
-		if (!futures.isEmpty()) {
-			CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+			java.util.Optional<ReportContentEntity> existingReportContent =
+				reportContentRepository.findTopByReportAnalysisCompanyIdOrderByPublishedAtDesc(companyId);
+			if (existingReportContent.isPresent()) {
+				latestReport = existingReportContent.get().getReportAnalysis();
+				hasReport = true;
+			}
 		}
 
-		ReportAnalysisEntity latestReport = null;
-		NewsAnalysisEntity latestNews = null;
-		int maxPollAttempts = 10;
-		long pollDelayMillis = 1000L;
-		for (int attempt = 1; attempt <= maxPollAttempts; attempt++) {
+		if (!hasNews) {
+			java.util.Optional<NewsArticleEntity> existingNewsArticle =
+				newsArticleRepository.findTopByNewsAnalysisCompanyIdOrderByPublishedAtDesc(companyId);
+			if (existingNewsArticle.isPresent()) {
+				latestNews = existingNewsArticle.get().getNewsAnalysis();
+				hasNews = true;
+			}
+		}
+
+		if (!hasReport) {
+			reportAnalysisService.fetchAndStoreReport(stockCode);
 			latestReport = reportAnalysisRepository
 				.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId)
 				.orElse(null);
+		}
+		if (!hasNews) {
+			newsService.fetchAndStoreNews(stockCode);
 			latestNews = newsAnalysisRepository
 				.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId)
 				.orElse(null);
-
-			boolean reportReady = latestReport != null
-				&& reportContentRepository.existsByReportAnalysisId(latestReport.getId());
-			boolean newsReady = latestNews != null
-				&& newsArticleRepository.existsByNewsAnalysisId(latestNews.getId());
-
-			if (reportReady || newsReady) {
-				break;
-			}
-			if (attempt < maxPollAttempts) {
-				sleep(pollDelayMillis);
-			}
 		}
 
-		List<CompanyInsightItem> items = new ArrayList<>();
+		List<CompanyInsightDto> items = new java.util.ArrayList<>();
 
 		if (latestReport != null) {
 			Page<ReportContentEntity> reportContents = reportContentRepository
 				.findByReportAnalysisIdOrderByPublishedAtDesc(latestReport.getId(), PageRequest.of(reportPage, reportSize));
 			for (ReportContentEntity content : reportContents.getContent()) {
-				items.add(new CompanyInsightItem(
-					content.getId(),
-					CompanyInsightType.REPORT,
-					content.getTitle(),
-					null,
-					content.getSummary(),
-					null,
-					(resolvePublishedAt(content.getPublishedAt(), latestReport.getAnalyzedAt())),
-					content.getLink()
-				));
+				items.add(CompanyInsightDto.builder()
+					.id(content.getId())
+					.type(CompanyInsightType.REPORT)
+					.title(content.getTitle())
+					.body(content.getSummary())
+					.content(null)
+					.source(null)
+					.publishedAt(resolvePublishedAt(content.getPublishedAt(), latestReport.getAnalyzedAt()))
+					.url(content.getLink())
+					.build());
 			}
 		}
 
@@ -131,37 +122,26 @@ public class CompanyInsightService {
 			Page<NewsArticleEntity> newsArticles = newsArticleRepository
 				.findByNewsAnalysisIdOrderByPublishedAtDesc(latestNews.getId(), PageRequest.of(newsPage, newsSize));
 			for (NewsArticleEntity article : newsArticles.getContent()) {
-				items.add(new CompanyInsightItem(
-					article.getId(),
-					CompanyInsightType.NEWS,
-					article.getTitle(),
-					article.getSummary(),
-					null,
-					article.getSentiment(),
-					(resolvePublishedAt(article.getPublishedAt(), latestNews.getAnalyzedAt())),
-					article.getLink()
-				));
+				items.add(CompanyInsightDto.builder()
+					.id(article.getId())
+					.type(CompanyInsightType.NEWS)
+					.title(article.getTitle())
+					.body(null)
+					.content(article.getSummary())
+					.source(article.getSentiment())
+					.publishedAt(resolvePublishedAt(article.getPublishedAt(), latestNews.getAnalyzedAt()))
+					.url(article.getLink())
+					.build());
 			}
 		}
 
-		boolean processing = shouldFetch && items.isEmpty();
-		return new InsightResult(items, processing);
+		return new InsightResult(items, false);
 	}
 
-	private String resolvePublishedAt(java.time.LocalDateTime publishedAt, java.time.LocalDateTime fallback) {
-		java.time.LocalDateTime target = publishedAt != null ? publishedAt : fallback;
-		return target != null ? target.atZone(ZoneOffset.UTC).toOffsetDateTime().toString() : null;
+	private LocalDateTime resolvePublishedAt(LocalDateTime publishedAt, LocalDateTime fallback) {
+		return publishedAt != null ? publishedAt : fallback;
 	}
 
-	private void sleep(long delayMillis) {
-		try {
-			Thread.sleep(delayMillis);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw new IllegalStateException("Insight polling interrupted", e);
-		}
-	}
-
-	public record InsightResult(List<CompanyInsightItem> items, boolean processing) {
+	public record InsightResult(List<CompanyInsightDto> items, boolean processing) {
 	}
 }

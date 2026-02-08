@@ -6,6 +6,7 @@ import com.aivle.project.watchlist.dto.WatchlistAddRequest;
 import com.aivle.project.watchlist.dto.WatchlistDashboardResponse;
 import com.aivle.project.watchlist.dto.WatchlistMetricAveragesResponse;
 import com.aivle.project.watchlist.dto.WatchlistMetricValuesResponse;
+import com.aivle.project.watchlist.dto.WatchlistResponse;
 import com.aivle.project.watchlist.service.CompanyWatchlistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,6 +49,17 @@ public class CompanyWatchlistController {
 	public ResponseEntity<com.aivle.project.common.dto.ApiResponse<Void>> add(@CurrentUser Long userId, @Valid @RequestBody WatchlistAddRequest request) {
 		companyWatchlistService.addWatchlist(userId, request.companyId(), request.note());
 		return ResponseEntity.ok(com.aivle.project.common.dto.ApiResponse.ok(null));
+	}
+
+	@GetMapping
+	@Operation(summary = "워치리스트 목록 조회", description = "사용자가 등록한 워치리스트 기업 목록을 조회합니다.")
+	@ApiResponses({
+		@ApiResponse(responseCode = "200", description = "조회 성공"),
+		@ApiResponse(responseCode = "401", description = "인증 필요")
+	})
+	public ResponseEntity<com.aivle.project.common.dto.ApiResponse<WatchlistResponse>> getWatchlist(@CurrentUser Long userId) {
+		WatchlistResponse response = companyWatchlistService.getWatchlist(userId);
+		return ResponseEntity.ok(com.aivle.project.common.dto.ApiResponse.ok(response));
 	}
 
 	@DeleteMapping("/{companyId}")

@@ -6,6 +6,38 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-08 | 작업: CompanyOverview metrics 필터 기준 변경 | 결과: metrics를 다음 분기 PREDICTED 기준으로 필터링하고 최신 버전 탐색 조건에서 valueType 제약 제거 | 이슈: 없음
+- 2026-02-08 | 작업: CompanyOverview metricSeries/metrics 조회 로직 재구성 | 결과: metricSeries는 위험/비위험 최신 버전 병합, metrics는 현재 분기 ACTUAL + signal_color 매핑 | 이슈: 없음
+- 2026-02-08 | 작업: 개요 지표 최신 버전 조회 보강 | 결과: 위험/비위험 지표 각각 최신 버전 병합 조회 및 서비스 테스트 추가/통과 | 이슈: 없음
+- 2026-02-08 | 작업: CompanySectorService 트랜잭션 추가 | 결과: LazyInitializationException 방지(readOnly) | 이슈: 없음
+- 2026-02-08 | 작업: 분기키 정규화 로직 보강 | 결과: 6자리 분기키 입력을 5자리로 변환, CompanyInfoService 테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: CompanyOverview 임시 컨트롤러 추가 | 결과: Swagger 확인용 API 및 테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: CompanyOverviewService 추가 | 결과: 개요 응답 조립 서비스/테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: CompanyOverview DTO 추가 | 결과: Overview 응답/하위 DTO 및 테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: H2 키 메트릭 텍스트 타입 정합화 | 결과: key_metric_descriptions/ai_comment H2 컬럼 타입을 VARCHAR로 조정 | 이슈: 없음
+- 2026-02-08 | 작업: MetricDescriptionEntity TEXT 매핑 정합화 | 결과: @Lob 제거 후 TEXT 컬럼 정의로 스키마 검증 오류 해결 | 이슈: 없음
+- 2026-02-08 | 작업: company_key_metrics ai_comment 타입 정합화 | 결과: ai_comment 컬럼을 TEXT로 매핑하도록 엔티티 수정 | 이슈: 없음
+- 2026-02-08 | 작업: CompanyInfoService 추가 | 결과: 분기 기준 기업 정보 조회 서비스/테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: CompanyInfoDto 필드 변경 | 결과: id 타입 Long 변경 및 stockCode 필드 추가 | 이슈: 없음
+- 2026-02-08 | 작업: CompanyInfoDto 추가 | 결과: CompanyInfoDto 및 단위 테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: CompanySectorDto 추가 | 결과: key/label 필드 DTO 추가 | 이슈: 없음
+- 2026-02-08 | 작업: CompanySectorService 추가 | 결과: 업종명 기반 섹터 DTO 조회 서비스 및 테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: key_metric_descriptions 시드 데이터 추가 | 결과: MySQL/H2 시드 마이그레이션 추가 및 테스트 통과 | 이슈: 없음
+- 2026-02-08 | 작업: 키 메트릭 엔티티/리포지토리 테스트 정합화 | 결과: TEXT 필드 @Lob 적용 및 H2 is_active BOOLEAN 정합화, 리포지토리 테스트 통과 | 이슈: 없음
+- 2026-02-08 | 작업: 키 메트릭 스키마 마이그레이션 추가 | 결과: 신규 테이블/컬럼 H2 호환 포함 및 마이그레이션 테스트 통과 | 이슈: 없음
+- 2026-02-07 | 작업: report_contents 비어있는 경우 placeholder 저장 | 결과: 사업보고서 응답이 빈 경우 placeholder 콘텐츠 저장 로직 추가 및 서비스 테스트 통과 | 이슈: finalize() deprecated 경고 유지
+- 2026-02-07 | 작업: 인사이트 조회 시 기존 콘텐츠 기반 재사용 로직 추가 | 결과: 최신 분석에 콘텐츠 없으면 기존 report/news 콘텐츠가 있는 분석을 사용, 서비스 테스트 통과 | 이슈: finalize() deprecated 경고 유지
+- 2026-02-07 | 작업: 인사이트 조회 외부 API 저장 폴백 적용 | 결과: DB 없을 때 fetchAndStore 실행 후 DB 조회로 응답 구성, 서비스 테스트 수정/통과 | 이슈: finalize() deprecated 경고 유지
+- 2026-02-07 | 작업: 인사이트 조회 외부 API 폴백 및 DTO 변경 | 결과: DB 없을 때 NewsClient로 조회 후 응답 구성, CompanyInsightDto(LocalDateTime) 적용 및 서비스/컨트롤러 테스트 통과 | 이슈: finalize() deprecated 경고 유지
+- 2026-02-07 | 작업: DataJpaTest Querydsl 설정 및 watchlist 평균 집계 보정 | 결과: DataJpaTest에 QuerydslConfig 적용, watchlist 평균 집계 BigDecimal 캐스팅 적용 후 테스트 통과 | 이슈: 없음
+- 2026-02-07 | 작업: 보고서 지표/리포트 업로드 컨트롤러 복구 | 결과: /api/admin/reports/metrics 및 /api/admin/reports/pdf 컨트롤러 활성화, 관련 테스트 통과 | 이슈: 없음
+- 2026-02-07 | 작업: 보고서 PDF 다운로드 스트리밍 전환 | 결과: /api/reports/files 컨트롤러 활성화 및 스트리밍 응답/URL 내부화, 테스트 수정/통과 | 이슈: 없음
+- 2026-02-07 | 작업: 파일 다운로드 URL 응답 통일 | 결과: /api/files/{id}/url이 내부 다운로드 URL만 반환하도록 변경, 테스트 수정/통과 | 이슈: 없음
+- 2026-02-07 | 작업: AI 리포트 다운로드 스트리밍 처리 | 결과: CompanyAiController 다운로드를 스트리밍 방식으로 전환, 관련 컨트롤러 테스트 추가/통과 | 이슈: 없음
+- 2026-02-07 | 작업: 파일 다운로드 스트리밍 처리 변경 | 결과: /api/files/{id}에서 리다이렉트 제거 후 스트리밍 응답 및 헤더 적용, 컨트롤러 테스트 수정/통과 | 이슈: 없음
+- 2026-02-07 | 작업: 파일 스트리밍 서비스 추가 | 결과: FileStreamService 및 dev/prod 구현(Local/S3) 추가, 관련 단위 테스트 작성 | 이슈: 없음
+- 2026-02-07 | 작업: Swagger CurrentUser 파라미터 숨김 및 파일 업로드 multipart 적용 | 결과: @CurrentUser에 @Parameter(hidden=true) 적용, 파일 업로드 API consumes=multipart/form-data 추가 | 이슈: 없음
+- 2026-02-07 | 작업: spring-boot-devtools 의존성 추가 | 결과: build.gradle에 developmentOnly devtools 추가 | 이슈: 없음
 - 2026-02-06 | 작업: 테스트 실패 정리 및 H2/Flyway 설정 보정 | 결과: test 프로필 Flyway 활성화 및 db/migration-h2 사용, H2 report_contents summary 타입 TEXT로 정합화, 중복 V16 마이그레이션 정리 후 ./gradlew test 통과 | 이슈: 없음
 - 2026-02-06 | 작업: 테스트 실패 정리 및 H2/Flyway 설정 보정 | 결과: test 프로필 Flyway 활성화 및 db/migration-h2 사용, H2 report_contents summary 타입 TEXT로 정합화, 중복 V16 마이그레이션 정리 후 ./gradlew test 통과 | 이슈: 없음
 - 2026-02-06 | 작업: 인사이트 폴링 첫 응답 빈 배열 이슈 수정 | 결과: CompanyInsightService.getInsights의 @Transactional 제거로 최신 커밋 데이터 조회 가능, 컨트롤러 테스트 통과 | 이슈: finalize() deprecated 경고 2건

@@ -87,6 +87,28 @@ class CompanyWatchlistControllerTest {
 	}
 
 	@Test
+	@DisplayName("워치리스트 등록 기업 조회가 성공하면 목록을 반환한다")
+	void getWatchlist_shouldReturnList() throws Exception {
+		// given
+		java.time.LocalDateTime now = java.time.LocalDateTime.now();
+		com.aivle.project.watchlist.dto.WatchlistResponse response = new com.aivle.project.watchlist.dto.WatchlistResponse(List.of(
+			new com.aivle.project.watchlist.dto.WatchlistItem(1L, 10L, "기업A", "00000001", "000001", "메모A", now),
+			new com.aivle.project.watchlist.dto.WatchlistItem(2L, 11L, "기업B", "00000002", "000002", "메모B", now)
+		));
+		given(companyWatchlistService.getWatchlist(any()))
+			.willReturn(response);
+
+		// when & then
+		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/watchlists")
+				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.data.items").isArray())
+			.andExpect(jsonPath("$.data.items[0].corpName").value("기업A"))
+			.andExpect(jsonPath("$.data.items[1].corpName").value("기업B"));
+	}
+
+	@Test
 	@DisplayName("워치리스트 지표 값 조회가 성공하면 분기별 그룹 응답을 반환한다")
 	void metricValues_shouldReturnGroupedResponse() throws Exception {
 		// given

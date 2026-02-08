@@ -13,4 +13,6 @@ public interface ReportContentRepository extends JpaRepository<ReportContentEnti
 	Page<ReportContentEntity> findByReportAnalysisIdOrderByPublishedAtDesc(Long reportAnalysisId, Pageable pageable);
 
 	boolean existsByReportAnalysisId(Long reportAnalysisId);
+
+	java.util.Optional<ReportContentEntity> findTopByReportAnalysisCompanyIdOrderByPublishedAtDesc(Long companyId);
 }
