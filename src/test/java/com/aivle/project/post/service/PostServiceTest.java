@@ -13,6 +13,13 @@ import com.aivle.project.common.dto.PageRequest;
 import com.aivle.project.common.dto.PageResponse;
 import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
+import com.aivle.project.file.dto.FileResponse;
+import com.aivle.project.file.entity.FileUsageType;
+import com.aivle.project.file.entity.FilesEntity;
+import com.aivle.project.file.entity.PostFilesEntity;
+import com.aivle.project.file.mapper.FileMapper;
+import com.aivle.project.file.repository.PostFilesRepository;
+import com.aivle.project.post.dto.PostDetailResponse;
 import com.aivle.project.post.dto.PostAdminCreateRequest;
 import com.aivle.project.post.dto.PostAdminUpdateRequest;
 import com.aivle.project.post.dto.PostResponse;
@@ -56,6 +63,12 @@ class PostServiceTest {
 
 	@Mock
 	private com.aivle.project.post.mapper.PostMapper postMapper;
+
+	@Mock
+	private PostFilesRepository postFilesRepository;
+
+	@Mock
+	private FileMapper fileMapper;
 
 	// User Operations Tests
 
@@ -267,6 +280,45 @@ class PostServiceTest {
 
 		// then
 		assertThat(post.isDeleted()).isTrue();
+	}
+
+	@Test
+	@DisplayName("게시글 상세 조회 시 첨부파일과 다운로드 정보가 포함된다")
+	void get_shouldIncludeFiles() {
+		// given
+		UserEntity user = newUser(1L);
+		CategoriesEntity category = newCategory(2L, "qna");
+		PostsEntity post = newPost(100L, user, category);
+		FilesEntity file = FilesEntity.create(
+			FileUsageType.POST_ATTACHMENT,
+			"url",
+			"key",
+			"file.png",
+			10L,
+			"image/png"
+		);
+		ReflectionTestUtils.setField(file, "id", 55L);
+		PostFilesEntity mapping = PostFilesEntity.create(post, file);
+
+		given(postsRepository.findByIdAndCategoryNameAndDeletedAtIsNull(100L, "qna"))
+			.willReturn(Optional.of(post));
+		given(postMapper.toResponse(post)).willReturn(new PostResponse(
+			100L, "user-1", 2L, "title", "content", 0, false, PostStatus.PUBLISHED, null, null, null
+		));
+		given(postFilesRepository.findAllActiveByPostIdOrderByCreatedAtAsc(100L))
+			.willReturn(List.of(mapping));
+		given(fileMapper.toResponse(eq(100L), any(FilesEntity.class))).willReturn(
+			new FileResponse(55L, 100L, "url", "file.png", 10L, "image/png", null)
+		);
+
+		// when
+		PostDetailResponse response = postService.get("qna", 100L, user);
+
+		// then
+		assertThat(response.files()).hasSize(1);
+		assertThat(response.files().get(0).id()).isEqualTo(55L);
+		assertThat(response.files().get(0).downloadUrl()).isEqualTo("/api/files/55");
+		assertThat(response.files().get(0).downloadable()).isTrue();
 	}
 
 	// Helpers

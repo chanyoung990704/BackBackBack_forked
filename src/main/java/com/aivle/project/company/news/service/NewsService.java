@@ -5,6 +5,7 @@ import com.aivle.project.company.news.client.NewsClient;
 import com.aivle.project.company.news.dto.NewsApiResponse;
 import com.aivle.project.company.news.dto.NewsAnalysisResponse;
 import com.aivle.project.company.news.dto.NewsItemResponse;
+import com.aivle.project.company.news.dto.NewsRefreshResponse;
 import com.aivle.project.company.news.repository.NewsAnalysisRepository;
 import com.aivle.project.company.news.repository.NewsArticleRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -77,6 +79,17 @@ public class NewsService {
         // 5. DTO로 변환하여 반환
         return NewsAnalysisResponse.from(company.getId(), savedAnalysis, articles);
     }
+
+	/**
+	 * 최신 뉴스를 재수집하고 average_score 누락 시 기사 점수 평균으로 복구합니다.
+	 */
+	@Transactional
+	public NewsRefreshResponse refreshLatestNews(String stockCode) {
+		NewsAnalysisResponse analysis = fetchAndStoreNews(stockCode);
+		boolean repaired = repairAverageScoreIfMissing(analysis.id());
+		NewsAnalysisResponse latest = getLatestNews(stockCode);
+		return new NewsRefreshResponse(latest != null ? latest : analysis, repaired);
+	}
 
     private NewsApiResponse fetchNewsWithRetry(String stockCode, String companyName) {
         int maxAttempts = 3;
@@ -188,4 +201,27 @@ public class NewsService {
             }
         }
     }
+
+	private boolean repairAverageScoreIfMissing(Long analysisId) {
+		com.aivle.project.company.news.entity.NewsAnalysisEntity analysis = newsAnalysisRepository.findById(analysisId)
+			.orElse(null);
+		if (analysis == null || analysis.getAverageScore() != null) {
+			return false;
+		}
+
+		List<com.aivle.project.company.news.entity.NewsArticleEntity> articles =
+			newsArticleRepository.findByNewsAnalysisIdOrderByPublishedAtDesc(analysisId);
+		List<BigDecimal> scores = articles.stream()
+			.map(com.aivle.project.company.news.entity.NewsArticleEntity::getScore)
+			.filter(score -> score != null)
+			.toList();
+		if (scores.isEmpty()) {
+			return false;
+		}
+
+		BigDecimal sum = scores.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+		BigDecimal average = sum.divide(BigDecimal.valueOf(scores.size()), 6, RoundingMode.HALF_UP);
+		analysis.applyAverageScore(average);
+		return true;
+	}
 }

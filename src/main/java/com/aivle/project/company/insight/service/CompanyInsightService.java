@@ -14,6 +14,7 @@ import com.aivle.project.company.reportanalysis.repository.ReportAnalysisReposit
 import com.aivle.project.company.reportanalysis.repository.ReportContentRepository;
 import com.aivle.project.company.reportanalysis.service.ReportAnalysisService;
 import com.aivle.project.company.repository.CompaniesRepository;
+import com.aivle.project.company.service.CompanyReputationScoreService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -38,13 +39,15 @@ public class CompanyInsightService {
 	private final ReportContentRepository reportContentRepository;
 	private final NewsService newsService;
 	private final ReportAnalysisService reportAnalysisService;
+	private final CompanyReputationScoreService companyReputationScoreService;
 
 	public InsightResult getInsights(
 		Long companyId,
 		int newsPage,
 		int newsSize,
 		int reportPage,
-		int reportSize
+		int reportSize,
+		boolean refresh
 	) {
 		CompaniesEntity company = companiesRepository.findById(companyId)
 			.orElseThrow(() -> new IllegalArgumentException("Company not found for id: " + companyId));
@@ -55,9 +58,18 @@ public class CompanyInsightService {
 		}
 		String companyName = company.getCorpName();
 
-		Optional<ReportAnalysisEntity> latestReportOpt = reportAnalysisRepository
+		Optional<ReportAnalysisEntity> latestReportOpt;
+		Optional<NewsAnalysisEntity> latestNewsOpt;
+
+		if (refresh) {
+			// 인사이트 강제 갱신 시 뉴스/보고서를 모두 재수집한다.
+			newsService.refreshLatestNews(stockCode);
+			reportAnalysisService.fetchAndStoreReport(stockCode);
+		}
+
+		latestReportOpt = reportAnalysisRepository
 			.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId);
-		Optional<NewsAnalysisEntity> latestNewsOpt = newsAnalysisRepository
+		latestNewsOpt = newsAnalysisRepository
 			.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId);
 
 		boolean hasReport = latestReportOpt.isPresent()
@@ -86,18 +98,19 @@ public class CompanyInsightService {
 			}
 		}
 
-		if (!hasReport) {
-			reportAnalysisService.fetchAndStoreReport(stockCode);
-			latestReport = reportAnalysisRepository
-				.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId)
-				.orElse(null);
-		}
-		if (!hasNews) {
-			newsService.fetchAndStoreNews(stockCode);
-			latestNews = newsAnalysisRepository
-				.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId)
-				.orElse(null);
-		}
+			if (!hasReport) {
+				reportAnalysisService.fetchAndStoreReport(stockCode);
+				latestReport = reportAnalysisRepository
+					.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId)
+					.orElse(null);
+			}
+			if (!hasNews) {
+				newsService.refreshLatestNews(stockCode);
+				latestNews = newsAnalysisRepository
+					.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId)
+					.orElse(null);
+			}
+		companyReputationScoreService.syncExternalHealthScoreIfPresent(companyId, stockCode);
 
 		List<CompanyInsightDto> items = new java.util.ArrayList<>();
 
@@ -135,13 +148,13 @@ public class CompanyInsightService {
 			}
 		}
 
-		return new InsightResult(items, false);
+		return new InsightResult(items, latestNews != null ? latestNews.getAverageScore() : null, false);
 	}
 
 	private LocalDateTime resolvePublishedAt(LocalDateTime publishedAt, LocalDateTime fallback) {
 		return publishedAt != null ? publishedAt : fallback;
 	}
 
-	public record InsightResult(List<CompanyInsightDto> items, boolean processing) {
+	public record InsightResult(List<CompanyInsightDto> items, java.math.BigDecimal averageScore, boolean processing) {
 	}
 }

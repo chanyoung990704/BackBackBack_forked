@@ -10,4 +10,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CompanyKeyMetricRepository extends JpaRepository<CompanyKeyMetricEntity, Long> {
 
 	Optional<CompanyKeyMetricEntity> findByCompanyIdAndQuarterId(Long companyId, Long quarterId);
+
+	Optional<CompanyKeyMetricEntity> findByCompanyIdAndQuarter_QuarterKey(Long companyId, int quarterKey);
 }

@@ -108,18 +108,22 @@ public class SecurityConfig {
 					"/error"
 				).permitAll();
 				authorize.requestMatchers(HttpMethod.GET, "/api/posts/**", "/api/categories").permitAll();
+				authorize.requestMatchers(HttpMethod.GET, "/api/companies").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/companies/search").permitAll();
 				authorize.requestMatchers(HttpMethod.POST, "/api/posts/**").authenticated();
 				authorize.requestMatchers(HttpMethod.PATCH, "/api/posts/**").authenticated();
 				authorize.requestMatchers(HttpMethod.DELETE, "/api/posts/**").authenticated();
-				authorize.requestMatchers(HttpMethod.GET, "/api/companies/*/insights").hasRole("USER");
-				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/dashboard").hasRole("USER");
+					authorize.requestMatchers(HttpMethod.GET, "/api/companies/*/insights").hasRole("USER");
+					authorize.requestMatchers(HttpMethod.GET, "/api/companies/*/overview").hasRole("USER");
+					authorize.requestMatchers(HttpMethod.POST, "/api/companies/*/news/refresh-latest").hasRole("USER");
+					authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/dashboard").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/metric-averages").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/watchlists/metric-values").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.POST, "/api/watchlists").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.DELETE, "/api/watchlists/*").hasRole("USER");
 				authorize.requestMatchers(HttpMethod.GET, "/api/companies/*/ai-analysis").hasRole("USER");
-				authorize.requestMatchers(HttpMethod.POST, "/api/companies/*/ai-report").hasRole("ADMIN");
+				authorize.requestMatchers(HttpMethod.POST, "/api/companies/*/ai-report").hasRole("USER");
+				authorize.requestMatchers(HttpMethod.GET, "/api/companies/*/ai-report/download").hasRole("USER");
 					authorize.requestMatchers(HttpMethod.GET, "/api/reports/metrics/grouped", "/api/reports/metrics/predict-latest")
 						.hasRole("USER");
 					authorize.requestMatchers(HttpMethod.GET, "/api/reports/files/*", "/api/reports/files/*/url")

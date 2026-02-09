@@ -2,11 +2,13 @@ package com.aivle.project.watchlist.service;
 
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
+import com.aivle.project.company.service.CompanyInfoService;
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.metric.entity.MetricValueType;
 import com.aivle.project.quarter.entity.QuartersEntity;
 import com.aivle.project.quarter.repository.QuartersRepository;
 import com.aivle.project.risk.entity.RiskLevel;
+import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.repository.UserRepository;
 import com.aivle.project.watchlist.dto.WatchlistDashboardMetricRow;
@@ -23,11 +25,13 @@ import com.aivle.project.watchlist.entity.CompanyWatchlistEntity;
 import com.aivle.project.watchlist.error.WatchlistErrorCode;
 import com.aivle.project.watchlist.repository.CompanyWatchlistRepository;
 import com.aivle.project.watchlist.repository.WatchlistMetricValueProjection;
+import com.aivle.project.watchlist.event.CompanyWatchlistCreatedEvent;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,21 +43,34 @@ public class CompanyWatchlistService {
 	private final UserRepository userRepository;
 	private final CompaniesRepository companiesRepository;
 	private final QuartersRepository quartersRepository;
+	private final CompanyReportMetricValuesRepository companyReportMetricValuesRepository;
+	private final CompanyInfoService companyInfoService;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional
 	public void addWatchlist(Long userId, Long companyId, String note) {
-		CompanyWatchlistEntity existing = companyWatchlistRepository.findByUserIdAndCompanyId(userId, companyId).orElse(null);
-		if (existing != null) {
+		if (companyWatchlistRepository.findByUserIdAndCompanyIdAndDeletedAtIsNull(userId, companyId).isPresent()) {
 			throw new CommonException(WatchlistErrorCode.WATCHLIST_DUPLICATE);
+		}
+		CompanyWatchlistEntity deleted = companyWatchlistRepository
+			.findByUserIdAndCompanyIdAndDeletedAtIsNotNull(userId, companyId)
+			.orElse(null);
+		if (deleted != null) {
+			// 소프트 삭제된 동일 항목은 복구하여 재등록한다.
+			deleted.restore();
+			deleted.updateNote(note);
+			eventPublisher.publishEvent(new CompanyWatchlistCreatedEvent(userId, companyId));
+			return;
 		}
 		UserEntity user = userRepository.getReferenceById(userId);
 		CompaniesEntity company = companiesRepository.getReferenceById(companyId);
 		companyWatchlistRepository.save(CompanyWatchlistEntity.create(user, company, note));
+		eventPublisher.publishEvent(new CompanyWatchlistCreatedEvent(userId, companyId));
 	}
 
 	@Transactional
 	public void removeWatchlist(Long userId, Long companyId) {
-		CompanyWatchlistEntity existing = companyWatchlistRepository.findByUserIdAndCompanyId(userId, companyId)
+		CompanyWatchlistEntity existing = companyWatchlistRepository.findByUserIdAndCompanyIdAndDeletedAtIsNull(userId, companyId)
 			.orElseThrow(() -> new CommonException(WatchlistErrorCode.WATCHLIST_NOT_FOUND));
 		if (!existing.getUser().getId().equals(userId)) {
 			throw new CommonException(WatchlistErrorCode.WATCHLIST_FORBIDDEN);
@@ -76,6 +93,20 @@ public class CompanyWatchlistService {
 			))
 			.toList();
 		return new WatchlistResponse(items);
+	}
+
+	@Transactional(readOnly = true)
+	public List<com.aivle.project.company.dto.CompanyInfoDto> getWatchlistCompanies(Long userId) {
+		List<CompanyWatchlistEntity> watchlists = companyWatchlistRepository.findActiveByUserId(userId);
+		return watchlists.stream()
+			.map(watchlist -> {
+				CompaniesEntity company = watchlist.getCompany();
+				Integer quarterKey = companyReportMetricValuesRepository
+					.findMaxActualQuarterKeyByStockCode(company.getStockCode())
+					.orElse(null);
+				return companyInfoService.getCompanyInfo(company.getId(), quarterKey);
+			})
+			.toList();
 	}
 
 	@Transactional(readOnly = true)

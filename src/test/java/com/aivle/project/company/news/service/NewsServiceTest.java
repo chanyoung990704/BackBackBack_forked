@@ -4,6 +4,7 @@ import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.news.client.NewsClient;
 import com.aivle.project.company.news.dto.NewsApiResponse;
 import com.aivle.project.company.news.dto.NewsItemResponse;
+import com.aivle.project.company.news.dto.NewsRefreshResponse;
 import com.aivle.project.company.news.repository.NewsAnalysisRepository;
 import com.aivle.project.company.news.repository.NewsArticleRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -222,9 +223,9 @@ class NewsServiceTest {
         verify(newsAnalysisRepository, times(1)).findTopByCompanyIdOrderByAnalyzedAtDesc(company.getId());
     }
 
-    @Test
-    @DisplayName("특정 기간의 뉴스 분석 이력을 성공적으로 조회한다")
-    void getNewsHistory_Success() {
+	    @Test
+	    @DisplayName("특정 기간의 뉴스 분석 이력을 성공적으로 조회한다")
+	    void getNewsHistory_Success() {
         // given
         String stockCode = "000020";
         String companyName = "동화약품";
@@ -288,9 +289,110 @@ class NewsServiceTest {
         assertEquals(companyName, result.get(0).companyName());
 
         verify(companiesRepository, times(1)).findByStockCode(stockCode);
-        verify(newsAnalysisRepository, times(1))
-                .findByCompanyIdAndAnalyzedAtBetweenOrderByAnalyzedAtDesc(eq(company.getId()), eq(start), eq(end));
-    }
+	        verify(newsAnalysisRepository, times(1))
+	                .findByCompanyIdAndAnalyzedAtBetweenOrderByAnalyzedAtDesc(eq(company.getId()), eq(start), eq(end));
+	    }
+
+	@Test
+	@DisplayName("재수집 시 average_score가 누락되면 기사 점수 평균으로 복구한다")
+	void refreshLatestNews_RepairAverage() {
+		// given
+		String stockCode = "000020";
+		String companyName = "동화약품";
+
+		CompaniesEntity company = CompaniesEntity.create(
+			"000020",
+			companyName,
+			null,
+			stockCode,
+			null
+		);
+		setId(company, 1L);
+
+		NewsItemResponse newsItem1 = new NewsItemResponse(
+			"기사1",
+			"요약1",
+			0.3,
+			"2026-01-30T09:34:00+09:00",
+			"https://n.example/1",
+			"POS"
+		);
+		NewsItemResponse newsItem2 = new NewsItemResponse(
+			"기사2",
+			"요약2",
+			0.1,
+			"2026-01-30T10:34:00+09:00",
+			"https://n.example/2",
+			"NEU"
+		);
+		NewsApiResponse apiResponse = new NewsApiResponse(
+			companyName,
+			2,
+			List.of(newsItem1, newsItem2),
+			null,
+			"2026-02-05T14:10:57.932669"
+		);
+
+		when(companiesRepository.findByStockCode(stockCode)).thenReturn(Optional.of(company));
+		when(newsClient.fetchNews(stockCode, companyName)).thenReturn(apiResponse);
+		when(newsAnalysisRepository.save(any())).thenAnswer(invocation -> {
+			com.aivle.project.company.news.entity.NewsAnalysisEntity saved = invocation.getArgument(0);
+			setId(saved, 10L);
+			setCreatedAt(saved);
+			return saved;
+		});
+			when(newsArticleRepository.saveAll(anyList())).thenAnswer(invocation -> {
+				List<com.aivle.project.company.news.entity.NewsArticleEntity> articles = invocation.getArgument(0);
+				articles.forEach(NewsServiceTest::setCreatedAt);
+				return articles;
+			});
+
+		// NewsService 내부에서 findById 호출 시 저장된 엔티티를 반환하도록 스텁
+		com.aivle.project.company.news.entity.NewsAnalysisEntity savedAnalysis =
+			com.aivle.project.company.news.entity.NewsAnalysisEntity.create(
+				company,
+				companyName,
+				2,
+				null,
+				LocalDateTime.now()
+			);
+		setId(savedAnalysis, 10L);
+		setCreatedAt(savedAnalysis);
+		when(newsAnalysisRepository.findById(10L)).thenReturn(Optional.of(savedAnalysis));
+
+			var article1 = com.aivle.project.company.news.entity.NewsArticleEntity.create(
+				savedAnalysis,
+				"기사1",
+				"요약1",
+			BigDecimal.valueOf(0.3),
+			LocalDateTime.now(),
+				"https://n.example/1",
+				"POS"
+			);
+			setCreatedAt(article1);
+			var article2 = com.aivle.project.company.news.entity.NewsArticleEntity.create(
+				savedAnalysis,
+				"기사2",
+			"요약2",
+			BigDecimal.valueOf(0.1),
+			LocalDateTime.now(),
+				"https://n.example/2",
+				"NEU"
+			);
+			setCreatedAt(article2);
+		when(newsArticleRepository.findByNewsAnalysisIdOrderByPublishedAtDesc(10L))
+			.thenReturn(List.of(article1, article2));
+		when(newsAnalysisRepository.findTopByCompanyIdOrderByAnalyzedAtDesc(1L))
+			.thenReturn(Optional.of(savedAnalysis));
+
+		// when
+		NewsRefreshResponse result = newsService.refreshLatestNews(stockCode);
+
+		// then
+		assertNotNull(result);
+		assertTrue(result.averageScoreRepaired());
+		assertEquals(0.2d, result.analysis().averageScore(), 0.000001d);
+	}
 
     @Override
     protected void finalize() throws Throwable {

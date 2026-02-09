@@ -1,5 +1,6 @@
 package com.aivle.project.company.insight.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,6 +18,9 @@ public class CompanyInsightDto {
 	private String body;
 	private String content;
 	private String source;
+
+	@JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
 	private LocalDateTime publishedAt;
+
 	private String url;
 }

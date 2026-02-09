@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.aivle.project.common.config.QuerydslConfig;
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
+import com.aivle.project.company.service.CompanyInfoService;
 import com.aivle.project.metric.entity.MetricValueType;
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.metric.entity.MetricsEntity;
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -59,6 +61,7 @@ class CompanyWatchlistServiceTest {
 	@Autowired CompanyReportMetricValuesRepository metricValuesRepository;
 	@Autowired MetricsRepository metricsRepository;
 	@Autowired RiskScoreSummaryRepository riskScoreSummaryRepository;
+	@MockBean CompanyInfoService companyInfoService;
 
 	@Test
 	@DisplayName("사용자의 워치리스트 기업 목록을 조회한다")
@@ -100,6 +103,26 @@ class CompanyWatchlistServiceTest {
 			.isInstanceOf(CommonException.class)
 			.extracting(ex -> ((CommonException) ex).getErrorCode())
 			.isEqualTo(WatchlistErrorCode.WATCHLIST_DUPLICATE);
+	}
+
+	@Test
+	@DisplayName("소프트 삭제된 워치리스트는 재등록 시 복구된다")
+	void addWatchlistRestoresSoftDeleted() {
+		// given
+		UserEntity user = userRepository.save(UserEntity.create("restore@test.com", "pw", "restore", null, UserStatus.ACTIVE));
+		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		userRoleRepository.save(new UserRoleEntity(user, role));
+		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create("00000079", "복구기업", "RST", "779999", LocalDate.now()));
+		service.addWatchlist(user.getId(), company.getId(), "first");
+		service.removeWatchlist(user.getId(), company.getId());
+
+		// when
+		service.addWatchlist(user.getId(), company.getId(), "second");
+
+		// then
+		com.aivle.project.watchlist.dto.WatchlistResponse response = service.getWatchlist(user.getId());
+		assertThat(response.items()).hasSize(1);
+		assertThat(response.items().get(0).note()).isEqualTo("second");
 	}
 
 	@Test

@@ -13,6 +13,7 @@ import com.aivle.project.company.dto.CompanyOverviewTooltipDto;
 import com.aivle.project.company.keymetric.entity.CompanyKeyMetricEntity;
 import com.aivle.project.company.keymetric.repository.CompanyKeyMetricRepository;
 import com.aivle.project.company.keymetric.repository.KeyMetricDescriptionRepository;
+import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.metric.entity.MetricValueType;
 import com.aivle.project.quarter.entity.QuartersEntity;
 import com.aivle.project.quarter.repository.QuartersRepository;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 기업 개요 응답 조립 서비스.
@@ -44,6 +46,7 @@ public class CompanyOverviewService {
 	);
 
 	private final CompanyInfoService companyInfoService;
+	private final CompaniesRepository companiesRepository;
 	private final QuartersRepository quartersRepository;
 	private final CompanyKeyMetricRepository companyKeyMetricRepository;
 	private final KeyMetricDescriptionRepository keyMetricDescriptionRepository;
@@ -52,9 +55,11 @@ public class CompanyOverviewService {
 	/**
 	 * 기업 개요 응답을 구성한다.
 	 */
+	@Transactional(readOnly = true)
 	public CompanyOverviewResponseDto getOverview(Long companyId, String quarterKey) {
-		CompanyInfoDto companyInfo = companyInfoService.getCompanyInfo(companyId, quarterKey);
-		int parsedQuarterKey = parseQuarterKey(quarterKey);
+		String resolvedQuarterKey = resolveQuarterKey(companyId, quarterKey);
+		int parsedQuarterKey = parseQuarterKey(resolvedQuarterKey);
+		CompanyInfoDto companyInfo = companyInfoService.getCompanyInfo(companyId, resolvedQuarterKey);
 		QuartersEntity quarter = quartersRepository.findByQuarterKey(parsedQuarterKey)
 			.orElseThrow(() -> new IllegalArgumentException("Quarter not found for key: " + parsedQuarterKey));
 
@@ -65,7 +70,7 @@ public class CompanyOverviewService {
 		List<CompanyOverviewMetricRowProjection> seriesRows = loadSeriesRows(companyInfo.getStockCode(), parsedQuarterKey);
 		CompanyOverviewForecastDto forecast = buildForecast(parsedQuarterKey, seriesRows);
 		List<CompanyOverviewKeyMetricDto> keyMetrics = buildKeyMetrics(keyMetric);
-		List<CompanyOverviewMetricDto> metrics = buildMetrics(seriesRows, parsedQuarterKey);
+		List<CompanyOverviewMetricDto> metrics = buildMetrics(companyId, seriesRows, parsedQuarterKey);
 		String aiComment = keyMetric != null ? keyMetric.getAiComment() : null;
 
 		return new CompanyOverviewResponseDto(
@@ -75,6 +80,18 @@ public class CompanyOverviewService {
 			metrics,
 			aiComment
 		);
+	}
+
+	private String resolveQuarterKey(Long companyId, String quarterKey) {
+		if (quarterKey != null && !quarterKey.isBlank()) {
+			return quarterKey;
+		}
+		String stockCode = companiesRepository.findById(companyId)
+			.map(company -> company.getStockCode())
+			.orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
+		return companyReportMetricValuesRepository.findMaxActualQuarterKeyByStockCode(stockCode)
+			.map(String::valueOf)
+			.orElseThrow(() -> new IllegalArgumentException("Actual quarter not found for company: " + companyId));
 	}
 
 	private List<CompanyOverviewMetricRowProjection> loadSeriesRows(String stockCode, int quarterKey) {
@@ -148,12 +165,14 @@ public class CompanyOverviewService {
 		return result;
 	}
 
-	private List<CompanyOverviewMetricDto> buildMetrics(
+private List<CompanyOverviewMetricDto> buildMetrics(
+		Long companyId,
 		List<CompanyOverviewMetricRowProjection> rows,
 		int quarterKey
-	) {
+) {
 		YearQuarter baseQuarter = QuarterCalculator.parseQuarterKey(quarterKey);
 		int nextQuarterKey = QuarterCalculator.offset(baseQuarter, 1).toQuarterKey();
+		Map<String, SignalColor> latestActualSignals = loadLatestActualSignals(companyId, quarterKey);
 		List<CompanyOverviewMetricDto> result = new ArrayList<>();
 		for (CompanyOverviewMetricRowProjection row : rows) {
 			if (row.getQuarterKey() != nextQuarterKey || row.getValueType() != MetricValueType.PREDICTED) {
@@ -163,13 +182,35 @@ public class CompanyOverviewService {
 			result.add(new CompanyOverviewMetricDto(
 				row.getMetricCode(),
 				row.getMetricNameKo(),
-				mapSignalLevel(row.getSignalColor()),
+				mapSignalLevel(resolveSignalColor(row, latestActualSignals)),
 				toDouble(row.getMetricValue()),
 				row.getUnit(),
 				tooltip
 			));
 		}
 		return result;
+	}
+
+private Map<String, SignalColor> loadLatestActualSignals(Long companyId, int quarterKey) {
+		return companyReportMetricValuesRepository.findLatestActualValuesByCompanyAndQuarter(companyId, quarterKey)
+			.stream()
+			.filter(value -> value.getSignalColor() != null)
+			.collect(java.util.stream.Collectors.toMap(
+				value -> value.getMetric().getMetricCode(),
+				com.aivle.project.report.entity.CompanyReportMetricValuesEntity::getSignalColor,
+				(existing, replacement) -> existing,
+				java.util.LinkedHashMap::new
+			));
+	}
+
+private SignalColor resolveSignalColor(
+		CompanyOverviewMetricRowProjection row,
+		Map<String, SignalColor> latestActualSignals
+) {
+		if (row.getSignalColor() != null) {
+			return row.getSignalColor();
+		}
+		return latestActualSignals.get(row.getMetricCode());
 	}
 
 	private CompanyOverviewTooltipDto buildMetricTooltip(CompanyOverviewMetricRowProjection row) {

@@ -2,8 +2,10 @@ package com.aivle.project.company.insight.controller;
 
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.company.insight.dto.CompanyInsightDto;
+import com.aivle.project.company.insight.dto.CompanyInsightResponseDto;
 import com.aivle.project.company.insight.dto.CompanyInsightType;
 import com.aivle.project.company.insight.service.CompanyInsightService;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,20 +68,25 @@ class ㅋCompanyInsightControllerTest {
 				.build()
 		);
 
-		when(companyInsightService.getInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt()))
-			.thenReturn(new com.aivle.project.company.insight.service.CompanyInsightService.InsightResult(items, false));
+			when(companyInsightService.getInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt(), eq(false)))
+				.thenReturn(new com.aivle.project.company.insight.service.CompanyInsightService.InsightResult(
+					items,
+					BigDecimal.valueOf(12.34),
+					false
+				));
 
 		// when
-		ResponseEntity<ApiResponse<List<CompanyInsightDto>>> result = companyInsightController
-			.getCompanyInsights(companyId, null, null, null, null);
+			ResponseEntity<ApiResponse<CompanyInsightResponseDto>> result = companyInsightController
+				.getCompanyInsights(companyId, null, null, null, null, false);
 
 		// then
 		assertEquals(200, result.getStatusCode().value());
 		assertTrue(result.getBody().success());
 		assertNotNull(result.getBody().data());
-		assertEquals(2, result.getBody().data().size());
+		assertEquals(2, result.getBody().data().getItems().size());
+		assertEquals(0, BigDecimal.valueOf(12.34).compareTo(result.getBody().data().getAverageScore()));
 
-		verify(companyInsightService, times(1)).getInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt());
+			verify(companyInsightService, times(1)).getInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt(), eq(false));
 	}
 
 	@Override

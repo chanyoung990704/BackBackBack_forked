@@ -68,8 +68,7 @@ public class FileService {
 	@Transactional(readOnly = true)
 	public List<FileResponse> list(Long postId, UserEntity user) {
 		PostsEntity post = findPost(postId);
-		Long userId = requireUserId(user);
-		validateOwner(post, userId);
+		requireUserId(user);
 		return postFilesRepository.findAllActiveByPostIdOrderByCreatedAtAsc(postId).stream()
 			.map(mapping -> fileMapper.toResponse(postId, mapping.getFile()))
 			.toList();
@@ -83,8 +82,7 @@ public class FileService {
 		if (file.isDeleted()) {
 			throw new FileException(FileErrorCode.FILE_404_NOT_FOUND);
 		}
-		Long userId = requireUserId(user);
-		validateOwner(mapping.getPost(), userId);
+		requireUserId(user);
 		return file;
 	}
 

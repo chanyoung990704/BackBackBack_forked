@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.aivle.project.company.dto.CompanyInfoDto;
 import com.aivle.project.company.dto.CompanyOverviewResponseDto;
 import com.aivle.project.company.dto.CompanySectorDto;
+import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.company.service.CompanyOverviewService;
 import com.aivle.project.common.security.CurrentUserArgumentResolver;
 import com.aivle.project.user.repository.UserRepository;
@@ -44,6 +45,9 @@ class CompanyOverviewTempControllerTest {
 	private JpaMetamodelMappingContext jpaMetamodelMappingContext;
 
 	@org.springframework.boot.test.mock.mockito.MockBean
+	private CompaniesRepository companiesRepository;
+
+	@org.springframework.boot.test.mock.mockito.MockBean
 	private UserRepository userRepository;
 
 	@org.springframework.boot.test.mock.mockito.MockBean
@@ -71,10 +75,16 @@ class CompanyOverviewTempControllerTest {
 			"AI 코멘트"
 		);
 
+		com.aivle.project.company.entity.CompaniesEntity company = org.mockito.Mockito.mock(
+			com.aivle.project.company.entity.CompaniesEntity.class
+		);
+		given(company.getId()).willReturn(1L);
+		given(companiesRepository.findByStockCode("000020"))
+			.willReturn(java.util.Optional.of(company));
 		given(companyOverviewService.getOverview(1L, "202401")).willReturn(response);
 
 		// when & then
-		mockMvc.perform(get("/api/companies/1/overview-temp")
+		mockMvc.perform(get("/api/companies/000020/overview")
 				.param("quarterKey", "202401"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.success").value(true))

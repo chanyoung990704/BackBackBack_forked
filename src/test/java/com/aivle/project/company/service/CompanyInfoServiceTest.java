@@ -8,6 +8,9 @@ import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.keymetric.entity.CompanyKeyMetricEntity;
 import com.aivle.project.company.keymetric.entity.CompanyKeyMetricRiskLevel;
 import com.aivle.project.company.keymetric.repository.CompanyKeyMetricRepository;
+import com.aivle.project.company.news.entity.NewsAnalysisEntity;
+import com.aivle.project.company.news.repository.NewsAnalysisRepository;
+import com.aivle.project.company.news.service.NewsService;
 import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.industry.entity.IndustryEntity;
 import com.aivle.project.industry.entity.IndustryRepository;
@@ -23,11 +26,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({QuerydslConfig.class, CompanyInfoService.class, CompanySectorService.class})
+@Import({
+	QuerydslConfig.class,
+	CompanyInfoService.class,
+	CompanySectorService.class,
+	CompanyReputationScoreService.class
+})
 class CompanyInfoServiceTest {
 
 	@Autowired
@@ -44,6 +53,12 @@ class CompanyInfoServiceTest {
 
 	@Autowired
 	private CompanyKeyMetricRepository companyKeyMetricRepository;
+
+	@Autowired
+	private NewsAnalysisRepository newsAnalysisRepository;
+
+	@MockBean
+	private NewsService newsService;
 
 	@Test
 	@DisplayName("기업/분기 기준으로 기본 정보를 구성한다")
@@ -90,9 +105,9 @@ class CompanyInfoServiceTest {
 		assertThat(result.getStockCode()).isEqualTo("000020");
 		assertThat(result.getSector().getLabel()).isEqualTo("식품");
 		assertThat(result.getNetworkHealth()).isEqualTo(82.5);
-		assertThat(result.getOverallScore()).isEqualTo(82.5);
+		assertThat(result.getOverallScore()).isEqualTo(70.1);
 		assertThat(result.getRiskLevel()).isEqualTo("SAFE");
-		assertThat(result.getReputationScore()).isEqualTo(61.2);
+		assertThat(result.getReputationScore()).isEqualTo(6120.0);
 	}
 
 	@Test
@@ -127,6 +142,57 @@ class CompanyInfoServiceTest {
 		assertThat(result.getOverallScore()).isNull();
 		assertThat(result.getRiskLevel()).isNull();
 		assertThat(result.getReputationScore()).isNull();
+	}
+
+	@Test
+	@DisplayName("외부 건강도 점수가 없으면 뉴스 평균 점수로 대체한다")
+	void getCompanyInfoFallbackToNewsAverageScore() {
+		// given
+		IndustryEntity industry = industryRepository.save(IndustryEntity.create("D0404", "IT"));
+		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create(
+			"00000004",
+			"테스트기업4",
+			"TEST_CO4",
+			"000050",
+			LocalDate.of(2025, 1, 4),
+			industry
+		));
+
+		int quarterKey = 20253;
+		YearQuarter yearQuarter = QuarterCalculator.parseQuarterKey(quarterKey);
+		QuartersEntity quarter = quartersRepository.save(QuartersEntity.create(
+			yearQuarter.year(),
+			yearQuarter.quarter(),
+			quarterKey,
+			QuarterCalculator.startDate(yearQuarter),
+			QuarterCalculator.endDate(yearQuarter)
+		));
+
+		companyKeyMetricRepository.save(CompanyKeyMetricEntity.create(
+			company,
+			quarter,
+			null,
+			BigDecimal.valueOf(80.0),
+			null,
+			BigDecimal.valueOf(75.0),
+			CompanyKeyMetricRiskLevel.SAFE,
+			1,
+			LocalDateTime.now()
+		));
+
+		newsAnalysisRepository.save(NewsAnalysisEntity.create(
+			company,
+			company.getCorpName(),
+			10,
+			BigDecimal.valueOf(64.25),
+			LocalDateTime.now()
+		));
+
+		// when
+		CompanyInfoDto result = companyInfoService.getCompanyInfo(company.getId(), String.valueOf(quarterKey));
+
+		// then
+		assertThat(result.getReputationScore()).isEqualTo(6425.0);
 	}
 
 	@Test

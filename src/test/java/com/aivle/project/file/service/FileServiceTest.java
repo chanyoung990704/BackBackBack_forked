@@ -12,7 +12,9 @@ import static org.mockito.Mockito.times;
 
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.file.dto.FileResponse;
+import com.aivle.project.file.entity.FileUsageType;
 import com.aivle.project.file.entity.FilesEntity;
+import com.aivle.project.file.entity.PostFilesEntity;
 import com.aivle.project.file.repository.FilesRepository;
 import com.aivle.project.file.repository.PostFilesRepository;
 import com.aivle.project.file.storage.FileStorageService;
@@ -148,6 +150,95 @@ class FileServiceTest {
 		assertThatThrownBy(() -> fileService.upload(postId, user, files))
 			.isInstanceOf(CommonException.class);
 		verifyNoInteractions(fileValidator, fileStorageService, filesRepository, postFilesRepository);
+	}
+
+	@Test
+	@DisplayName("로그인 사용자라면 작성자가 아니어도 파일 다운로드가 가능하다")
+	void getFile_shouldAllowNonOwnerUser() {
+		// given
+		Long postId = 10L;
+		Long fileId = 5L;
+		UserEntity owner = newUser(1L, UUID.randomUUID());
+		UserEntity other = newUser(2L, UUID.randomUUID());
+		PostsEntity post = newPost(postId, owner);
+		FilesEntity file = FilesEntity.create(
+			FileUsageType.POST_ATTACHMENT,
+			"url",
+			"key",
+			"file.png",
+			10L,
+			"image/png"
+		);
+		ReflectionTestUtils.setField(file, "id", fileId);
+		PostFilesEntity mapping = PostFilesEntity.create(post, file);
+
+		given(postFilesRepository.findByFileId(fileId)).willReturn(Optional.of(mapping));
+
+		// when
+		FilesEntity result = fileService.getFile(fileId, other);
+
+		// then
+		assertThat(result).isSameAs(file);
+	}
+
+	@Test
+	@DisplayName("로그인하지 않은 사용자는 파일 다운로드가 불가능하다")
+	void getFile_shouldFailWhenUserMissing() {
+		// given
+		Long postId = 10L;
+		Long fileId = 5L;
+		UserEntity owner = newUser(1L, UUID.randomUUID());
+		PostsEntity post = newPost(postId, owner);
+		FilesEntity file = FilesEntity.create(
+			FileUsageType.POST_ATTACHMENT,
+			"url",
+			"key",
+			"file.png",
+			10L,
+			"image/png"
+		);
+		ReflectionTestUtils.setField(file, "id", fileId);
+		PostFilesEntity mapping = PostFilesEntity.create(post, file);
+
+		given(postFilesRepository.findByFileId(fileId)).willReturn(Optional.of(mapping));
+
+		// when & then
+		assertThatThrownBy(() -> fileService.getFile(fileId, null))
+			.isInstanceOf(CommonException.class);
+	}
+
+	@Test
+	@DisplayName("로그인 사용자라면 작성자가 아니어도 파일 목록을 조회할 수 있다")
+	void list_shouldAllowNonOwnerUser() {
+		// given
+		Long postId = 10L;
+		UserEntity owner = newUser(1L, UUID.randomUUID());
+		UserEntity other = newUser(2L, UUID.randomUUID());
+		PostsEntity post = newPost(postId, owner);
+		FilesEntity file = FilesEntity.create(
+			FileUsageType.POST_ATTACHMENT,
+			"url",
+			"key",
+			"file.png",
+			10L,
+			"image/png"
+		);
+		ReflectionTestUtils.setField(file, "id", 99L);
+		PostFilesEntity mapping = PostFilesEntity.create(post, file);
+
+		given(postsRepository.findByIdAndDeletedAtIsNull(postId)).willReturn(Optional.of(post));
+		given(postFilesRepository.findAllActiveByPostIdOrderByCreatedAtAsc(postId))
+			.willReturn(List.of(mapping));
+		given(fileMapper.toResponse(eq(postId), any(FilesEntity.class)))
+			.willReturn(new FileResponse(file.getId(), postId, file.getStorageUrl(), file.getOriginalFilename(),
+				file.getFileSize(), file.getContentType(), null));
+
+		// when
+		List<FileResponse> responses = fileService.list(postId, other);
+
+		// then
+		assertThat(responses).hasSize(1);
+		assertThat(responses.get(0).postId()).isEqualTo(postId);
 	}
 
 	private UserEntity newUser(Long id, UUID uuid) {

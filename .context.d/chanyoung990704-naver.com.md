@@ -6,6 +6,30 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-09 | 작업: 워치리스트 삭제 후 재등록 중복 오류 수정 | 결과: 활성 데이터만 중복 판정하도록 변경하고, 소프트 삭제 데이터는 restore + note 갱신으로 재등록 처리, 관련 서비스/컨트롤러 테스트 통과 | 이슈: 없음
+- 2026-02-09 | 작업: 인사이트 조회 refresh 파라미터 기반 강제 최신화 추가 | 결과: `GET /api/companies/{companyId}/insights`에 `refresh` 추가, refresh=true 시 뉴스/사업보고서 재수집과 external_health_score 동기화까지 수행, 관련 테스트 통과 | 이슈: 없음
+- 2026-02-09 | 작업: 기업 AI 종합 코멘트 캐시 저장/수동 적재 API 구현 | 결과: ai-comment 클라이언트/서비스 추가, company_key_metrics.ai_comment 저장, 워치리스트 등록 시 선행 캐시, 관리자 수동 캐시 API 및 테스트 추가, cleanTest test 통과 | 이슈: 전체 테스트 최초 실행 시 Gradle 결과 XML 쓰기 오류가 cleanTest 재실행 후 해소됨
+- 2026-02-09 | 작업: 뉴스 재수집 API 후 company_key_metrics 동기화 연결 | 결과: refresh-latest 호출 후 external_health_score 즉시 동기화, 관련 테스트 통과 | 이슈: 없음
+- 2026-02-09 | 작업: 뉴스 재수집 API 권한을 ROLE_USER로 조정 | 결과: 경로를 `/api/companies/{stockCode}/news/refresh-latest`로 변경하고 SecurityConfig에 USER 권한 규칙 추가, 관련 테스트 통과 | 이슈: 없음
+- 2026-02-09 | 작업: 뉴스 최신 재수집/평균 점수 복구 API 추가 | 결과: `/api/admin/companies/{stockCode}/news/refresh-latest` 구현, `average_score` 누락 시 기사 점수 평균으로 복구, 관련 테스트 통과 | 이슈: 없음
+- 2026-02-09 | 작업: CompanyInfo reputationScore 응답 스케일링 | 결과: reputationScore에 100배 및 소수 0자리 반올림 적용 | 이슈: 없음
+- 2026-02-08 | 작업: CompanyOverview ID/종목코드 해석 보정 및 리포트/지표 컨트롤러 복구 | 결과: ID 우선 해석, 보고서/지표 다운로드 컨트롤러 재활성화, 테스트 전체 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: 워치리스트 비동기 캐시 read-only 오류 수정 | 결과: Overview 호출 대신 캐시 서비스 직접 호출로 쓰기 트랜잭션 보장 | 이슈: 없음
+- 2026-02-08 | 작업: 워치리스트 등록 후 비동기 캐시 프리워밍 | 결과: 이벤트 기반 비동기 처리 및 @EnableAsync 적용, 컨트롤러 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: @CurrentUser Long 주입 문제 해결 | 결과: userId 클레임 기반 주입 지원 및 watchlist 컨트롤러 테스트 보정 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: 워치리스트 기업 목록 API 추가 | 결과: /api/companies에서 CompanyInfoDto 목록 반환 및 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: 인사이트 응답에 평균 점수 추가 | 결과: CompanyInsight 응답에 averageScore 필드 추가 및 테스트 통과 | 이슈: finalize()/MockBean deprecated 경고
+- 2026-02-08 | 작업: 인사이트 기반 외부 건강도 동기화/폴백 | 결과: NewsAnalysis 평균 점수로 external_health_score 동기화 및 CompanyInfo 폴백 응답, 테스트 추가/통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: CompanyOverview metric level 보정 | 결과: metrics level을 최신 ACTUAL signal_color로 보정하고 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: CompanyOverview 신호등 캐시 추가 | 결과: AI signals 응답 캐시 서비스/DTO/테스트 추가 및 Overview 연동 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: CompanyInfo overallScore 매핑 수정 | 결과: overallScore를 compositeScore(DB)로 변경 및 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: CompanyOverview companyId 입력 보정 | 결과: 종목코드(예: 000020) 입력 시 stock_code로 해석하도록 컨트롤러 수정 및 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: CompanyOverview 건강점수 캐시 연동 | 결과: AI health-score 응답 저장 및 개요 서비스 연계, 테스트 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: CompanyOverview 예측 캐시 연동 | 결과: Overview 서비스에 예측 캐시 호출 추가 및 테스트 정합화 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: CompanyOverview 예측 캐시 서비스 추가 | 결과: 최신 ACTUAL 분기 기준 예측값 캐시 서비스/테스트 추가 및 통과 | 이슈: MockBean deprecated 경고
+- 2026-02-08 | 작업: CompanyOverview 기본 분기 자동 선택 | 결과: quarterKey 미지정 시 ACTUAL 최신 분기로 대체 및 서비스 테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: 게시글 상세 응답에 첨부파일/다운로드 정보 추가 | 결과: PostDetailResponse 및 서비스 로직/테스트 추가 | 이슈: 없음
+- 2026-02-08 | 작업: 게시글 첨부파일 다운로드 권한 변경 | 결과: 로그인 사용자 전체 다운로드 허용 및 FileService 테스트 보강 | 이슈: 없음
 - 2026-02-08 | 작업: CompanyOverview metrics 필터 기준 변경 | 결과: metrics를 다음 분기 PREDICTED 기준으로 필터링하고 최신 버전 탐색 조건에서 valueType 제약 제거 | 이슈: 없음
 - 2026-02-08 | 작업: CompanyOverview metricSeries/metrics 조회 로직 재구성 | 결과: metricSeries는 위험/비위험 최신 버전 병합, metrics는 현재 분기 ACTUAL + signal_color 매핑 | 이슈: 없음
 - 2026-02-08 | 작업: 개요 지표 최신 버전 조회 보강 | 결과: 위험/비위험 지표 각각 최신 버전 병합 조회 및 서비스 테스트 추가/통과 | 이슈: 없음

@@ -5,12 +5,18 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import com.aivle.project.company.dto.CompanyInfoDto;
+import com.aivle.project.company.dto.CompanySectorDto;
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.common.config.TestSecurityConfig;
 import java.time.LocalDate;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -32,6 +38,36 @@ class CompanySearchControllerTest {
 
 	@Autowired
 	private CompaniesRepository companiesRepository;
+
+	@MockBean
+	private com.aivle.project.watchlist.service.CompanyWatchlistService companyWatchlistService;
+
+	@Test
+	@DisplayName("ROLE_USER로 워치리스트 기업 목록을 조회한다")
+	void getMyCompanies() throws Exception {
+		// given
+		given(companyWatchlistService.getWatchlistCompanies(any()))
+			.willReturn(List.of(
+				new CompanyInfoDto(
+					10L,
+					"테스트기업",
+					"000020",
+					new CompanySectorDto("", "테스트업종"),
+					90.0,
+					"SAFE",
+					88.0,
+					77.0
+				)
+			));
+
+		// when & then
+		mockMvc.perform(get("/api/companies")
+				.with(jwt().jwt(builder -> builder.claim("userId", 1L)).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.data.length()").value(1))
+			.andExpect(jsonPath("$.data[0].stockCode").value("000020"));
+	}
 
 	@Test
 	@DisplayName("ROLE_USER로 기업명을 검색한다")

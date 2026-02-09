@@ -59,4 +59,11 @@ public class NewsAnalysisEntity extends BaseEntity {
 		entity.analyzedAt = analyzedAt;
 		return entity;
 	}
+
+	/**
+	 * 평균 감성 점수를 갱신한다.
+	 */
+	public void applyAverageScore(BigDecimal averageScore) {
+		this.averageScore = averageScore;
+	}
 }

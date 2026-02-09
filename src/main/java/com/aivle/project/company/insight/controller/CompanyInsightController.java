@@ -1,7 +1,7 @@
 package com.aivle.project.company.insight.controller;
 
 import com.aivle.project.common.dto.ApiResponse;
-import com.aivle.project.company.insight.dto.CompanyInsightDto;
+import com.aivle.project.company.insight.dto.CompanyInsightResponseDto;
 import com.aivle.project.company.insight.service.CompanyInsightService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,7 +44,7 @@ public class CompanyInsightController {
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 실패"),
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
 	})
-	public ResponseEntity<ApiResponse<List<CompanyInsightDto>>> getCompanyInsights(
+		public ResponseEntity<ApiResponse<CompanyInsightResponseDto>> getCompanyInsights(
 		@Parameter(description = "기업 ID", example = "100")
 		@PathVariable Long companyId,
 		@Parameter(description = "뉴스 페이지", example = "0")
@@ -53,21 +53,24 @@ public class CompanyInsightController {
 		@RequestParam(required = false) Integer newsSize,
 		@Parameter(description = "보고서 페이지", example = "0")
 		@RequestParam(required = false) Integer reportPage,
-		@Parameter(description = "보고서 페이지 크기", example = "1")
-		@RequestParam(required = false) Integer reportSize
-	) {
+			@Parameter(description = "보고서 페이지 크기", example = "1")
+			@RequestParam(required = false) Integer reportSize,
+			@Parameter(description = "뉴스/사업보고서 최신 데이터 강제 재수집 여부", example = "false")
+			@RequestParam(required = false, defaultValue = "false") boolean refresh
+		) {
 		int resolvedNewsPage = normalizePage(newsPage, DEFAULT_NEWS_PAGE);
 		int resolvedNewsSize = normalizeSize(newsSize, DEFAULT_NEWS_SIZE);
 		int resolvedReportPage = normalizePage(reportPage, DEFAULT_REPORT_PAGE);
 		int resolvedReportSize = normalizeSize(reportSize, DEFAULT_REPORT_SIZE);
 
-		CompanyInsightService.InsightResult result = companyInsightService.getInsights(
-			companyId,
-			resolvedNewsPage,
-			resolvedNewsSize,
-			resolvedReportPage,
-			resolvedReportSize
-		);
+			CompanyInsightService.InsightResult result = companyInsightService.getInsights(
+				companyId,
+				resolvedNewsPage,
+				resolvedNewsSize,
+				resolvedReportPage,
+				resolvedReportSize,
+				refresh
+			);
 		if (result.processing()) {
 			return ResponseEntity.accepted().body(ApiResponse.fail(
 				com.aivle.project.common.error.ErrorResponse.of(
@@ -77,7 +80,11 @@ public class CompanyInsightController {
 				)
 			));
 		}
-		return ResponseEntity.ok(ApiResponse.ok(result.items()));
+		CompanyInsightResponseDto response = CompanyInsightResponseDto.builder()
+			.averageScore(result.averageScore())
+			.items(result.items())
+			.build();
+		return ResponseEntity.ok(ApiResponse.ok(response));
 	}
 
 	private int normalizePage(Integer page, int defaultValue) {

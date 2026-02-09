@@ -10,6 +10,7 @@ import com.aivle.project.report.dto.CompanyOverviewMetricRowProjection;
 import com.aivle.project.report.dto.MetricValueSampleProjection;
 import com.aivle.project.report.dto.ReportMetricRowProjection;
 import com.aivle.project.report.dto.ReportPredictMetricRowProjection;
+import com.aivle.project.report.entity.CompanyReportMetricValuesEntity;
 import com.aivle.project.report.entity.QCompanyReportMetricValuesEntity;
 import com.aivle.project.report.entity.QCompanyReportVersionsEntity;
 import com.aivle.project.report.entity.QCompanyReportsEntity;
@@ -184,6 +185,69 @@ public class CompanyReportMetricValuesRepositoryImpl implements CompanyReportMet
 			.leftJoin(rv.pdfFile, f)
 			.where(
 				c.stockCode.eq(stockCode),
+				cr.quarter.quarterKey.eq(quarterKey),
+				v.valueType.eq(valueType),
+				rv.versionNo.eq(
+					JPAExpressions.select(rv2.versionNo.max())
+						.from(rv2)
+						.where(rv2.companyReport.eq(cr),
+							JPAExpressions.selectOne()
+								.from(v2)
+								.where(v2.reportVersion.eq(rv2),
+									v2.valueType.eq(valueType),
+									v2.metricValue.isNotNull()
+								).exists()
+						)
+				)
+			)
+			.orderBy(m.metricCode.asc())
+			.fetch()
+			.stream()
+			.map(dto -> (ReportPredictMetricRowProjection) dto)
+			.toList();
+	}
+
+	@Override
+	public List<ReportPredictMetricRowProjection> findLatestMetricsByCompanyIdAndQuarterKeyAndType(
+		Long companyId,
+		int quarterKey,
+		MetricValueType valueType
+	) {
+		QCompanyReportMetricValuesEntity v = QCompanyReportMetricValuesEntity.companyReportMetricValuesEntity;
+		QCompanyReportVersionsEntity rv = QCompanyReportVersionsEntity.companyReportVersionsEntity;
+		QCompanyReportsEntity cr = QCompanyReportsEntity.companyReportsEntity;
+		QCompaniesEntity c = QCompaniesEntity.companiesEntity;
+		QMetricsEntity m = QMetricsEntity.metricsEntity;
+		QQuartersEntity q = QQuartersEntity.quartersEntity;
+		QFilesEntity f = QFilesEntity.filesEntity;
+
+		QCompanyReportVersionsEntity rv2 = new QCompanyReportVersionsEntity("rv2");
+		QCompanyReportMetricValuesEntity v2 = new QCompanyReportMetricValuesEntity("v2");
+
+		return queryFactory
+			.select(Projections.constructor(ReportPredictMetricRowDto.class,
+				c.corpName,
+				c.stockCode,
+				m.metricCode,
+				m.metricNameKo,
+				v.metricValue,
+				v.valueType,
+				q.quarterKey,
+				rv.versionNo,
+				rv.generatedAt,
+				f.id,
+				f.originalFilename,
+				f.contentType
+			))
+			.from(v)
+			.join(v.reportVersion, rv)
+			.join(rv.companyReport, cr)
+			.join(cr.company, c)
+			.join(v.metric, m)
+			.join(v.quarter, q)
+			.leftJoin(rv.pdfFile, f)
+			.where(
+				c.id.eq(companyId),
 				cr.quarter.quarterKey.eq(quarterKey),
 				v.valueType.eq(valueType),
 				rv.versionNo.eq(
@@ -456,6 +520,75 @@ public class CompanyReportMetricValuesRepositoryImpl implements CompanyReportMet
 			.stream()
 			.map(dto -> (MetricValueSampleProjection) dto)
 			.toList();
+	}
+
+	@Override
+	public List<CompanyReportMetricValuesEntity> findLatestActualValuesByCompanyAndQuarter(
+		Long companyId,
+		int quarterKey
+	) {
+		QCompanyReportMetricValuesEntity v = QCompanyReportMetricValuesEntity.companyReportMetricValuesEntity;
+		QCompanyReportVersionsEntity rv = QCompanyReportVersionsEntity.companyReportVersionsEntity;
+		QCompanyReportsEntity cr = QCompanyReportsEntity.companyReportsEntity;
+		QCompaniesEntity c = QCompaniesEntity.companiesEntity;
+		QMetricsEntity m = QMetricsEntity.metricsEntity;
+		QQuartersEntity q = QQuartersEntity.quartersEntity;
+
+		QCompanyReportVersionsEntity rv2 = new QCompanyReportVersionsEntity("rv2");
+		QCompanyReportMetricValuesEntity v2 = new QCompanyReportMetricValuesEntity("v2");
+		QMetricsEntity m2 = new QMetricsEntity("m2");
+		QCompanyReportVersionsEntity rv3 = new QCompanyReportVersionsEntity("rv3");
+		QCompanyReportMetricValuesEntity v3 = new QCompanyReportMetricValuesEntity("v3");
+		QMetricsEntity m3 = new QMetricsEntity("m3");
+
+		var latestRiskVersion = JPAExpressions.select(rv2.versionNo.max())
+			.from(rv2)
+			.where(
+				rv2.companyReport.eq(cr),
+				JPAExpressions.selectOne()
+					.from(v2)
+					.join(v2.metric, m2)
+					.where(
+						v2.reportVersion.eq(rv2),
+						v2.valueType.eq(MetricValueType.ACTUAL),
+						v2.metricValue.isNotNull(),
+						m2.isRiskIndicator.isTrue()
+					)
+					.exists()
+			);
+
+		var latestNonRiskVersion = JPAExpressions.select(rv3.versionNo.max())
+			.from(rv3)
+			.where(
+				rv3.companyReport.eq(cr),
+				JPAExpressions.selectOne()
+					.from(v3)
+					.join(v3.metric, m3)
+					.where(
+						v3.reportVersion.eq(rv3),
+						v3.valueType.eq(MetricValueType.ACTUAL),
+						v3.metricValue.isNotNull(),
+						m3.isRiskIndicator.isFalse()
+					)
+					.exists()
+			);
+
+		return queryFactory
+			.selectFrom(v)
+			.join(v.reportVersion, rv)
+			.join(rv.companyReport, cr)
+			.join(cr.company, c)
+			.join(v.metric, m).fetchJoin()
+			.join(v.quarter, q)
+			.where(
+				c.id.eq(companyId),
+				q.quarterKey.eq(quarterKey),
+				v.valueType.eq(MetricValueType.ACTUAL),
+				v.metricValue.isNotNull(),
+				m.isRiskIndicator.isTrue().and(rv.versionNo.eq(latestRiskVersion))
+					.or(m.isRiskIndicator.isFalse().and(rv.versionNo.eq(latestNonRiskVersion)))
+			)
+			.fetch();
 	}
 
 	@Getter

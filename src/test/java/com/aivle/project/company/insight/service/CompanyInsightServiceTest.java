@@ -7,6 +7,8 @@ import com.aivle.project.company.news.entity.NewsAnalysisEntity;
 import com.aivle.project.company.news.entity.NewsArticleEntity;
 import com.aivle.project.company.news.repository.NewsAnalysisRepository;
 import com.aivle.project.company.news.repository.NewsArticleRepository;
+import com.aivle.project.company.news.dto.NewsAnalysisResponse;
+import com.aivle.project.company.news.dto.NewsRefreshResponse;
 import com.aivle.project.company.news.service.NewsService;
 import com.aivle.project.company.reportanalysis.entity.ReportAnalysisEntity;
 import com.aivle.project.company.reportanalysis.entity.ReportContentEntity;
@@ -14,6 +16,7 @@ import com.aivle.project.company.reportanalysis.repository.ReportAnalysisReposit
 import com.aivle.project.company.reportanalysis.repository.ReportContentRepository;
 import com.aivle.project.company.reportanalysis.service.ReportAnalysisService;
 import com.aivle.project.company.repository.CompaniesRepository;
+import com.aivle.project.company.service.CompanyReputationScoreService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -52,6 +55,8 @@ class CompanyInsightServiceTest {
 	private NewsService newsService;
 	@Mock
 	private ReportAnalysisService reportAnalysisService;
+	@Mock
+	private CompanyReputationScoreService companyReputationScoreService;
 
 	@InjectMocks
 	private CompanyInsightService companyInsightService;
@@ -83,15 +88,17 @@ class CompanyInsightServiceTest {
 			.thenReturn(new PageImpl<>(List.of(newsArticle)));
 
 		// when
-		CompanyInsightService.InsightResult result = companyInsightService.getInsights(companyId, 0, 1, 0, 1);
+		CompanyInsightService.InsightResult result = companyInsightService.getInsights(companyId, 0, 1, 0, 1, false);
 
 		// then
 		assertThat(result.processing()).isFalse();
 		assertThat(result.items()).hasSize(2);
+		assertThat(result.averageScore()).isEqualByComparingTo(BigDecimal.ONE);
 		assertThat(result.items().get(0).getType()).isEqualTo(CompanyInsightType.REPORT);
 		assertThat(result.items().get(1).getType()).isEqualTo(CompanyInsightType.NEWS);
 		verify(reportAnalysisService, org.mockito.Mockito.never()).fetchAndStoreReport(any());
-		verify(newsService, org.mockito.Mockito.never()).fetchAndStoreNews(any());
+		verify(newsService, org.mockito.Mockito.never()).refreshLatestNews(any());
+		verify(companyReputationScoreService).syncExternalHealthScoreIfPresent(companyId, "123456");
 	}
 
 	@Test
@@ -108,7 +115,12 @@ class CompanyInsightServiceTest {
 		when(newsArticleRepository.findTopByNewsAnalysisCompanyIdOrderByPublishedAtDesc(companyId))
 			.thenReturn(Optional.empty());
 		when(reportAnalysisService.fetchAndStoreReport("123456")).thenReturn(null);
-		when(newsService.fetchAndStoreNews("123456")).thenReturn(null);
+		when(newsService.refreshLatestNews("123456")).thenReturn(new NewsRefreshResponse(
+			new NewsAnalysisResponse(
+				1L, companyId, "테스트기업", 1, 0.1, java.time.OffsetDateTime.now(), List.of(), java.time.OffsetDateTime.now()
+			),
+			false
+		));
 
 		ReportAnalysisEntity reportAnalysis = ReportAnalysisEntity.create(company, "테스트기업", 1, BigDecimal.ONE, LocalDateTime.now());
 		NewsAnalysisEntity newsAnalysis = NewsAnalysisEntity.create(company, "테스트기업", 1, BigDecimal.ONE, LocalDateTime.now());
@@ -126,17 +138,62 @@ class CompanyInsightServiceTest {
 			.thenReturn(new PageImpl<>(List.of(newsArticle)));
 
 		// when
-		CompanyInsightService.InsightResult result = companyInsightService.getInsights(companyId, 0, 1, 0, 1);
+		CompanyInsightService.InsightResult result = companyInsightService.getInsights(companyId, 0, 1, 0, 1, false);
 
 		// then
 		assertThat(result.processing()).isFalse();
 		assertThat(result.items()).hasSize(2);
+		assertThat(result.averageScore()).isEqualByComparingTo(BigDecimal.ONE);
 		assertThat(result.items())
 			.extracting(CompanyInsightDto::getType)
 			.containsExactly(CompanyInsightType.REPORT, CompanyInsightType.NEWS);
 		assertThat(result.items().get(0).getPublishedAt()).isNotNull();
 		assertThat(result.items().get(1).getPublishedAt()).isNotNull();
 		verify(reportAnalysisService).fetchAndStoreReport("123456");
-		verify(newsService).fetchAndStoreNews("123456");
+		verify(newsService).refreshLatestNews("123456");
+		verify(companyReputationScoreService).syncExternalHealthScoreIfPresent(companyId, "123456");
+	}
+
+	@Test
+	@DisplayName("refresh=true면 최신 뉴스/보고서를 강제 재수집한다")
+	void getInsights_RefreshTrue_ForceRefetch() {
+		// given
+		Long companyId = 1L;
+		CompaniesEntity company = CompaniesEntity.create("001", "테스트기업", "TEST", "123456", LocalDate.now());
+		ReportAnalysisEntity reportAnalysis = ReportAnalysisEntity.create(company, "테스트기업", 1, BigDecimal.ONE, LocalDateTime.now());
+		NewsAnalysisEntity newsAnalysis = NewsAnalysisEntity.create(company, "테스트기업", 1, BigDecimal.ONE, LocalDateTime.now());
+		ReportContentEntity reportContent = ReportContentEntity.create(
+			reportAnalysis, "보고서", "요약", BigDecimal.ONE, LocalDateTime.now(), "https://r.example", null
+		);
+		NewsArticleEntity newsArticle = NewsArticleEntity.create(
+			newsAnalysis, "뉴스", "본문", BigDecimal.ONE, LocalDateTime.now(), "https://n.example", "NEU"
+		);
+
+		when(companiesRepository.findById(companyId)).thenReturn(Optional.of(company));
+		when(newsService.refreshLatestNews("123456")).thenReturn(new NewsRefreshResponse(
+			new NewsAnalysisResponse(
+				1L, companyId, "테스트기업", 1, 0.1, java.time.OffsetDateTime.now(), List.of(), java.time.OffsetDateTime.now()
+			),
+			false
+		));
+		when(reportAnalysisService.fetchAndStoreReport("123456")).thenReturn(null);
+		when(reportAnalysisRepository.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId)).thenReturn(Optional.of(reportAnalysis));
+		when(newsAnalysisRepository.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId)).thenReturn(Optional.of(newsAnalysis));
+		when(reportContentRepository.existsByReportAnalysisId(any())).thenReturn(true);
+		when(newsArticleRepository.existsByNewsAnalysisId(any())).thenReturn(true);
+		when(reportContentRepository.findByReportAnalysisIdOrderByPublishedAtDesc(eq(reportAnalysis.getId()), any(PageRequest.class)))
+			.thenReturn(new PageImpl<>(List.of(reportContent)));
+		when(newsArticleRepository.findByNewsAnalysisIdOrderByPublishedAtDesc(eq(newsAnalysis.getId()), any(PageRequest.class)))
+			.thenReturn(new PageImpl<>(List.of(newsArticle)));
+
+		// when
+		CompanyInsightService.InsightResult result = companyInsightService.getInsights(companyId, 0, 1, 0, 1, true);
+
+		// then
+		assertThat(result.processing()).isFalse();
+		assertThat(result.items()).hasSize(2);
+		verify(newsService).refreshLatestNews("123456");
+		verify(reportAnalysisService).fetchAndStoreReport("123456");
+		verify(companyReputationScoreService).syncExternalHealthScoreIfPresent(companyId, "123456");
 	}
 }

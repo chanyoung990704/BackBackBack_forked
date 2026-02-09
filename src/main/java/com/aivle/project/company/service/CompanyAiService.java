@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,24 +50,25 @@ public class CompanyAiService {
     private final CompanyReportVersionsRepository companyReportVersionsRepository;
     private final MetricsRepository metricsRepository;
     private final CompanyReportMetricValuesRepository companyReportMetricValuesRepository;
+    private final AiReportRequestStatusService aiReportRequestStatusService;
 
     /**
      * 특정 기업의 AI 재무 분석 예측 결과를 조회하고 저장합니다.
      * DB에 해당 분기의 예측치가 이미 존재하면 DB 값을 반환하고,
      * 없으면 AI 서버를 호출하여 새로 분석 및 저장합니다.
      *
-     * @param companyCode 기업 코드 (Stock Code)
-     * @param year        연도 (선택)
-     * @param quarter     분기 (선택)
+     * @param companyId 기업 ID
+     * @param year      연도 (선택)
+     * @param quarter   분기 (선택)
      * @return 예측 결과 DTO
      */
     @Transactional
-    public AiAnalysisResponse getCompanyAnalysis(String companyCode, Integer year, Integer quarter) {
-        log.info("Fetching AI analysis for companyCode: {}, year: {}, quarter: {}", companyCode, year, quarter);
+    public AiAnalysisResponse getCompanyAnalysis(Long companyId, Integer year, Integer quarter) {
+        log.info("Fetching AI analysis for companyId: {}, year: {}, quarter: {}", companyId, year, quarter);
 
         // 1. 기업 존재 확인
-        CompaniesEntity company = companiesRepository.findByStockCode(companyCode)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 코드입니다: " + companyCode));
+        CompaniesEntity company = companiesRepository.findById(companyId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 ID입니다: " + companyId));
 
         int targetQuarterKey;
         String basePeriod = null;
@@ -84,7 +86,7 @@ public class CompanyAiService {
             basePeriod = String.valueOf(bYear * 10 + bQuarter);
         } else {
             // 미지정 시 가장 최근 실제 데이터(ACTUAL) 분기 확인
-            Optional<Integer> maxActualQuarterKey = companyReportMetricValuesRepository.findMaxActualQuarterKeyByStockCode(companyCode);
+            Optional<Integer> maxActualQuarterKey = companyReportMetricValuesRepository.findMaxActualQuarterKeyByCompanyId(companyId);
             if (maxActualQuarterKey.isPresent()) {
                 int baseQuarterKey = maxActualQuarterKey.get();
                 basePeriod = String.valueOf(baseQuarterKey);
@@ -98,16 +100,16 @@ public class CompanyAiService {
                 targetQuarterKey = targetYear * 10 + tQuarter;
             } else {
                 // 실적 데이터가 전혀 없는 경우 AI 서버에 위임
-                log.info("No actual data found for company {}. Calling AI server directly.", companyCode);
-                AiAnalysisResponse response = aiServerClient.getPrediction(companyCode);
-                saveAiPredictions(companyCode, response);
+                log.info("No actual data found for company {}. Calling AI server directly.", companyId);
+                AiAnalysisResponse response = aiServerClient.getPrediction(company.getStockCode());
+                saveAiPredictions(company.getId(), response);
                 return response;
             }
         }
 
         // 2. 해당 타겟 분기에 대한 최신 예측치 조회 (DB Hit 확인)
-        var latestPredictions = companyReportMetricValuesRepository.findLatestMetricsByStockCodeAndQuarterKeyAndType(
-            companyCode, targetQuarterKey, MetricValueType.PREDICTED);
+        var latestPredictions = companyReportMetricValuesRepository.findLatestMetricsByCompanyIdAndQuarterKeyAndType(
+            companyId, targetQuarterKey, MetricValueType.PREDICTED);
 
         if (!latestPredictions.isEmpty()) {
             log.info("Found existing AI predictions in DB for quarterKey: {}", targetQuarterKey);
@@ -119,7 +121,7 @@ public class CompanyAiService {
                 ));
 
             return new AiAnalysisResponse(
-                companyCode,
+                company.getStockCode(),
                 company.getCorpName(),
                 basePeriod,
                 predictionMap
@@ -128,8 +130,8 @@ public class CompanyAiService {
 
         // 3. DB에 없으면 AI 서버 호출 및 저장
         log.info("No existing predictions found for target quarter {}. Calling AI server...", targetQuarterKey);
-        AiAnalysisResponse response = aiServerClient.getPrediction(companyCode);
-        saveAiPredictions(companyCode, response);
+        AiAnalysisResponse response = aiServerClient.getPrediction(company.getStockCode());
+        saveAiPredictions(company.getId(), response);
 
         return response;
     }
@@ -138,7 +140,7 @@ public class CompanyAiService {
      * AI 예측 결과를 DB에 저장합니다.
      * base_period의 다음 분기를 타겟으로 하여 PREDICTED 타입으로 저장합니다.
      */
-    private void saveAiPredictions(String companyCode, AiAnalysisResponse response) {
+    private void saveAiPredictions(Long companyId, AiAnalysisResponse response) {
         if (response == null || response.predictions() == null) {
             return;
         }
@@ -158,11 +160,11 @@ public class CompanyAiService {
             final int targetYear = nextYear;
             final int targetQuarter = nextQuarter;
 
-            log.info("Saving AI predictions for {} based on {} -> Target: {}/{}", companyCode, basePeriod, targetYear, targetQuarter);
+            log.info("Saving AI predictions for companyId={} based on {} -> Target: {}/{}", companyId, basePeriod, targetYear, targetQuarter);
 
             // 2. 기업 조회
-            CompaniesEntity company = companiesRepository.findByStockCode(companyCode)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 코드(stock_code)입니다: " + companyCode));
+            CompaniesEntity company = companiesRepository.findById(companyId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 ID입니다: " + companyId));
 
             // 3. 타겟 분기 조회 또는 생성
             QuartersEntity targetQuarterEntity = quartersRepository.findByYearAndQuarter((short) targetYear, (byte) targetQuarter)
@@ -195,7 +197,7 @@ public class CompanyAiService {
             for (Map.Entry<String, Double> entry : predictions.entrySet()) {
                 String metricCode = entry.getKey();
                 Double value = entry.getValue();
-                
+
                 MetricsEntity metric = metricMap.get(metricCode);
                 if (metric != null && value != null) {
                     CompanyReportMetricValuesEntity metricValue = CompanyReportMetricValuesEntity.create(
@@ -208,10 +210,10 @@ public class CompanyAiService {
                     companyReportMetricValuesRepository.save(metricValue);
                 }
             }
-            log.info("Saved {} prediction metrics for company {}", predictions.size(), companyCode);
+            log.info("Saved {} prediction metrics for companyId {}", predictions.size(), companyId);
 
         } catch (Exception e) {
-            log.error("Failed to save AI predictions for company {}", companyCode, e);
+            log.error("Failed to save AI predictions for companyId {}", companyId, e);
             // 저장 실패가 조회 응답에 영향을 주지 않도록 예외를 삼킴 (선택 사항이나 안전을 위해)
         }
     }
@@ -220,24 +222,28 @@ public class CompanyAiService {
      * AI 서버에서 분석 리포트(PDF)를 생성하고 파일 서버에 저장합니다.
      * 항상 특정 분기의 보고서 버전으로 등록하며, 연도와 분기가 제공되지 않으면 현재 날짜 기준의 최신 분기를 사용합니다.
      * 해당 분기가 DB에 없으면 새로 생성합니다.
-     * @param companyCode 기업 코드 (Stock Code)
-     * @param year 연도 (선택)
-     * @param quarter 분기 (선택)
+     * @param companyId 기업 ID
+     * @param year       연도 (선택)
+     * @param quarter    분기 (선택)
      * @return 저장된 파일 엔티티
      */
     @Transactional
-    public FilesEntity generateAndSaveReport(String companyCode, Integer year, Integer quarter) {
-        log.info("Generating and saving AI report for companyCode: {}, year: {}, quarter: {}", companyCode, year, quarter);
+    public FilesEntity generateAndSaveReport(Long companyId, Integer year, Integer quarter) {
+        log.info("Generating and saving AI report for companyId: {}, year: {}, quarter: {}", companyId, year, quarter);
 
-        // 1. 연도와 분기 결정 (미입력 시 현재 날짜 기준)
+        // 1. 기업 조회
+        CompaniesEntity company = companiesRepository.findById(companyId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 ID입니다: " + companyId));
+
+        // 2. 연도와 분기 결정 (미입력 시 현재 날짜 기준)
         int targetYear = (year != null) ? year : LocalDate.now().getYear();
         int targetQuarter = (quarter != null) ? quarter : ((LocalDate.now().getMonthValue() - 1) / 3 + 1);
 
-        // 2. AI 서버에서 PDF 다운로드
-        byte[] pdfContent = aiServerClient.getAnalysisReportPdf(companyCode);
+        // 3. AI 서버에서 PDF 다운로드
+        byte[] pdfContent = aiServerClient.getAnalysisReportPdf(company.getStockCode());
 
-        // 3. MultipartFile 생성
-        String filename = String.format("report_%s_%d_%d_%s.pdf", companyCode, targetYear, targetQuarter, LocalDate.now());
+        // 4. MultipartFile 생성
+        String filename = String.format("report_%s_%d_%d_%s.pdf", company.getStockCode(), targetYear, targetQuarter, LocalDate.now());
         MultipartFile multipartFile = new SimpleMultipartFile(
             "file",
             filename,
@@ -245,12 +251,12 @@ public class CompanyAiService {
             pdfContent
         );
 
-        // 4. 파일 저장 (로컬 또는 S3)
-        // 경로 구조: reports/{companyCode}/{year}/{quarter}
-        String subDir = String.format("reports/%s/%d/%d", companyCode, targetYear, targetQuarter);
+        // 5. 파일 저장 (로컬 또는 S3)
+        // 경로 구조: reports/{stockCode}/{year}/{quarter}
+        String subDir = String.format("reports/%s/%d/%d", company.getStockCode(), targetYear, targetQuarter);
         StoredFile storedFile = fileStorageService.store(multipartFile, subDir);
 
-        // 5. DB에 파일 메타데이터 저장
+        // 6. DB에 파일 메타데이터 저장
         FilesEntity filesEntity = FilesEntity.create(
             FileUsageType.REPORT_PDF,
             storedFile.storageUrl(),
@@ -260,10 +266,6 @@ public class CompanyAiService {
             storedFile.contentType()
         );
         filesRepository.save(filesEntity);
-
-        // 6. 기업 조회 (Stock Code 기준)
-        CompaniesEntity company = companiesRepository.findByStockCode(companyCode)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 코드(stock_code)입니다: " + companyCode));
 
         // 7. 분기 조회 또는 생성
         QuartersEntity quarterEntity = quartersRepository.findByYearAndQuarter((short) targetYear, (byte) targetQuarter)
@@ -307,8 +309,9 @@ public class CompanyAiService {
             throw new IllegalArgumentException("연도와 분기는 필수입니다.");
         }
 
-        CompaniesEntity company = companiesRepository.findByStockCode(companyCode)
-            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 코드입니다: " + companyCode));
+        String stockCode = resolveStockCode(companyCode);
+        CompaniesEntity company = companiesRepository.findByStockCode(stockCode)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 코드입니다: " + stockCode));
 
         QuartersEntity quarterEntity = quartersRepository.findByYearAndQuarter(year.shortValue(), quarter.byteValue())
             .orElseThrow(() -> new IllegalArgumentException("해당 연도/분기 정보가 존재하지 않습니다."));
@@ -374,5 +377,98 @@ public class CompanyAiService {
 
         QuartersEntity newQuarter = QuartersEntity.create(year, quarter, quarterKey, startDate, endDate);
         return quartersRepository.save(newQuarter);
+    }
+
+    /**
+     * AI 리포트 생성을 비동기로 실행합니다.
+     * 이미 해당 기업+분기의 보고서가 있으면 바로 COMPLETED, 없으면 새로 생성 후 COMPLETED.
+     *
+     * @param requestId 요청 ID
+     * @param companyId 기업 ID
+     * @param year 연도 (미지정 시 가장 최근 ACTUAL 분기의 다음 분기)
+     * @param quarter 분기 (미지정 시 가장 최근 ACTUAL 분기의 다음 분기)
+     */
+    @Async("insightExecutor")
+    @Transactional
+    public void generateReportAsync(String requestId, Long companyId, Integer year, Integer quarter) {
+        log.info("Starting async report generation for requestId: {}, companyId: {}", requestId, companyId);
+
+        try {
+            // 기업 조회
+            CompaniesEntity company = companiesRepository.findById(companyId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 ID입니다: " + companyId));
+
+            // 연도와 분기 결정 (미지정 시 가장 최근 ACTUAL 분기의 다음 분기)
+            int targetYear;
+            int targetQuarter;
+
+            if (year != null && quarter != null) {
+                targetYear = year;
+                targetQuarter = quarter;
+            } else {
+                // 가장 최근 ACTUAL 분기 조회
+                Optional<Integer> maxActualQuarterKey = companyReportMetricValuesRepository.findMaxActualQuarterKeyByCompanyId(companyId);
+                if (maxActualQuarterKey.isPresent()) {
+                    int baseQuarterKey = maxActualQuarterKey.get();
+                    int baseYear = baseQuarterKey / 10;
+                    int baseQ = baseQuarterKey % 10;
+
+                    // 다음 분기 계산
+                    targetYear = baseQ == 4 ? baseYear + 1 : baseYear;
+                    targetQuarter = baseQ == 4 ? 1 : baseQ + 1;
+                } else {
+                    // ACTUAL 데이터가 없으면 현재 날짜 기준
+                    targetYear = LocalDate.now().getYear();
+                    targetQuarter = ((LocalDate.now().getMonthValue() - 1) / 3 + 1);
+                }
+            }
+
+            log.info("Target quarter for report: year={}, quarter={}", targetYear, targetQuarter);
+
+            // PROCESSING 상태로 업데이트
+            aiReportRequestStatusService.updateProcessing(requestId);
+
+            // 해당 기업+분기의 보고서가 이미 존재하는지 확인
+            FilesEntity file;
+            try {
+                file = getReportFileById(companyId, targetYear, targetQuarter);
+                log.info("Report already exists for companyId: {}, year: {}, quarter: {}", companyId, targetYear, targetQuarter);
+            } catch (IllegalArgumentException e) {
+                // 보고서가 없으면 새로 생성
+                log.info("Report not found. Generating new report for companyId: {}, year: {}, quarter: {}", companyId, targetYear, targetQuarter);
+                file = generateAndSaveReport(companyId, targetYear, targetQuarter);
+            }
+
+            // COMPLETED 상태로 업데이트
+            String downloadUrl = "/api/companies/" + companyId + "/ai-report/download?year=" + targetYear + "&quarter=" + targetQuarter;
+            aiReportRequestStatusService.updateCompleted(requestId, String.valueOf(file.getId()), downloadUrl);
+
+            log.info("Completed async report generation for requestId: {}", requestId);
+
+        } catch (Exception e) {
+            log.error("Failed async report generation for requestId: {}", requestId, e);
+            aiReportRequestStatusService.updateFailed(requestId, e.getMessage());
+        }
+    }
+
+    /**
+     * companyCode가 ID인지 stock_code인지 판단하여 stock_code를 반환합니다.
+     * @param companyCode 기업 ID 또는 Stock Code
+     * @return Stock Code
+     */
+    private String resolveStockCode(String companyCode) {
+        if (companyCode == null || companyCode.isEmpty()) {
+            throw new IllegalArgumentException("companyCode는 필수입니다.");
+        }
+
+        // 숫자만으로 이루어지면 ID로 간주
+        if (companyCode.matches("\\d+")) {
+            return companiesRepository.findById(Long.parseLong(companyCode))
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 ID입니다: " + companyCode))
+                .getStockCode();
+        }
+
+        // 그렇지 않으면 stock_code로 간주
+        return companyCode;
     }
 }

@@ -15,6 +15,6 @@ public class CompanyOverviewResponseDto {
 	private CompanyInfoDto company;
 	private CompanyOverviewForecastDto forecast;
 	private List<CompanyOverviewKeyMetricDto> keyMetrics;
-	private List<CompanyOverviewMetricDto> metrics;
+	private List<CompanyOverviewMetricDto> signals;
 	private String aiComment;
 }

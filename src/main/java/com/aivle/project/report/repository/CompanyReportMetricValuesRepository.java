@@ -29,4 +29,15 @@ public interface CompanyReportMetricValuesRepository extends JpaRepository<Compa
 		  and v.valueType = com.aivle.project.metric.entity.MetricValueType.ACTUAL
 		""")
 	Optional<Integer> findMaxActualQuarterKeyByStockCode(@Param("stockCode") String stockCode);
+
+	@Query("""
+		select max(q.quarterKey)
+		from CompanyReportMetricValuesEntity v
+		join v.quarter q
+		join v.reportVersion rv
+		join rv.companyReport cr
+		where cr.company.id = :companyId
+		  and v.valueType = com.aivle.project.metric.entity.MetricValueType.ACTUAL
+		""")
+	Optional<Integer> findMaxActualQuarterKeyByCompanyId(@Param("companyId") Long companyId);
 }

@@ -4,6 +4,7 @@ import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.dto.PageRequest;
 import com.aivle.project.common.dto.PageResponse;
 import com.aivle.project.common.security.CurrentUser;
+import com.aivle.project.post.dto.PostDetailResponse;
 import com.aivle.project.post.dto.PostResponse;
 import com.aivle.project.post.dto.PostUserCreateRequest;
 import com.aivle.project.post.dto.PostUserUpdateRequest;
@@ -63,7 +64,7 @@ public class PostController {
 
 	@GetMapping("/{postId}")
 	@Operation(summary = "게시글 상세 조회", description = "보드 내 특정 게시글의 상세 정보를 조회합니다.", security = {})
-	public ResponseEntity<ApiResponse<PostResponse>> get(
+	public ResponseEntity<ApiResponse<PostDetailResponse>> get(
 		@PathVariable String categoryName,
 		@PathVariable Long postId,
 		@CurrentUser UserEntity user

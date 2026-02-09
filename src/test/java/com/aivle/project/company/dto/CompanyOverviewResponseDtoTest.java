@@ -72,7 +72,7 @@ class CompanyOverviewResponseDtoTest {
 		assertThat(response.getCompany()).isEqualTo(company);
 		assertThat(response.getForecast()).isEqualTo(forecast);
 		assertThat(response.getKeyMetrics()).containsExactly(keyMetric);
-		assertThat(response.getMetrics()).containsExactly(metric);
+		assertThat(response.getSignals()).containsExactly(metric);
 		assertThat(response.getAiComment()).isEqualTo("AI 코멘트");
 	}
 }

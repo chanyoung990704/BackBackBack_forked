@@ -25,6 +25,7 @@ public class CompanyInfoService {
 	private final QuartersRepository quartersRepository;
 	private final CompanyKeyMetricRepository companyKeyMetricRepository;
 	private final CompanySectorService companySectorService;
+	private final CompanyReputationScoreService companyReputationScoreService;
 
 	/**
 	 * 기업 기본 정보를 분기 기준으로 조회한다.
@@ -34,16 +35,52 @@ public class CompanyInfoService {
 			.orElseThrow(() -> new IllegalArgumentException("Company not found for id: " + companyId));
 
 		int parsedQuarterKey = parseQuarterKey(quarterKey);
-		QuartersEntity quarter = quartersRepository.findByQuarterKey(parsedQuarterKey)
-			.orElseThrow(() -> new IllegalArgumentException("Quarter not found for key: " + parsedQuarterKey));
+		return getCompanyInfo(company, parsedQuarterKey);
+	}
 
-		CompanySectorDto sector = companySectorService.getSector(companyId);
+	/**
+	 * 기업 기본 정보를 분기 키 기준으로 조회한다. 분기 키가 없으면 점수는 비운다.
+	 */
+	public CompanyInfoDto getCompanyInfo(Long companyId, Integer quarterKey) {
+		CompaniesEntity company = companiesRepository.findById(companyId)
+			.orElseThrow(() -> new IllegalArgumentException("Company not found for id: " + companyId));
+
+		if (quarterKey == null) {
+			CompanySectorDto sector = companySectorService.getSector(companyId);
+			return new CompanyInfoDto(
+				company.getId(),
+				company.getCorpName(),
+				company.getStockCode(),
+				sector,
+				null,
+				null,
+				null,
+				null
+			);
+		}
+
+		return getCompanyInfo(company, quarterKey);
+	}
+
+	private CompanyInfoDto getCompanyInfo(CompaniesEntity company, int quarterKey) {
+		QuartersEntity quarter = quartersRepository.findByQuarterKey(quarterKey)
+			.orElseThrow(() -> new IllegalArgumentException("Quarter not found for key: " + quarterKey));
+
+		CompanySectorDto sector = companySectorService.getSector(company.getId());
 		CompanyKeyMetricEntity keyMetric = companyKeyMetricRepository
-			.findByCompanyIdAndQuarterId(companyId, quarter.getId())
+			.findByCompanyIdAndQuarterId(company.getId(), quarter.getId())
 			.orElse(null);
 
 		Double networkHealth = toDouble(keyMetric != null ? keyMetric.getInternalHealthScore() : null);
+		Double overallScore = toDouble(keyMetric != null ? keyMetric.getCompositeScore() : null);
 		Double reputationScore = toDouble(keyMetric != null ? keyMetric.getExternalHealthScore() : null);
+		if (reputationScore == null) {
+			reputationScore = toDouble(companyReputationScoreService.resolveLatestAverageScore(
+				company.getId(),
+				company.getStockCode()
+			));
+		}
+		reputationScore = scaleReputationScore(reputationScore);
 		String riskLevel = keyMetric != null && keyMetric.getRiskLevel() != null
 			? keyMetric.getRiskLevel().name()
 			: null;
@@ -53,7 +90,7 @@ public class CompanyInfoService {
 			company.getCorpName(),
 			company.getStockCode(),
 			sector,
-			networkHealth,
+			overallScore,
 			riskLevel,
 			networkHealth,
 			reputationScore
@@ -89,5 +126,15 @@ public class CompanyInfoService {
 
 	private Double toDouble(BigDecimal value) {
 		return value == null ? null : value.doubleValue();
+	}
+
+	private Double scaleReputationScore(Double value) {
+		if (value == null) {
+			return null;
+		}
+		return BigDecimal.valueOf(value)
+			.multiply(BigDecimal.valueOf(100))
+			.setScale(0, java.math.RoundingMode.HALF_UP)
+			.doubleValue();
 	}
 }

@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 public interface CompanyWatchlistRepository extends JpaRepository<CompanyWatchlistEntity, Long>, CompanyWatchlistRepositoryCustom {
 
 	Optional<CompanyWatchlistEntity> findByUserIdAndCompanyId(Long userId, Long companyId);
+	Optional<CompanyWatchlistEntity> findByUserIdAndCompanyIdAndDeletedAtIsNull(Long userId, Long companyId);
+	Optional<CompanyWatchlistEntity> findByUserIdAndCompanyIdAndDeletedAtIsNotNull(Long userId, Long companyId);
 
 	@Query("""
 		select cw from CompanyWatchlistEntity cw

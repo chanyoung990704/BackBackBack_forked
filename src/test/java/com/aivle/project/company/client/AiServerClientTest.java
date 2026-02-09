@@ -1,6 +1,7 @@
 package com.aivle.project.company.client;
 
 import com.aivle.project.company.dto.AiAnalysisResponse;
+import com.aivle.project.company.dto.AiCommentResponse;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Disabled;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -90,6 +92,60 @@ class AiServerClientTest {
 
         // then
         assertThat(result).isEqualTo(mockPdfContent);
+    }
+
+    @Test
+    @DisplayName("AI 서버에서 종합 코멘트를 분기 파라미터와 함께 정상 조회한다")
+    void getAiComment_SuccessWithPeriod() throws InterruptedException {
+        // given
+        String mockResponseBody = """
+            {
+              "company_code": "000020",
+              "company_name": "동화약품",
+              "industry": "의약품 제조업",
+              "period": "20251",
+              "ai_comment": "코멘트<br>내용"
+            }
+            """;
+
+        mockWebServer.enqueue(new MockResponse()
+            .setBody(mockResponseBody)
+            .addHeader("Content-Type", "application/json"));
+
+        // when
+        AiCommentResponse response = aiServerClient.getAiComment("000020", "20251");
+
+        // then
+        assertThat(response.companyCode()).isEqualTo("000020");
+        assertThat(response.aiComment()).isEqualTo("코멘트<br>내용");
+        assertThat(mockWebServer.takeRequest(1, TimeUnit.SECONDS).getPath())
+            .isEqualTo("/api/v1/analysis/000020/ai-comment?period=20251");
+    }
+
+    @Test
+    @DisplayName("분기 미지정 시 period 쿼리 없이 종합 코멘트를 조회한다")
+    void getAiComment_SuccessWithoutPeriod() throws InterruptedException {
+        // given
+        String mockResponseBody = """
+            {
+              "company_code": "000020",
+              "company_name": "동화약품",
+              "industry": "의약품 제조업",
+              "period": "20251",
+              "ai_comment": "코멘트"
+            }
+            """;
+
+        mockWebServer.enqueue(new MockResponse()
+            .setBody(mockResponseBody)
+            .addHeader("Content-Type", "application/json"));
+
+        // when
+        aiServerClient.getAiComment("000020", null);
+
+        // then
+        assertThat(mockWebServer.takeRequest(1, TimeUnit.SECONDS).getPath())
+            .isEqualTo("/api/v1/analysis/000020/ai-comment");
     }
 
     @Test

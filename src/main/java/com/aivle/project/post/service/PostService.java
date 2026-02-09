@@ -6,8 +6,12 @@ import com.aivle.project.common.dto.PageRequest;
 import com.aivle.project.common.dto.PageResponse;
 import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
+import com.aivle.project.file.repository.PostFilesRepository;
+import com.aivle.project.file.mapper.FileMapper;
 import com.aivle.project.post.dto.PostAdminCreateRequest;
 import com.aivle.project.post.dto.PostAdminUpdateRequest;
+import com.aivle.project.post.dto.PostDetailResponse;
+import com.aivle.project.post.dto.PostFileResponse;
 import com.aivle.project.post.dto.PostCreateRequest;
 import com.aivle.project.post.dto.PostResponse;
 import com.aivle.project.post.dto.PostUpdateRequest;
@@ -20,6 +24,7 @@ import com.aivle.project.post.repository.PostViewCountsRepository;
 import com.aivle.project.post.repository.PostsRepository;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.repository.UserRepository;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -38,6 +43,8 @@ public class PostService {
 	private final CategoriesRepository categoriesRepository;
 	private final UserRepository userRepository;
 	private final com.aivle.project.post.mapper.PostMapper postMapper;
+	private final PostFilesRepository postFilesRepository;
+	private final FileMapper fileMapper;
 
 	private static final String BOARD_NOTICES = "notices";
 	private static final String BOARD_QNA = "qna";
@@ -71,7 +78,7 @@ public class PostService {
 	 * [사용자] 게시글 상세 조회.
 	 */
 	@Transactional(readOnly = true)
-	public PostResponse get(String categoryName, Long postId, UserEntity user) {
+	public PostDetailResponse get(String categoryName, Long postId, UserEntity user) {
 		PostsEntity post = findPostInBoard(postId, categoryName);
 		
 		if (BOARD_QNA.equalsIgnoreCase(categoryName)) {
@@ -80,8 +87,36 @@ public class PostService {
 			}
 			validateOwner(post, user.getId());
 		}
-		
-		return postMapper.toResponse(post);
+
+		PostResponse response = postMapper.toResponse(post);
+		boolean downloadable = user != null && user.getId() != null;
+		List<PostFileResponse> files = postFilesRepository.findAllActiveByPostIdOrderByCreatedAtAsc(postId).stream()
+			.map(mapping -> fileMapper.toResponse(postId, mapping.getFile()))
+			.map(file -> new PostFileResponse(
+				file.id(),
+				file.originalFilename(),
+				file.fileSize(),
+				file.contentType(),
+				file.createdAt(),
+				downloadable,
+				downloadable ? buildDownloadUrl(file.id()) : null
+			))
+			.toList();
+
+		return new PostDetailResponse(
+			response.id(),
+			response.name(),
+			response.categoryId(),
+			response.title(),
+			response.content(),
+			response.viewCount(),
+			response.isPinned(),
+			response.status(),
+			response.qnaStatus(),
+			response.createdAt(),
+			response.updatedAt(),
+			files
+		);
 	}
 
 	/**
@@ -217,6 +252,10 @@ public class PostService {
 		if (!post.getUser().getId().equals(userId)) {
 			throw new CommonException(CommonErrorCode.COMMON_403);
 		}
+	}
+
+	private String buildDownloadUrl(Long fileId) {
+		return "/api/files/" + fileId;
 	}
 
 	private Long requireUserId(UserEntity user) {

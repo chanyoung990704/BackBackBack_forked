@@ -127,4 +127,28 @@ public class CompanyKeyMetricEntity extends BaseEntity {
 		this.aiPromptHash = aiPromptHash;
 		this.aiAnalyzedAt = aiAnalyzedAt;
 	}
+
+	/**
+	 * 재무건전성 점수 결과를 반영한다.
+	 */
+	public void applyHealthScore(
+		BigDecimal internalHealthScore,
+		BigDecimal compositeScore,
+		CompanyKeyMetricRiskLevel riskLevel,
+		int calculationLogicVer,
+		LocalDateTime calculatedAt
+	) {
+		this.internalHealthScore = internalHealthScore;
+		this.compositeScore = compositeScore;
+		this.riskLevel = riskLevel;
+		this.calculationLogicVer = calculationLogicVer;
+		this.calculatedAt = calculatedAt;
+	}
+
+	/**
+	 * 외부 건강도 점수를 반영한다.
+	 */
+	public void applyExternalHealthScore(BigDecimal externalHealthScore) {
+		this.externalHealthScore = externalHealthScore;
+	}
 }

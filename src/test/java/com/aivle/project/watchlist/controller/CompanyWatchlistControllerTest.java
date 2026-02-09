@@ -50,7 +50,7 @@ class CompanyWatchlistControllerTest {
 
 		// when & then
 		mockMvc.perform(post("/api/watchlists")
-				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L)).authorities(new SimpleGrantedAuthority("ROLE_USER")))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{
@@ -72,7 +72,7 @@ class CompanyWatchlistControllerTest {
 
 		// when & then
 		mockMvc.perform(post("/api/watchlists")
-				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L)).authorities(new SimpleGrantedAuthority("ROLE_USER")))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{
@@ -100,7 +100,7 @@ class CompanyWatchlistControllerTest {
 
 		// when & then
 		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/watchlists")
-				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L)).authorities(new SimpleGrantedAuthority("ROLE_USER"))))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.success").value(true))
 			.andExpect(jsonPath("$.data.items").isArray())
@@ -122,7 +122,7 @@ class CompanyWatchlistControllerTest {
 
 		// when & then
 		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/watchlists/metric-values")
-				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L)).authorities(new SimpleGrantedAuthority("ROLE_USER")))
 				.param("year", "2026")
 				.param("quarter", "1"))
 			.andExpect(status().isOk())
@@ -149,7 +149,7 @@ class CompanyWatchlistControllerTest {
 
 		// when & then
 		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/watchlists/metric-values")
-				.with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER")))
+				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L)).authorities(new SimpleGrantedAuthority("ROLE_USER")))
 				.param("fromYear", "2024")
 				.param("fromQuarter", "4")
 				.param("toYear", "2025")

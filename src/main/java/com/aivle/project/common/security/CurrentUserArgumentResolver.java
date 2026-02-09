@@ -28,8 +28,13 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 
 	@Override
 	public boolean supportsParameter(MethodParameter parameter) {
-		return parameter.hasParameterAnnotation(CurrentUser.class)
-			&& UserEntity.class.isAssignableFrom(parameter.getParameterType());
+		if (!parameter.hasParameterAnnotation(CurrentUser.class)) {
+			return false;
+		}
+		Class<?> type = parameter.getParameterType();
+		return UserEntity.class.isAssignableFrom(type)
+			|| Long.class.isAssignableFrom(type)
+			|| long.class.equals(type);
 	}
 
 	@Override
@@ -49,9 +54,24 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 			return null;
 		}
 
+		Class<?> type = parameter.getParameterType();
+		if (Long.class.isAssignableFrom(type) || long.class.equals(type)) {
+			Long userId = extractUserId(jwt);
+			if (userId != null) {
+				return userId;
+			}
+		}
+
 		UUID userUuid = parseUserUuid(jwt.getSubject());
-		return userRepository.findByUuidAndDeletedAtIsNull(userUuid)
+		UserEntity user = userRepository.findByUuidAndDeletedAtIsNull(userUuid)
 			.orElse(null);
+		if (user == null) {
+			return null;
+		}
+		if (UserEntity.class.isAssignableFrom(type)) {
+			return user;
+		}
+		return user.getId();
 	}
 
 	private Jwt extractJwt(Authentication authentication) {
@@ -74,5 +94,20 @@ public class CurrentUserArgumentResolver implements HandlerMethodArgumentResolve
 		} catch (IllegalArgumentException ex) {
 			throw new CommonException(CommonErrorCode.COMMON_400);
 		}
+	}
+
+	private Long extractUserId(Jwt jwt) {
+		Object value = jwt.getClaims().get("userId");
+		if (value instanceof Number number) {
+			return number.longValue();
+		}
+		if (value instanceof String text && !text.isBlank()) {
+			try {
+				return Long.parseLong(text);
+			} catch (NumberFormatException ex) {
+				return null;
+			}
+		}
+		return null;
 	}
 }

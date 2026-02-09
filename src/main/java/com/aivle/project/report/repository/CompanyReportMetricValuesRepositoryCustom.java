@@ -28,6 +28,12 @@ public interface CompanyReportMetricValuesRepositoryCustom {
 		MetricValueType valueType
 	);
 
+	List<ReportPredictMetricRowProjection> findLatestMetricsByCompanyIdAndQuarterKeyAndType(
+		Long companyId,
+		int quarterKey,
+		MetricValueType valueType
+	);
+
 	List<com.aivle.project.report.dto.CompanyOverviewMetricRowProjection> findLatestOverviewMetricsByCompanyQuarter(
 		Long companyId,
 		Long quarterId,
@@ -52,5 +58,10 @@ public interface CompanyReportMetricValuesRepositoryCustom {
 	List<MetricValueSampleProjection> findNonRiskActualMetricSamplesByQuarterId(
 		Long quarterId,
 		MetricValueType valueType
+	);
+
+	List<com.aivle.project.report.entity.CompanyReportMetricValuesEntity> findLatestActualValuesByCompanyAndQuarter(
+		Long companyId,
+		int quarterKey
 	);
 }
