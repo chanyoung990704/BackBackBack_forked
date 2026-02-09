@@ -206,6 +206,37 @@ class PostControllerIntegrationTest {
 	}
 
 	@Test
+	@DisplayName("QnA 보드에서 본인의 글 목록만 조회된다")
+	void list_shouldReturnOnlyOwnQnaPosts() throws Exception {
+		// given
+		UserEntity userA = persistUser("userA@test.com");
+		UserEntity userB = persistUser("userB@test.com");
+
+		persistPost(userA, qnaCategory, "userA의 질문 1", "내용");
+		persistPost(userA, qnaCategory, "userA의 질문 2", "내용");
+		persistPost(userB, qnaCategory, "userB의 질문", "내용");
+
+		// when
+		MvcResult result = mockMvc.perform(get("/api/posts/qna")
+				.with(jwt().jwt(jwt -> jwt.subject(userA.getUuid().toString()))
+					.authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		// then
+		ApiResponse<PageResponse<PostResponse>> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<PageResponse<PostResponse>>>() {}
+		);
+
+		assertThat(apiResponse.data().content()).hasSize(2);
+		assertThat(apiResponse.data().content())
+			.allMatch(post -> post.name().equals("test-user"));
+		assertThat(apiResponse.data().content())
+			.noneMatch(post -> post.title().contains("userB"));
+	}
+
+	@Test
 	@DisplayName("QnA 보드에서 본인의 글을 삭제한다")
 	void delete_shouldDeleteOwnPost() throws Exception {
 		// given

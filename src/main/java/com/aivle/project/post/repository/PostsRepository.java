@@ -26,5 +26,7 @@ public interface PostsRepository extends JpaRepository<PostsEntity, Long> {
 
 	Page<PostsEntity> findAllByCategoryNameAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(String categoryName, com.aivle.project.post.entity.PostStatus status, Pageable pageable);
 
+	Page<PostsEntity> findAllByCategoryNameAndUserIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(String categoryName, Long userId, com.aivle.project.post.entity.PostStatus status, Pageable pageable);
+
 	Optional<PostsEntity> findByIdAndCategoryNameAndDeletedAtIsNull(Long id, String categoryName);
 }

@@ -49,17 +49,21 @@ public class PostService {
 	public PageResponse<PostResponse> list(String categoryName, PageRequest pageRequest, UserEntity user) {
 		CategoriesEntity category = findCategoryByName(categoryName);
 		
-		// QnA 보드는 본인 글만 조회 가능 (비로그인 접근 불가)
+		Page<PostsEntity> page;
 		if (BOARD_QNA.equalsIgnoreCase(categoryName)) {
+			// QnA 보드는 본인 글만 조회 가능 (비로그인 접근 불가)
 			if (user == null) {
 				throw new CommonException(CommonErrorCode.COMMON_403);
 			}
-			// TODO: Repository에서 본인 글만 조회하도록 쿼리 확장 권장
+			page = postsRepository.findAllByCategoryNameAndUserIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
+				categoryName, user.getId(), PostStatus.PUBLISHED, pageRequest.toPageable()
+			);
+		} else {
+			page = postsRepository.findAllByCategoryNameAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
+				categoryName, PostStatus.PUBLISHED, pageRequest.toPageable()
+			);
 		}
-
-		Page<PostsEntity> page = postsRepository.findAllByCategoryNameAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
-			categoryName, PostStatus.PUBLISHED, pageRequest.toPageable()
-		);
+		
 		return PageResponse.of(page.map(postMapper::toResponse));
 	}
 

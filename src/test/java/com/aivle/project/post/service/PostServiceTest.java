@@ -60,6 +60,64 @@ class PostServiceTest {
 	// User Operations Tests
 
 	@Test
+	@DisplayName("사용자는 'notices' 보드의 전체 글 목록을 조회할 수 있다")
+	void list_shouldReturnAllNotices() {
+		// given
+		UserEntity user = newUser(1L);
+		CategoriesEntity category = newCategory(1L, "notices");
+		PageRequest pageRequest = new PageRequest();
+		Page<PostsEntity> page = new PageImpl<>(List.of(newPost(100L, user, category)));
+
+		given(categoriesRepository.findByNameAndDeletedAtIsNull("notices")).willReturn(Optional.of(category));
+		given(postsRepository.findAllByCategoryNameAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
+			eq("notices"), eq(PostStatus.PUBLISHED), any(Pageable.class))).willReturn(page);
+		given(postMapper.toResponse(any(PostsEntity.class))).willReturn(new PostResponse(100L, "user-1", 1L, "title", "content", 0, false, PostStatus.PUBLISHED, null, null, null));
+
+		// when
+		PageResponse<PostResponse> response = postService.list("notices", pageRequest, user);
+
+		// then
+		assertThat(response.content()).hasSize(1);
+		verify(postsRepository).findAllByCategoryNameAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(eq("notices"), eq(PostStatus.PUBLISHED), any(Pageable.class));
+	}
+
+	@Test
+	@DisplayName("사용자는 'qna' 보드에서 본인의 글 목록만 조회할 수 있다")
+	void list_shouldReturnOnlyOwnQna() {
+		// given
+		UserEntity user = newUser(1L);
+		CategoriesEntity category = newCategory(2L, "qna");
+		PageRequest pageRequest = new PageRequest();
+		Page<PostsEntity> page = new PageImpl<>(List.of(newPost(100L, user, category)));
+
+		given(categoriesRepository.findByNameAndDeletedAtIsNull("qna")).willReturn(Optional.of(category));
+		given(postsRepository.findAllByCategoryNameAndUserIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(
+			eq("qna"), eq(1L), eq(PostStatus.PUBLISHED), any(Pageable.class))).willReturn(page);
+		given(postMapper.toResponse(any(PostsEntity.class))).willReturn(new PostResponse(100L, "user-1", 2L, "qna", "content", 0, false, PostStatus.PUBLISHED, "pending", null, null));
+
+		// when
+		PageResponse<PostResponse> response = postService.list("qna", pageRequest, user);
+
+		// then
+		assertThat(response.content()).hasSize(1);
+		verify(postsRepository).findAllByCategoryNameAndUserIdAndStatusAndDeletedAtIsNullOrderByCreatedAtDesc(eq("qna"), eq(1L), eq(PostStatus.PUBLISHED), any(Pageable.class));
+	}
+
+	@Test
+	@DisplayName("비로그인 사용자가 'qna' 보드 목록을 조회하면 403 Forbidden을 반환한다")
+	void list_shouldFailForQnaIfUnauthenticated() {
+		// given
+		CategoriesEntity category = newCategory(2L, "qna");
+		given(categoriesRepository.findByNameAndDeletedAtIsNull("qna")).willReturn(Optional.of(category));
+
+		// when & then
+		assertThatThrownBy(() -> postService.list("qna", new PageRequest(), null))
+			.isInstanceOf(CommonException.class)
+			.extracting(ex -> ((CommonException) ex).getErrorCode())
+			.isEqualTo(CommonErrorCode.COMMON_403);
+	}
+
+	@Test
 	@DisplayName("사용자는 'notices' 보드에 글을 작성할 수 없다 (403 Forbidden)")
 	void create_shouldFailForNotices() {
 		// given
@@ -91,7 +149,7 @@ class PostServiceTest {
 			ReflectionTestUtils.setField(p, "id", 100L);
 			return p;
 		});
-		given(postMapper.toResponse(any(PostsEntity.class))).willReturn(new PostResponse(100L, "user-1", 2L, "qna title", "qna content", 0, false, PostStatus.PUBLISHED, null, null));
+		given(postMapper.toResponse(any(PostsEntity.class))).willReturn(new PostResponse(100L, "user-1", 2L, "qna title", "qna content", 0, false, PostStatus.PUBLISHED, null, null, null));
 
 		// when
 		PostResponse response = postService.create("qna", user, request);
@@ -113,7 +171,7 @@ class PostServiceTest {
 
 		given(postsRepository.findByIdAndCategoryNameAndDeletedAtIsNull(100L, "qna"))
 			.willReturn(Optional.of(post));
-		given(postMapper.toResponse(post)).willReturn(new PostResponse(100L, "user-1", 2L, "updated", "content", 0, false, PostStatus.PUBLISHED, null, null));
+		given(postMapper.toResponse(post)).willReturn(new PostResponse(100L, "user-1", 2L, "updated", "content", 0, false, PostStatus.PUBLISHED, null, null, null));
 
 		// when
 		PostResponse response = postService.update("qna", user, 100L, request);
@@ -160,7 +218,7 @@ class PostServiceTest {
 			ReflectionTestUtils.setField(p, "id", 200L);
 			return p;
 		});
-		given(postMapper.toResponse(any(PostsEntity.class))).willReturn(new PostResponse(200L, "user-99", 1L, "notice", "content", 0, true, PostStatus.PUBLISHED, null, null));
+		given(postMapper.toResponse(any(PostsEntity.class))).willReturn(new PostResponse(200L, "user-99", 1L, "notice", "content", 0, true, PostStatus.PUBLISHED, null, null, null));
 
 		// when
 		PostResponse response = postService.createAdmin("notices", admin, request);
@@ -183,7 +241,7 @@ class PostServiceTest {
 
 		given(postsRepository.findByIdAndCategoryNameAndDeletedAtIsNull(100L, "qna"))
 			.willReturn(Optional.of(post));
-		given(postMapper.toResponse(post)).willReturn(new PostResponse(100L, "user-1", 2L, "admin updated", "content", 0, true, PostStatus.PUBLISHED, null, null));
+		given(postMapper.toResponse(post)).willReturn(new PostResponse(100L, "user-1", 2L, "admin updated", "content", 0, true, PostStatus.PUBLISHED, null, null, null));
 
 		// when
 		PostResponse response = postService.updateAdmin("qna", 100L, request);
