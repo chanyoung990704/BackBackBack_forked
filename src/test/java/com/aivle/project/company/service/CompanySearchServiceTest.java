@@ -47,6 +47,13 @@ class CompanySearchServiceTest {
 			"000030",
 			LocalDate.of(2025, 1, 1)
 		));
+		companiesRepository.save(CompaniesEntity.create(
+			"00000003",
+			"테스트홀딩스",
+			"TEST_HOLDINGS",
+			null,
+			LocalDate.of(2025, 1, 1)
+		));
 
 		org.mockito.BDDMockito.given(companyMapper.toSearchResponse(org.mockito.ArgumentMatchers.any())).willAnswer(invocation -> {
 			CompaniesEntity c = invocation.getArgument(0);

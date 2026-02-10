@@ -6,6 +6,8 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-10 | 작업: companies 이름 FULLTEXT 인덱스 마이그레이션 분리 | 결과: MySQL에 `V25__add_companies_name_fulltext_index.sql` 멱등 인덱스 생성 추가, H2에는 no-op `V25` 추가 | 이슈: 없음
+- 2026-02-10 | 작업: 기업 검색 하이브리드 fallback 적용 | 결과: CompanySearchService에 FULLTEXT 우선 + 실패/0건 LIKE fallback 로직을 추가하고 MySQL FULLTEXT 인덱스(Flyway V25) 및 하이브리드 단위 테스트를 보강함 | 이슈: 레포 기존 테스트 컴파일 오류(SecurityEndpointAuthorizationTest의 dashboard 서비스 import 누락)로 타깃 테스트 단독 실행 불가
 - 2026-02-10 | 작업: 보안 매처/문서 정리 3차 | 결과: `SecurityConfig`를 공개/인증/USER 그룹 상수 기반으로 재정렬해 신/구 URI를 동시 허용하도록 정비하고, `SecurityEndpointAuthorizationTest`를 실제 컨텍스트 기반으로 추가해 공개/인증/USER/ADMIN 권한 회귀를 검증했으며, `docs/rest-endpoint-migration-2026-02.md`에 Old->New 매핑표를 문서화 | 이슈: 없음
 - 2026-02-10 | 작업: 컨트롤러 URI 정규화 2차(회사/AI/뉴스/리포트/파일/워치리스트) | 결과: `CompanySearchController`(me/query 파라미터), `CompanyOverviewTempController`(/{companyId}), `CompanyAiController`(analysis/ai-reports), `NewsController`/`NewsAdminController`/`ReportAnalysisController`(sync·latest 신 경로), `FileDownloadController`(download-url), `CompanyWatchlistController`(metrics/values) 신 경로를 추가하고 하위호환 경로를 병행 지원, 관련 테스트 5개 클래스 통과 | 이슈: 없음
 - 2026-02-10 | 작업: 게시글 API REST 경로 정규화 1차 | 결과: `PostController`에 신 경로(`/api/posts?categoryName=...`, `/api/posts/{postId}`, `POST /api/posts`)와 구 경로 하위호환 매핑을 추가하고, `PostService`에 postId 기준 조회/수정/삭제 메서드를 추가했으며, `PostControllerIntegrationTest` 신 경로 테스트 4건을 통과시킴 | 이슈: 없음

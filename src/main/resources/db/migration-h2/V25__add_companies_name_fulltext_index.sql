@@ -1,0 +1,1 @@
+-- no-op: H2는 MySQL MATCH AGAINST Fulltext 인덱스를 지원하지 않습니다.
