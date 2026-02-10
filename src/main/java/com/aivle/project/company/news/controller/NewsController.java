@@ -30,10 +30,10 @@ public class NewsController {
     /**
      * AI 서버에서 뉴스 분석 데이터를 가져와 저장합니다.
      *
-     * @param stockCode 기업 코드 (stock_code)
+     * @param companyId 기업 식별자(현재는 stock_code도 허용)
      * @return 저장된 뉴스 분석 정보
      */
-    @PostMapping("/{stockCode}/news/fetch")
+    @PostMapping({"/{companyId}/news/sync", "/{companyId}/news/fetch"})
     @Operation(summary = "뉴스 분석 수집", description = "AI 서버에서 뉴스 분석 데이터를 가져와 저장합니다.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses({
@@ -43,20 +43,20 @@ public class NewsController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
     })
     public ResponseEntity<ApiResponse<NewsAnalysisResponse>> fetchNews(
-            @Parameter(description = "기업 코드 (stock_code)", example = "000020")
-            @PathVariable String stockCode
+            @Parameter(description = "기업 식별자(companyId 또는 stock_code)", example = "000020")
+            @PathVariable String companyId
     ) {
-        NewsAnalysisResponse result = newsService.fetchAndStoreNews(stockCode);
+        NewsAnalysisResponse result = newsService.fetchAndStoreNews(companyId);
         return ResponseEntity.ok(ApiResponse.ok(result));
     }
 
     /**
      * 특정 기업의 최신 뉴스를 조회합니다.
      *
-     * @param stockCode 기업 코드 (stock_code)
+     * @param companyId 기업 식별자(현재는 stock_code도 허용)
      * @return 최신 뉴스 분석 정보
      */
-    @GetMapping("/{stockCode}/news/latest")
+    @GetMapping("/{companyId}/news/latest")
     @Operation(summary = "최신 뉴스 조회", description = "기업의 최신 뉴스 분석 결과를 조회합니다.")
     @SecurityRequirement(name = "bearerAuth")
     @ApiResponses({
@@ -66,16 +66,16 @@ public class NewsController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
     })
     public ResponseEntity<ApiResponse<NewsAnalysisResponse>> getLatestNews(
-            @Parameter(description = "기업 코드 (stock_code)", example = "000020")
-            @PathVariable String stockCode
+            @Parameter(description = "기업 식별자(companyId 또는 stock_code)", example = "000020")
+            @PathVariable String companyId
     ) {
-        NewsAnalysisResponse result = newsService.getLatestNews(stockCode);
+        NewsAnalysisResponse result = newsService.getLatestNews(companyId);
         if (result == null) {
             return ResponseEntity.ok(ApiResponse.fail(
                     com.aivle.project.common.error.ErrorResponse.of(
                             "NO_NEWS_DATA",
                             "뉴스 데이터가 없습니다.",
-                            "/api/companies/" + stockCode + "/news/latest"
+                            "/api/companies/" + companyId + "/news/latest"
                     )
             ));
         }
@@ -85,12 +85,12 @@ public class NewsController {
     /**
      * 특정 기간의 뉴스 분석 이력을 조회합니다.
      *
-     * @param stockCode 기업 코드 (stock_code)
+     * @param companyId 기업 식별자(현재는 stock_code도 허용)
      * @param start     시작 일시 (ISO-8601)
      * @param end       종료 일시 (ISO-8601)
      * @return 뉴스 분석 이력 목록
      */
-	@GetMapping("/{stockCode}/news/history")
+	@GetMapping({"/{companyId}/news", "/{companyId}/news/history"})
 	@Operation(summary = "뉴스 분석 이력 조회", description = "특정 기간의 뉴스 분석 이력을 조회합니다.")
 	@SecurityRequirement(name = "bearerAuth")
 	@ApiResponses({
@@ -100,8 +100,8 @@ public class NewsController {
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
 	})
 	public ResponseEntity<ApiResponse<java.util.List<NewsAnalysisResponse>>> getNewsHistory(
-		@Parameter(description = "기업 코드 (stock_code)", example = "000020")
-		@PathVariable String stockCode,
+		@Parameter(description = "기업 식별자(companyId 또는 stock_code)", example = "000020")
+		@PathVariable String companyId,
 		@Parameter(description = "시작 일시 (ISO-8601)", example = "2026-01-01T00:00:00")
 		@RequestParam(required = false)
 		@org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME)
@@ -114,7 +114,7 @@ public class NewsController {
 		LocalDateTime startDate = start != null ? start : LocalDateTime.now().minusMonths(1);
 		LocalDateTime endDate = end != null ? end : LocalDateTime.now();
 
-		java.util.List<NewsAnalysisResponse> result = newsService.getNewsHistory(stockCode, startDate, endDate);
+		java.util.List<NewsAnalysisResponse> result = newsService.getNewsHistory(companyId, startDate, endDate);
 		return ResponseEntity.ok(ApiResponse.ok(result));
 	}
 }

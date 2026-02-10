@@ -66,9 +66,9 @@ private final FileService fileService;
 			.body(new InputStreamResource(stream));
 	}
 
-	@GetMapping("/{fileId}/url")
+	@GetMapping({"/{fileId}/download-url", "/{fileId}/url"})
 	@SecurityRequirement(name = "bearerAuth")
-	@Operation(summary = "파일 다운로드 URL 조회", description = "파일 다운로드 URL을 반환합니다.")
+	@Operation(summary = "파일 다운로드 URL 조회", description = "파일 다운로드 URL을 반환합니다. (`/download-url` 권장, `/url` 하위호환)")
 	@ApiResponses({
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "URL 조회 성공"),
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "인증 필요"),

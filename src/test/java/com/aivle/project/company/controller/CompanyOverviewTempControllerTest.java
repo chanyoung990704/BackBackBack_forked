@@ -91,4 +91,43 @@ class CompanyOverviewTempControllerTest {
 			.andExpect(jsonPath("$.data.company.name").value("샘플기업"))
 			.andExpect(jsonPath("$.data.aiComment").value("AI 코멘트"));
 	}
+
+	@Test
+	@DisplayName("신규 경로(/api/companies/{companyId})로 기업 개요를 조회한다")
+	void getOverviewById_shouldReturnOverviewResponse() throws Exception {
+		// given
+		CompanyInfoDto companyInfo = new CompanyInfoDto(
+			1L,
+			"샘플기업",
+			"000001",
+			new CompanySectorDto("", "제조업"),
+			80.0,
+			"SAFE",
+			80.0,
+			70.0
+		);
+		CompanyOverviewResponseDto response = new CompanyOverviewResponseDto(
+			companyInfo,
+			null,
+			java.util.List.of(),
+			java.util.List.of(),
+			"AI 코멘트"
+		);
+
+		com.aivle.project.company.entity.CompaniesEntity company = org.mockito.Mockito.mock(
+			com.aivle.project.company.entity.CompaniesEntity.class
+		);
+		given(company.getId()).willReturn(1L);
+		given(companiesRepository.findByStockCode("000020"))
+			.willReturn(java.util.Optional.of(company));
+		given(companyOverviewService.getOverview(1L, "202401")).willReturn(response);
+
+		// when & then
+		mockMvc.perform(get("/api/companies/000020")
+				.param("quarterKey", "202401"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.data.company.name").value("샘플기업"))
+			.andExpect(jsonPath("$.data.aiComment").value("AI 코멘트"));
+	}
 }

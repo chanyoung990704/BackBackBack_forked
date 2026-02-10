@@ -159,4 +159,27 @@ class CompanyWatchlistControllerTest {
 			.andExpect(jsonPath("$.data.quarters[0].year").value(2024))
 			.andExpect(jsonPath("$.data.quarters[1].year").value(2025));
 	}
+
+	@Test
+	@DisplayName("신규 경로(/metrics/values)로 워치리스트 지표 값을 조회한다")
+	void metricValuesNewPath_shouldReturnGroupedResponse() throws Exception {
+		// given
+		WatchlistMetricValuesResponse response = new WatchlistMetricValuesResponse(List.of(
+			new WatchlistQuarterMetricValues(2026, 1, List.of(
+				new WatchlistMetricValueRow(1L, 10L, "기업", "000001", "ROE", "자기자본이익률", new BigDecimal("12.34"))
+			))
+		));
+		given(companyWatchlistService.getWatchlistMetricValuesByQuarter(any(), eq(2026), eq(1)))
+			.willReturn(response);
+
+		// when & then
+		mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/watchlists/metrics/values")
+				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L)).authorities(new SimpleGrantedAuthority("ROLE_USER")))
+				.param("year", "2026")
+				.param("quarter", "1"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.data.quarters[0].year").value(2026))
+			.andExpect(jsonPath("$.data.quarters[0].quarter").value(1));
+	}
 }

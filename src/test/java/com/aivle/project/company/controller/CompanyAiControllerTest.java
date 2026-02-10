@@ -67,6 +67,26 @@ class CompanyAiControllerTest {
     }
 
     @Test
+    @DisplayName("신규 경로(/analysis)로 기업 AI 분석을 조회한다")
+    void getCompanyAnalysis_withNewPath() throws Exception {
+        // given
+        AiAnalysisResponse response = new AiAnalysisResponse(
+            "005930",
+            "삼성전자",
+            "2025Q4",
+            Map.of("ROA", 1.23)
+        );
+        given(companyAiService.getCompanyAnalysis(5930L, null, null)).willReturn(response);
+
+        // when & then
+        mockMvc.perform(get("/api/companies/5930/analysis")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.company_code").value("005930"));
+    }
+
+    @Test
     @DisplayName("기업 AI 분석 조회는 인증이 없으면 401을 반환한다")
     void getCompanyAnalysis_unauthorized() throws Exception {
         // when & then
@@ -113,6 +133,27 @@ class CompanyAiControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.storageUrl").value("http://localhost/files/report_005930.pdf"));
+    }
+
+    @Test
+    @DisplayName("신규 경로(/ai-reports)로 기업 AI 리포트 PDF를 생성/저장한다")
+    void generateCompanyAiReport_withNewPath() throws Exception {
+        // given
+        FilesEntity file = FilesEntity.create(
+            FileUsageType.REPORT_PDF,
+            "http://localhost/files/report_005930.pdf",
+            "reports/report_005930.pdf",
+            "report_005930.pdf",
+            1024L,
+            "application/pdf"
+        );
+        given(companyAiService.generateAndSaveReport(5930L, null, null)).willReturn(file);
+
+        // when & then
+        mockMvc.perform(post("/api/companies/5930/ai-reports")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
@@ -178,6 +219,33 @@ class CompanyAiControllerTest {
 
         // when & then
         mockMvc.perform(get("/api/companies/5930/ai-report/download")
+                .param("year", "2026")
+                .param("quarter", "1")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Content-Type", "application/pdf"))
+            .andExpect(header().string("Content-Disposition", "attachment; filename=\"report_005930.pdf\""))
+            .andExpect(header().string("Cache-Control", "private, no-store"));
+    }
+
+    @Test
+    @DisplayName("신규 경로(/ai-reports/file)로 기업 AI 리포트를 스트리밍 다운로드한다")
+    void downloadAiReport_withNewPath_streamsFile() throws Exception {
+        // given
+        FilesEntity file = FilesEntity.create(
+            FileUsageType.REPORT_PDF,
+            "https://bucket.s3.ap-northeast-2.amazonaws.com/reports/a.pdf",
+            "reports/a.pdf",
+            "report_005930.pdf",
+            12L,
+            "application/pdf"
+        );
+        given(companyAiService.getReportFileById(5930L, 2026, 1)).willReturn(file);
+        given(fileStreamService.openStream(file))
+            .willReturn(new ByteArrayInputStream("report".getBytes(StandardCharsets.UTF_8)));
+
+        // when & then
+        mockMvc.perform(get("/api/companies/5930/ai-reports/file")
                 .param("year", "2026")
                 .param("quarter", "1")
                 .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))

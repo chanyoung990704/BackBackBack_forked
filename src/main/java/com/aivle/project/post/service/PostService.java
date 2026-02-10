@@ -120,6 +120,51 @@ public class PostService {
 	}
 
 	/**
+	 * [사용자] 게시글 상세 조회(카테고리 경로 없이 ID 기준).
+	 */
+	@Transactional(readOnly = true)
+	public PostDetailResponse getById(Long postId, UserEntity user) {
+		PostsEntity post = findPost(postId);
+		String categoryName = post.getCategory().getName();
+		if (BOARD_QNA.equalsIgnoreCase(categoryName)) {
+			if (user == null) {
+				throw new CommonException(CommonErrorCode.COMMON_403);
+			}
+			validateOwner(post, user.getId());
+		}
+
+		PostResponse response = postMapper.toResponse(post);
+		boolean downloadable = user != null && user.getId() != null;
+		List<PostFileResponse> files = postFilesRepository.findAllActiveByPostIdOrderByCreatedAtAsc(postId).stream()
+			.map(mapping -> fileMapper.toResponse(postId, mapping.getFile()))
+			.map(file -> new PostFileResponse(
+				file.id(),
+				file.originalFilename(),
+				file.fileSize(),
+				file.contentType(),
+				file.createdAt(),
+				downloadable,
+				downloadable ? buildDownloadUrl(file.id()) : null
+			))
+			.toList();
+
+		return new PostDetailResponse(
+			response.id(),
+			response.name(),
+			response.categoryId(),
+			response.title(),
+			response.content(),
+			response.viewCount(),
+			response.isPinned(),
+			response.status(),
+			response.qnaStatus(),
+			response.createdAt(),
+			response.updatedAt(),
+			files
+		);
+	}
+
+	/**
 	 * [사용자] 게시글 생성.
 	 */
 	public PostResponse create(String categoryName, UserEntity user, PostUserCreateRequest request) {
@@ -155,10 +200,33 @@ public class PostService {
 	}
 
 	/**
+	 * [사용자] 게시글 수정(카테고리 경로 없이 ID 기준).
+	 */
+	public PostResponse updateById(UserEntity user, Long postId, PostUserUpdateRequest request) {
+		PostsEntity post = findPost(postId);
+		validateOwner(post, requireUserId(user));
+
+		String nextTitle = request.getTitle() != null ? request.getTitle().trim() : post.getTitle();
+		String nextContent = request.getContent() != null ? request.getContent().trim() : post.getContent();
+
+		post.update(nextTitle, nextContent, post.getCategory(), null, null);
+		return postMapper.toResponse(post);
+	}
+
+	/**
 	 * [사용자] 게시글 삭제.
 	 */
 	public void delete(String categoryName, UserEntity user, Long postId) {
 		PostsEntity post = findPostInBoard(postId, categoryName);
+		validateOwner(post, requireUserId(user));
+		post.markDeleted();
+	}
+
+	/**
+	 * [사용자] 게시글 삭제(카테고리 경로 없이 ID 기준).
+	 */
+	public void deleteById(UserEntity user, Long postId) {
+		PostsEntity post = findPost(postId);
 		validateOwner(post, requireUserId(user));
 		post.markDeleted();
 	}
@@ -239,6 +307,11 @@ public class PostService {
 
 	private PostsEntity findPostInBoard(Long postId, String categoryName) {
 		return postsRepository.findByIdAndCategoryNameAndDeletedAtIsNull(postId, categoryName)
+			.orElseThrow(() -> new CommonException(CommonErrorCode.COMMON_404));
+	}
+
+	private PostsEntity findPost(Long postId) {
+		return postsRepository.findByIdAndDeletedAtIsNull(postId)
 			.orElseThrow(() -> new CommonException(CommonErrorCode.COMMON_404));
 	}
 

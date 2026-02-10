@@ -116,6 +116,31 @@ class FileDownloadControllerTest {
 			.andExpect(jsonPath("$.data.url").value("http://localhost/api/files/1"));
 	}
 
+	@Test
+	@DisplayName("신규 다운로드 URL 경로(/download-url)로 내부 다운로드 URL을 반환한다")
+	void downloadUrlNewPath_shouldReturnInternalUrl() throws Exception {
+		// given
+		UserEntity user = newUser(1L);
+		FilesEntity file = FilesEntity.create(
+			FileUsageType.POST_ATTACHMENT,
+			"https://bucket.s3.ap-northeast-2.amazonaws.com/uploads/a.pdf",
+			"uploads/a.pdf",
+			"a.pdf",
+			100L,
+			"application/pdf"
+		);
+
+		given(currentUserArgumentResolver.supportsParameter(any())).willReturn(true);
+		given(currentUserArgumentResolver.resolveArgument(any(), any(), any(), any())).willReturn(user);
+		given(fileService.getFile(any(Long.class), any(UserEntity.class))).willReturn(file);
+
+		// when & then
+		mockMvc.perform(get("/api/files/1/download-url"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.success").value(true))
+			.andExpect(jsonPath("$.data.url").value("http://localhost/api/files/1"));
+	}
+
 	private static UserEntity newUser(Long id) {
 		try {
 			var ctor = UserEntity.class.getDeclaredConstructor();

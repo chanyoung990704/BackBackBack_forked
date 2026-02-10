@@ -254,6 +254,107 @@ class PostControllerIntegrationTest {
 		assertThat(found.getDeletedAt()).isNotNull();
 	}
 
+	@Test
+	@DisplayName("REST 경로로 게시글을 생성한다")
+	void create_shouldCreatePostWithRestPath() throws Exception {
+		// given
+		UserEntity user = persistUser("qna-creator-rest@test.com");
+		String requestBody = """
+			{
+			  "categoryName": "qna",
+			  "title": "REST 질문",
+			  "content": "REST 내용"
+			}
+			""";
+
+		// when
+		MvcResult result = mockMvc.perform(post("/api/posts")
+				.with(jwt().jwt(jwt -> jwt.subject(user.getUuid().toString()))
+					.authorities(new SimpleGrantedAuthority("ROLE_USER")))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(requestBody))
+			.andExpect(status().isCreated())
+			.andReturn();
+
+		// then
+		ApiResponse<PostResponse> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<PostResponse>>() {}
+		);
+		assertThat(apiResponse.success()).isTrue();
+		assertThat(apiResponse.data().title()).isEqualTo("REST 질문");
+	}
+
+	@Test
+	@DisplayName("REST 경로로 카테고리 기반 목록을 조회한다")
+	void list_shouldReturnWithCategoryQueryParam() throws Exception {
+		// given
+		UserEntity admin = persistUser("rest-list@test.com");
+		for (int i = 0; i < 3; i++) {
+			persistPost(admin, noticesCategory, "REST-공지-" + i, "내용");
+		}
+
+		// when
+		MvcResult result = mockMvc.perform(get("/api/posts")
+				.param("categoryName", "notices"))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		// then
+		ApiResponse<PageResponse<PostResponse>> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<PageResponse<PostResponse>>>() {}
+		);
+		assertThat(apiResponse.success()).isTrue();
+		assertThat(apiResponse.data().content()).hasSize(3);
+	}
+
+	@Test
+	@DisplayName("REST 경로로 게시글을 수정한다")
+	void update_shouldUpdateWithRestPath() throws Exception {
+		// given
+		UserEntity user = persistUser("rest-updater@test.com");
+		PostsEntity post = persistPost(user, qnaCategory, "REST 원본", "REST 원본 내용");
+
+		PostUserUpdateRequest request = new PostUserUpdateRequest();
+		request.setTitle("REST 수정");
+
+		// when
+		MvcResult result = mockMvc.perform(patch("/api/posts/{postId}", post.getId())
+				.with(jwt().jwt(jwt -> jwt.subject(user.getUuid().toString()))
+					.authorities(new SimpleGrantedAuthority("ROLE_USER")))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(request)))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		// then
+		ApiResponse<PostResponse> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<PostResponse>>() {}
+		);
+		assertThat(apiResponse.success()).isTrue();
+		assertThat(apiResponse.data().title()).isEqualTo("REST 수정");
+	}
+
+	@Test
+	@DisplayName("REST 경로로 게시글을 삭제한다")
+	void delete_shouldDeleteWithRestPath() throws Exception {
+		// given
+		UserEntity user = persistUser("rest-deleter@test.com");
+		PostsEntity post = persistPost(user, qnaCategory, "REST 삭제", "내용");
+
+		// when
+		mockMvc.perform(delete("/api/posts/{postId}", post.getId())
+				.with(jwt().jwt(jwt -> jwt.subject(user.getUuid().toString()))
+					.authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+			.andExpect(status().isOk());
+
+		// then
+		PostsEntity found = entityManager.find(PostsEntity.class, post.getId());
+		assertThat(found.getDeletedAt()).isNotNull();
+	}
+
 	private UserEntity persistUser(String email) {
 		UserEntity user = newEntity(UserEntity.class);
 		ReflectionTestUtils.setField(user, "uuid", UUID.randomUUID());

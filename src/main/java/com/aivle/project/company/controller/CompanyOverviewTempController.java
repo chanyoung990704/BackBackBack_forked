@@ -31,10 +31,25 @@ public class CompanyOverviewTempController {
 	private final CompanyOverviewService companyOverviewService;
 	private final CompaniesRepository companiesRepository;
 
+	@GetMapping("/{companyId}")
+	@Operation(
+		summary = "기업 상세 개요 조회",
+		description = "기업 ID(또는 종목 코드) 기준으로 기업 개요를 조회합니다.",
+		security = @SecurityRequirement(name = "bearerAuth")
+	)
+	public ResponseEntity<ApiResponse<CompanyOverviewResponseDto>> getOverviewById(
+		@Parameter(description = "기업 ID 또는 종목 코드", example = "000020")
+		@PathVariable("companyId") String companyId,
+		@Parameter(description = "분기 키 (비어있으면 최신 분기 자동 조회, 예: 202401)", example = "202401")
+		@RequestParam(value = "quarterKey", required = false) String quarterKey
+	) {
+		return ResponseEntity.ok(ApiResponse.ok(fetchOverview(companyId, quarterKey)));
+	}
+
 	@GetMapping("/{companyId}/overview")
 	@Operation(
-		summary = "기업 개요 조회",
-		description = "Swagger에서 CompanyOverviewResponseDto위한 API입니다.",
+		summary = "기업 개요 조회(하위호환)",
+		description = "기존 하위호환 경로입니다.",
 		security = @SecurityRequirement(name = "bearerAuth")
 	)
 	public ResponseEntity<ApiResponse<CompanyOverviewResponseDto>> getOverview(
@@ -43,9 +58,12 @@ public class CompanyOverviewTempController {
 		@Parameter(description = "분기 키 (비어있으면 최신 분기 자동 조회, 예: 202401)", example = "202401")
 		@RequestParam(value = "quarterKey", required = false) String quarterKey
 	) {
+		return ResponseEntity.ok(ApiResponse.ok(fetchOverview(companyId, quarterKey)));
+	}
+
+	private CompanyOverviewResponseDto fetchOverview(String companyId, String quarterKey) {
 		Long resolvedCompanyId = resolveCompanyId(companyId);
-		CompanyOverviewResponseDto response = companyOverviewService.getOverview(resolvedCompanyId, quarterKey);
-		return ResponseEntity.ok(ApiResponse.ok(response));
+		return companyOverviewService.getOverview(resolvedCompanyId, quarterKey);
 	}
 
 	private Long resolveCompanyId(String companyIdOrCode) {

@@ -32,10 +32,10 @@ public class ReportAnalysisController {
 	/**
 	 * AI 서버에서 사업보고서 분석 데이터를 가져와 저장합니다.
 	 *
-	 * @param stockCode 기업 코드 (stock_code)
+	 * @param companyId 기업 식별자(현재는 stock_code도 허용)
 	 * @return 저장된 사업보고서 분석 정보
 	 */
-	@PostMapping("/{stockCode}/report/fetch")
+	@PostMapping({"/{companyId}/reports/sync", "/{companyId}/report/fetch"})
 	@Operation(summary = "사업보고서 분석 수집", description = "AI 서버에서 사업보고서 분석 데이터를 가져와 저장합니다.")
 	@SecurityRequirement(name = "bearerAuth")
 	@ApiResponses({
@@ -45,20 +45,20 @@ public class ReportAnalysisController {
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
 	})
 	public ResponseEntity<ApiResponse<ReportAnalysisResponse>> fetchReportAnalysis(
-		@Parameter(description = "기업 코드 (stock_code)", example = "000020")
-		@PathVariable String stockCode
+		@Parameter(description = "기업 식별자(companyId 또는 stock_code)", example = "000020")
+		@PathVariable String companyId
 	) {
-		ReportAnalysisResponse result = reportAnalysisService.fetchAndStoreReport(stockCode);
+		ReportAnalysisResponse result = reportAnalysisService.fetchAndStoreReport(companyId);
 		return ResponseEntity.ok(ApiResponse.ok(result));
 	}
 
 	/**
 	 * 특정 기업의 최신 사업보고서 분석을 조회합니다.
 	 *
-	 * @param stockCode 기업 코드 (stock_code)
+	 * @param companyId 기업 식별자(현재는 stock_code도 허용)
 	 * @return 최신 사업보고서 분석 정보
 	 */
-	@GetMapping("/{stockCode}/report/latest")
+	@GetMapping({"/{companyId}/reports/latest", "/{companyId}/report/latest"})
 	@Operation(summary = "최신 사업보고서 분석 조회", description = "기업의 최신 사업보고서 분석 결과를 조회합니다.")
 	@SecurityRequirement(name = "bearerAuth")
 	@ApiResponses({
@@ -68,16 +68,16 @@ public class ReportAnalysisController {
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "기업을 찾을 수 없음")
 	})
 	public ResponseEntity<ApiResponse<ReportAnalysisResponse>> getLatestReportAnalysis(
-		@Parameter(description = "기업 코드 (stock_code)", example = "000020")
-		@PathVariable String stockCode
+		@Parameter(description = "기업 식별자(companyId 또는 stock_code)", example = "000020")
+		@PathVariable String companyId
 	) {
-		ReportAnalysisResponse result = reportAnalysisService.getLatestReport(stockCode);
+		ReportAnalysisResponse result = reportAnalysisService.getLatestReport(companyId);
 		if (result == null) {
 			return ResponseEntity.ok(ApiResponse.fail(
 				com.aivle.project.common.error.ErrorResponse.of(
 					"NO_REPORT_DATA",
 					"사업보고서 분석 데이터가 없습니다.",
-					"/api/companies/" + stockCode + "/report/latest"
+					"/api/companies/" + companyId + "/reports/latest"
 				)
 			));
 		}

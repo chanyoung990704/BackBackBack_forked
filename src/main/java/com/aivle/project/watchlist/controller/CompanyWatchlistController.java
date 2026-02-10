@@ -110,7 +110,7 @@ public class CompanyWatchlistController {
 //		return ResponseEntity.ok(com.aivle.project.common.dto.ApiResponse.ok(response));
 //	}
 
-	@GetMapping("/metric-values")
+	@GetMapping({"/metrics/values", "/metric-values"})
 	@Operation(summary = "워치리스트 지표 값 조회", description = "선택한 분기(또는 분기 범위)에 대해 워치리스트 기업들의 ACTUAL 지표 값을 최신 발행 버전 기준으로 조회합니다.")
 	@ApiResponses({
 		@ApiResponse(responseCode = "200", description = "조회 성공"),

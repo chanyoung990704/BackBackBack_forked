@@ -42,7 +42,7 @@ public class CompanyAiController {
     private final FileStreamService fileStreamService;
     private final AiReportRequestStatusService aiReportRequestStatusService;
 
-    @GetMapping("/{companyId}/ai-analysis")
+    @GetMapping({"/{companyId}/analysis", "/{companyId}/ai-analysis"})
     @Operation(summary = "기업 AI 분석 조회", description = "기업 ID로 AI 예측 분석 결과를 조회합니다. 연도와 분기를 입력하면 해당 시점의 예측치를 조회하며, 미입력 시 최신 실적 기준 다음 분기를 조회합니다.", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<AiAnalysisResponse>> getCompanyAnalysis(
         @Parameter(description = "기업 ID", example = "1")
@@ -56,7 +56,7 @@ public class CompanyAiController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
-    @PostMapping("/{companyId}/ai-report/request")
+    @PostMapping({"/{companyId}/ai-reports/requests", "/{companyId}/ai-report/request"})
     @Operation(summary = "AI 리포트 생성 요청", description = "AI 리포트 생성을 비동기로 요청합니다. 반환된 requestId로 상태를 확인할 수 있습니다.", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<AiReportRequestResponse>> requestAiReport(
         @Parameter(description = "기업 ID", example = "1")
@@ -72,7 +72,7 @@ public class CompanyAiController {
         return ResponseEntity.accepted().body(ApiResponse.ok(new AiReportRequestResponse(requestId)));
     }
 
-    @GetMapping("/{companyId}/ai-report/status/{requestId}")
+    @GetMapping({"/{companyId}/ai-reports/requests/{requestId}", "/{companyId}/ai-report/status/{requestId}"})
     @Operation(summary = "AI 리포트 생성 상태 조회", description = "요청 ID로 리포트 생성 상태를 확인합니다.", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<AiReportStatusResponse>> getReportStatus(
         @Parameter(description = "기업 ID", example = "1")
@@ -85,7 +85,7 @@ public class CompanyAiController {
             .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/{companyId}/ai-report")
+    @PostMapping({"/{companyId}/ai-reports", "/{companyId}/ai-report"})
     @Operation(summary = "기업 AI 리포트 PDF 생성/저장 (동기)", description = "AI 서버에서 PDF를 받아 파일 스토리지와 DB에 저장합니다. 연도와 분기를 입력하면 해당 보고서 버전으로 등록됩니다. (1분 이상 소요)", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<ApiResponse<AiReportFileResponse>> generateCompanyAiReport(
         @Parameter(description = "기업 ID", example = "1")
@@ -99,7 +99,7 @@ public class CompanyAiController {
         return ResponseEntity.ok(ApiResponse.ok(AiReportFileResponse.from(file)));
     }
 
-    @GetMapping("/{companyId}/ai-report/download")
+    @GetMapping({"/{companyId}/ai-reports/file", "/{companyId}/ai-report/download"})
     @Operation(summary = "기업 AI 리포트 PDF 다운로드", description = "특정 분기의 AI 리포트 PDF를 다운로드합니다.", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<?> downloadAiReport(
         @Parameter(description = "기업 ID", example = "1")
