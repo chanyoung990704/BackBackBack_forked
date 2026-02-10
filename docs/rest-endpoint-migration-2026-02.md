@@ -42,6 +42,17 @@
 ### Watchlist
 - `GET /api/watchlists/metric-values` -> `GET /api/watchlists/metrics/values`
 
+### Admin (User Context Query)
+- `GET /api/admin/users` -> 활성(`ACTIVE`) + 미삭제 사용자 목록(`id`, `name`, `email`) 조회
+- `GET /api/admin/dashboard/summary?userId=...` -> 특정 사용자 기준 대시보드 요약 조회
+- `GET /api/admin/companies?userId=...` -> 특정 사용자 워치리스트 기업 목록 조회
+- `GET /api/admin/companies/{id}/overview?userId=...` -> 특정 사용자 기준 기업 개요 조회
+- `GET /api/admin/companies/{id}/insights?userId=...` -> 특정 사용자 기준 기업 인사이트 조회
+
+#### Admin 사용자 조회 규칙
+- `userId`는 대상 사용자 존재 여부 + `ACTIVE` 상태 + 미삭제(`deleted_at IS NULL`)를 검증합니다.
+- `overview/insights`는 사용자-기업 소속 여부를 강제하지 않고, 사용자 유효성만 확인합니다.
+
 ## 하위호환 정책
 - 위 Old 경로는 현재 릴리즈에서 계속 동작하도록 유지합니다.
 - 신규 개발/프론트 연동은 New 경로 사용을 권장합니다.

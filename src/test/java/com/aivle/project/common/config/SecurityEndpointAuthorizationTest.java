@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.aivle.project.company.service.CompanySearchService;
 import com.aivle.project.dashboard.service.DashboardSummaryService;
 import com.aivle.project.metricaverage.service.MetricAverageBatchService;
+import com.aivle.project.user.dto.AdminUserListItemDto;
+import com.aivle.project.user.service.AdminUserQueryService;
 import com.aivle.project.watchlist.service.CompanyWatchlistService;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -42,6 +44,9 @@ class SecurityEndpointAuthorizationTest {
 
 	@MockBean
 	private MetricAverageBatchService metricAverageBatchService;
+
+	@MockBean
+	private AdminUserQueryService adminUserQueryService;
 
 	@Test
 	@DisplayName("공개 검색 API는 인증 없이 접근 가능하다")
@@ -80,6 +85,30 @@ class SecurityEndpointAuthorizationTest {
 	void adminEndpoint_shouldDenyUserRole() throws Exception {
 		// when & then
 		mockMvc.perform(post("/api/admin/metric-averages/initialize")
+				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L))
+					.authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@DisplayName("관리자 사용자 목록 API는 ROLE_ADMIN 토큰으로 접근 가능하다")
+	void adminUsersEndpoint_shouldAllowAdminRole() throws Exception {
+		// given
+		given(adminUserQueryService.getActiveUsers())
+			.willReturn(List.of(new AdminUserListItemDto(1L, "관리자", "admin@test.com")));
+
+		// when & then
+		mockMvc.perform(get("/api/admin/users")
+				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L))
+					.authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	@DisplayName("관리자 사용자 목록 API는 ROLE_USER 토큰으로 접근하면 403을 반환한다")
+	void adminUsersEndpoint_shouldDenyUserRole() throws Exception {
+		// when & then
+		mockMvc.perform(get("/api/admin/users")
 				.with(jwt().jwt(jwt -> jwt.claim("userId", 1L))
 					.authorities(new SimpleGrantedAuthority("ROLE_USER"))))
 			.andExpect(status().isForbidden());
