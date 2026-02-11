@@ -43,3 +43,5 @@ out/
 *.log
 .gemini/
 gha-creds-*.json
+perf/results/*
+!perf/results/.gitkeep

@@ -8,6 +8,7 @@ import org.springframework.core.codec.DecodingException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -19,11 +20,19 @@ import java.util.Map;
 public class NewsClient {
 
     private final WebClient webClient;
+    private final boolean mockEnabled;
+    private final long mockLatencyMs;
 
-    public NewsClient(@Value("${ai.server.url}") String aiServerUrl) {
+    public NewsClient(
+        @Value("${ai.server.url}") String aiServerUrl,
+        @Value("${ai.server.mock.enabled:false}") boolean mockEnabled,
+        @Value("${ai.server.mock.latency-ms:0}") long mockLatencyMs
+    ) {
         this.webClient = WebClient.builder()
                 .baseUrl(aiServerUrl)
                 .build();
+        this.mockEnabled = mockEnabled;
+        this.mockLatencyMs = mockLatencyMs;
     }
 
     /**
@@ -35,6 +44,11 @@ public class NewsClient {
      */
 	public NewsApiResponse fetchNews(String companyCode, String companyName) {
 		log.info("Requesting news for company: {} ({})", companyCode, companyName);
+
+		if (mockEnabled) {
+			applyMockLatency();
+			return mockNews(companyCode, companyName);
+		}
 
         try {
             return webClient.post()
@@ -62,6 +76,11 @@ public class NewsClient {
 	public com.aivle.project.company.reportanalysis.dto.ReportApiResponse fetchReport(String companyCode) {
 		log.info("Requesting report analysis for company: {}", companyCode);
 
+		if (mockEnabled) {
+			applyMockLatency();
+			return mockReport(companyCode);
+		}
+
 		try {
 			return webClient.get()
 				.uri("/api/v1/news/{companyCode}/report", companyCode)
@@ -75,5 +94,47 @@ public class NewsClient {
 			log.error("Failed to fetch report analysis for company {}: {}", companyCode, e.getMessage());
 			throw new RuntimeException("AI Server connection failed", e);
 		}
+	}
+
+	private void applyMockLatency() {
+		if (mockLatencyMs <= 0) {
+			return;
+		}
+		try {
+			Thread.sleep(mockLatencyMs);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+	}
+
+	private NewsApiResponse mockNews(String companyCode, String companyName) {
+		LocalDateTime now = LocalDateTime.now();
+		List<NewsItemResponse> items = List.of(
+			new NewsItemResponse("모의 뉴스 1", "요약 1", 0.71, now.minusMinutes(2).toString(), "https://example.com/news/1", "POS"),
+			new NewsItemResponse("모의 뉴스 2", "요약 2", 0.22, now.minusMinutes(5).toString(), "https://example.com/news/2", "NEU"),
+			new NewsItemResponse("모의 뉴스 3", "요약 3", -0.12, now.minusMinutes(8).toString(), "https://example.com/news/3", "NEG")
+		);
+		return new NewsApiResponse(
+			companyName == null ? "PERF_MOCK_COMPANY" : companyName,
+			items.size(),
+			items,
+			0.27,
+			now.toString()
+		);
+	}
+
+	private com.aivle.project.company.reportanalysis.dto.ReportApiResponse mockReport(String companyCode) {
+		LocalDateTime now = LocalDateTime.now();
+		List<NewsItemResponse> items = List.of(
+			new NewsItemResponse("모의 리포트 1", "리포트 요약 1", 0.61, now.minusMinutes(3).toString(), "https://example.com/report/1", "POS"),
+			new NewsItemResponse("모의 리포트 2", "리포트 요약 2", 0.14, now.minusMinutes(7).toString(), "https://example.com/report/2", "NEU")
+		);
+		return new com.aivle.project.company.reportanalysis.dto.ReportApiResponse(
+			"PERF_MOCK_COMPANY_" + companyCode,
+			items.size(),
+			items,
+			0.38,
+			now.toString()
+		);
 	}
 }

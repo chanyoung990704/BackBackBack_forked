@@ -32,6 +32,7 @@ class TurnstileServiceTest {
         ReflectionTestUtils.setField(turnstileService, "secretKey", "test-secret-key");
         ReflectionTestUtils.setField(turnstileService, "verifyUrl", mockWebServer.url("/").toString());
         ReflectionTestUtils.setField(turnstileService, "timeoutMs", 5000);
+        ReflectionTestUtils.setField(turnstileService, "mockAllowAll", false);
     }
 
     @AfterEach
@@ -117,6 +118,17 @@ class TurnstileServiceTest {
         // When & Then
         StepVerifier.create(turnstileService.verifyToken("some-token", null))
             .expectNext(false)
+            .verifyComplete();
+    }
+
+    @Test
+    void shouldReturnTrueWhenMockAllowAllEnabled() {
+        // Given
+        ReflectionTestUtils.setField(turnstileService, "mockAllowAll", true);
+
+        // When & Then
+        StepVerifier.create(turnstileService.verifyToken("", null))
+            .expectNext(true)
             .verifyComplete();
     }
 

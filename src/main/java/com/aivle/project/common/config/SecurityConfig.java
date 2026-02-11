@@ -173,6 +173,10 @@ public class SecurityConfig {
 				if (isDevProfile()) {
 					authorize.requestMatchers("/dev/**").permitAll();
 				}
+				if (isPerfProfile()) {
+					authorize.requestMatchers("/api/perf/**").permitAll();
+					authorize.requestMatchers("/actuator/metrics", "/actuator/metrics/**").permitAll();
+				}
 				authorize.requestMatchers("/api/admin/**").hasRole("ADMIN");
 				authorize.anyRequest().authenticated();
 			})
@@ -304,6 +308,10 @@ public class SecurityConfig {
 
 	private boolean isDevProfile() {
 		return Arrays.asList(environment.getActiveProfiles()).contains("dev");
+	}
+
+	private boolean isPerfProfile() {
+		return Arrays.asList(environment.getActiveProfiles()).contains("perf");
 	}
 
 	private boolean containsLegacyPrefix(List<String> roles) {

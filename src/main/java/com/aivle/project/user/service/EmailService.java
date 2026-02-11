@@ -26,7 +26,7 @@ public class EmailService {
     /**
      * 이메일 인증 링크 전송 (비동기).
      */
-    @Async
+    @Async("emailExecutor")
     public void sendVerificationEmail(String toEmail, String verificationToken) {
         try {
             String subject = "Aivle Project - 이메일 인증";

@@ -37,6 +37,9 @@ public class TurnstileService {
     @Value("${turnstile.debug-enabled:false}")
     private boolean debugEnabled;
 
+    @Value("${turnstile.mock-allow-all:false}")
+    private boolean mockAllowAll;
+
     /**
      * Turnstile 토큰을 검증합니다.
      *
@@ -45,6 +48,11 @@ public class TurnstileService {
      * @return 검증 성공 여부
      */
     public Mono<Boolean> verifyToken(String token, String remoteIp) {
+        if (mockAllowAll) {
+            logTurnstileDebug("Turnstile mock mode enabled. tokenPrefix={}, remoteIp={}", maskToken(token), remoteIp);
+            return Mono.just(true);
+        }
+
         if (!StringUtils.hasText(token)) {
             log.warn("Turnstile token is empty or blank");
             return Mono.just(false);

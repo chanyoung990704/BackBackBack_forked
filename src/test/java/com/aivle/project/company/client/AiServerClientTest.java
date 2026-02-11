@@ -28,7 +28,7 @@ class AiServerClientTest {
         mockWebServer.start();
         // 테스트용 Mock 서버 URL로 클라이언트 초기화
         String baseUrl = mockWebServer.url("/").toString();
-        aiServerClient = new AiServerClient(baseUrl);
+        aiServerClient = new AiServerClient(baseUrl, false, 0);
     }
 
     @AfterEach
@@ -149,12 +149,26 @@ class AiServerClientTest {
     }
 
     @Test
+    @DisplayName("mock 모드 활성 시 외부 호출 없이 예측 결과를 반환한다")
+    void getPrediction_MockMode() {
+        // given
+        AiServerClient mockClient = new AiServerClient("http://localhost:8080", true, 0);
+
+        // when
+        AiAnalysisResponse response = mockClient.getPrediction("005930");
+
+        // then
+        assertThat(response.companyCode()).isEqualTo("005930");
+        assertThat(response.predictions()).containsKeys("ROA", "ROE", "DEBT_RATIO");
+    }
+
+    @Test
     @Disabled("실제 외부 서버와 통신하는 테스트이므로 수동으로만 실행하세요.")
     @DisplayName("실제 AI 서버 연동 통합 테스트")
      void realServerIntegrationTest() {
         // given
         String realServerUrl = "https://bigbig-ai-server.azurewebsites.net";
-        AiServerClient realClient = new AiServerClient(realServerUrl);
+        AiServerClient realClient = new AiServerClient(realServerUrl, false, 0);
         String companyCode = "005930"; // 삼성전자
 
         // when

@@ -174,19 +174,8 @@ public class CompanyAiService {
             CompanyReportsEntity report = companyReportsRepository.findByCompanyIdAndQuarterId(company.getId(), targetQuarterEntity.getId())
                 .orElseGet(() -> companyReportsRepository.save(CompanyReportsEntity.create(company, targetQuarterEntity, null)));
 
-            // 5. 새 리포트 버전 생성
-            int nextVersionNo = companyReportVersionsRepository.findTopByCompanyReportOrderByVersionNoDesc(report)
-                .map(v -> v.getVersionNo() + 1)
-                .orElse(1);
-
-            CompanyReportVersionsEntity version = CompanyReportVersionsEntity.create(
-                report,
-                nextVersionNo,
-                LocalDateTime.now(),
-                true, // 예측 데이터는 즉시 활용 가능
-                null
-            );
-            companyReportVersionsRepository.save(version);
+            // 5. 새 리포트 버전 생성 (report row 잠금으로 version_no 충돌 방지)
+            CompanyReportVersionsEntity version = createNextReportVersionWithLock(report, true, null);
 
             // 6. 지표 매핑 및 값 저장
             Map<String, Double> predictions = response.predictions();
@@ -275,21 +264,10 @@ public class CompanyAiService {
         CompanyReportsEntity report = companyReportsRepository.findByCompanyIdAndQuarterId(company.getId(), quarterEntity.getId())
             .orElseGet(() -> companyReportsRepository.save(CompanyReportsEntity.create(company, quarterEntity, null)));
 
-        // 9. 새 버전 등록
-        int nextVersionNo = companyReportVersionsRepository.findTopByCompanyReportOrderByVersionNoDesc(report)
-            .map(v -> v.getVersionNo() + 1)
-            .orElse(1);
-
-        CompanyReportVersionsEntity version = CompanyReportVersionsEntity.create(
-            report,
-            nextVersionNo,
-            LocalDateTime.now(),
-            true, // 생성과 동시에 발행 상태로 설정
-            filesEntity
-        );
-        companyReportVersionsRepository.save(version);
+        // 9. 새 버전 등록 (report row 잠금으로 version_no 충돌 방지)
+        CompanyReportVersionsEntity version = createNextReportVersionWithLock(report, true, filesEntity);
         log.info("Linked AI report to company_report_versions (ID: {}, Year: {}, Quarter: {}, Version: {})",
-            report.getId(), targetYear, targetQuarter, nextVersionNo);
+            report.getId(), targetYear, targetQuarter, version.getVersionNo());
 
         return filesEntity;
     }
@@ -377,6 +355,32 @@ public class CompanyAiService {
 
         QuartersEntity newQuarter = QuartersEntity.create(year, quarter, quarterKey, startDate, endDate);
         return quartersRepository.save(newQuarter);
+    }
+
+    private CompanyReportVersionsEntity createNextReportVersionWithLock(
+        CompanyReportsEntity report,
+        boolean published,
+        FilesEntity pdfFile
+    ) {
+        CompanyReportsEntity targetReport = report;
+        if (report.getId() != null) {
+            targetReport = companyReportsRepository.findByIdForUpdate(report.getId())
+                .orElse(report);
+        }
+
+        int nextVersionNo = companyReportVersionsRepository.findTopByCompanyReportOrderByVersionNoDesc(targetReport)
+            .map(v -> v.getVersionNo() + 1)
+            .orElse(1);
+
+        CompanyReportVersionsEntity version = CompanyReportVersionsEntity.create(
+            targetReport,
+            nextVersionNo,
+            LocalDateTime.now(),
+            published,
+            pdfFile
+        );
+
+        return companyReportVersionsRepository.save(version);
     }
 
     /**
