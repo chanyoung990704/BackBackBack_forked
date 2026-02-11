@@ -6,6 +6,8 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-11 | 작업: CodeBuild ApplicationContext 실패(뉴스/업종 통합테스트) 대응 | 결과: 테스트 전용 RSA 키(`src/test/resources/jwt`)를 추가하고 `application-test.yaml`에 JWT 키 경로/issuer/kid를 명시했으며, `buildspec.yml` 테스트 단계에서 `JWT_PRIVATE_KEY_PATH`/`JWT_PUBLIC_KEY_PATH`를 강제 지정해 CI 환경 의존성 제거. 대상 4개 테스트 클래스 재실행 통과 | 이슈: 없음
+- 2026-02-10 | 작업: CI 테스트 컨텍스트 연쇄 실패 안정화(#90) | 결과: `dev` 프로필 기반 테스트를 `test`로 통일하고 파일 업로드 통합테스트를 테스트 스토리지 스텁 기준으로 보정, `buildspec.yml`에 test/package 단계 분리 및 상세 로그 옵션 추가 | 이슈: 샌드박스 네트워크 제한으로 `./gradlew bootJar -x test` 단독 검증 불가
 - 2026-02-10 | 작업: companies 이름 FULLTEXT 인덱스 마이그레이션 분리 | 결과: MySQL에 `V25__add_companies_name_fulltext_index.sql` 멱등 인덱스 생성 추가, H2에는 no-op `V25` 추가 | 이슈: 없음
 - 2026-02-10 | 작업: 기업 검색 하이브리드 fallback 적용 | 결과: CompanySearchService에 FULLTEXT 우선 + 실패/0건 LIKE fallback 로직을 추가하고 MySQL FULLTEXT 인덱스(Flyway V25) 및 하이브리드 단위 테스트를 보강함 | 이슈: 레포 기존 테스트 컴파일 오류(SecurityEndpointAuthorizationTest의 dashboard 서비스 import 누락)로 타깃 테스트 단독 실행 불가
 - 2026-02-10 | 작업: 보안 매처/문서 정리 3차 | 결과: `SecurityConfig`를 공개/인증/USER 그룹 상수 기반으로 재정렬해 신/구 URI를 동시 허용하도록 정비하고, `SecurityEndpointAuthorizationTest`를 실제 컨텍스트 기반으로 추가해 공개/인증/USER/ADMIN 권한 회귀를 검증했으며, `docs/rest-endpoint-migration-2026-02.md`에 Old->New 매핑표를 문서화 | 이슈: 없음

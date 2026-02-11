@@ -10,8 +10,6 @@ import com.aivle.project.common.config.TestSecurityConfig;
 import com.aivle.project.file.entity.FilesEntity;
 import com.aivle.project.file.entity.PostFilesEntity;
 import com.aivle.project.file.repository.PostFilesRepository;
-import com.aivle.project.file.storage.FileStorageService;
-import com.aivle.project.file.storage.StoredFile;
 import com.aivle.project.post.entity.PostStatus;
 import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.user.entity.UserEntity;
@@ -27,10 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -39,9 +34,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 @Transactional
-@Import({TestSecurityConfig.class, FileControllerStubStorageTest.StubStorageConfig.class})
+@Import(TestSecurityConfig.class)
 class FileControllerStubStorageTest {
 
 	@Autowired
@@ -121,28 +116,6 @@ class FileControllerStubStorageTest {
 			return ctor.newInstance();
 		} catch (ReflectiveOperationException ex) {
 			throw new IllegalStateException("엔티티 생성에 실패했습니다", ex);
-		}
-	}
-
-	@TestConfiguration
-	static class StubStorageConfig {
-
-		private static final AtomicInteger SEQUENCE = new AtomicInteger(1);
-
-		@Bean
-		@Primary
-		public FileStorageService fileStorageService() {
-			return (file, keyPrefix) -> {
-				int index = SEQUENCE.getAndIncrement();
-				String storedKey = keyPrefix + "/" + index + "-" + file.getOriginalFilename();
-				return new StoredFile(
-					"memory://" + storedKey,
-					file.getOriginalFilename(),
-					file.getSize(),
-					file.getContentType(),
-					storedKey
-				);
-			};
 		}
 	}
 }

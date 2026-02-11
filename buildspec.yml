@@ -11,11 +11,14 @@ phases:
       - chmod +x scripts/*.sh
   build:
     commands:
-      - ./gradlew clean build -x test
+      - rm -rf build/test-results/test build/reports/tests/test
+      - JWT_PRIVATE_KEY_PATH=src/test/resources/jwt/private.pem JWT_PUBLIC_KEY_PATH=src/test/resources/jwt/public.pem JWT_CURRENT_KID=test-key ./gradlew cleanTest test --rerun-tasks --stacktrace --info
+  post_build:
+    commands:
+      - ./gradlew bootJar -x test
 
 artifacts:
   files:
     - appspec.yml
     - build/libs/*.jar
-    - docker-compose*.yml
     - scripts/**/*

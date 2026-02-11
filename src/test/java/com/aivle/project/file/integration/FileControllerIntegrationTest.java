@@ -17,7 +17,6 @@ import com.aivle.project.user.entity.UserStatus;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 @Transactional
 @Import(TestSecurityConfig.class)
 class FileControllerIntegrationTest {
@@ -93,8 +92,8 @@ class FileControllerIntegrationTest {
 
 		for (PostFilesEntity mapping : saved) {
 			FilesEntity file = mapping.getFile();
-			Path storedPath = Path.of(file.getStorageUrl().replace("/", java.io.File.separator));
-			assertThat(Files.exists(storedPath)).isTrue();
+			assertThat(file.getStorageUrl()).startsWith("memory://posts/");
+			assertThat(file.getStorageKey()).startsWith("posts/");
 		}
 	}
 

@@ -7,7 +7,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 APP_NAME="${APP_NAME:-backbackback}"
-APP_DIR="${APP_DIR:-/home/ec2-user/app/BackBackBack}"
+APP_DIR="${APP_DIR:-/opt/project}"
 
 SYSTEMD_DIR="/etc/systemd/system"
 ENV_DIR="/etc/${APP_NAME}"
@@ -45,9 +45,9 @@ After=network.target
 [Service]
 Type=simple
 User=ec2-user
-WorkingDirectory=/opt/app
+WorkingDirectory=/opt/project
 EnvironmentFile=/etc/backbackback/backbackback.env
-ExecStart=/usr/bin/java $JAVA_OPTS -jar /opt/app/app.jar
+ExecStart=/usr/bin/java $JAVA_OPTS -jar /opt/project/app.jar
 SuccessExitStatus=143
 Restart=always
 RestartSec=10

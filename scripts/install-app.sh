@@ -6,9 +6,10 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-APP_DIR="${APP_DIR:-/home/ec2-user/app/BackBackBack}"
-TARGET_DIR="${TARGET_DIR:-/opt/app}"
+APP_DIR="${APP_DIR:-/opt/project}"
+TARGET_DIR="${TARGET_DIR:-/opt/project}"
 TARGET_JAR="${TARGET_JAR:-$TARGET_DIR/app.jar}"
+BACKUP_DIR="${BACKUP_DIR:-$TARGET_DIR/backup}"
 
 JAR_DIR="${APP_DIR}/build/libs"
 if [ ! -d "$JAR_DIR" ]; then
@@ -38,6 +39,12 @@ if [ -z "$JAR_PATH" ]; then
 fi
 
 mkdir -p "$TARGET_DIR"
+mkdir -p "$BACKUP_DIR"
+
+if [ -f "$TARGET_JAR" ]; then
+  cp "$TARGET_JAR" "$BACKUP_DIR/app-$(date +%Y%m%d%H%M%S).jar"
+fi
+
 cp "$JAR_PATH" "$TARGET_JAR"
 chown ec2-user:ec2-user "$TARGET_JAR"
 chmod 644 "$TARGET_JAR"

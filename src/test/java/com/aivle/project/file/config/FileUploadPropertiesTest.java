@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest(
 	classes = FileStorageConfig.class,
@@ -28,6 +29,7 @@ import org.springframework.core.env.Environment;
 			+ "org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration"
 	}
 )
+@ActiveProfiles("test")
 class FileUploadPropertiesTest {
 
 	@Autowired

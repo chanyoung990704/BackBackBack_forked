@@ -17,3 +17,10 @@ spring:
 
 turnstile:
   secret-key: test-secret-key
+
+jwt:
+  issuer: project-test
+  keys:
+    private-key-path: src/test/resources/jwt/private.pem
+    public-key-path: src/test/resources/jwt/public.pem
+    current-kid: test-key

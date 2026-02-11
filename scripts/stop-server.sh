@@ -11,9 +11,9 @@ if command -v systemctl >/dev/null 2>&1; then
   fi
 fi
 
-APP_DIR="${APP_DIR:-/home/ec2-user/app/BackBackBack}"
+APP_DIR="${APP_DIR:-/opt/project}"
 PID_FILE="${PID_FILE:-$APP_DIR/app.pid}"
-JAR_PATH="${JAR_PATH:-$APP_DIR/build/libs/project-0.0.1-SNAPSHOT.jar}"
+JAR_PATH="${JAR_PATH:-$APP_DIR/app.jar}"
 
 PID=""
 if [ -f "$PID_FILE" ]; then

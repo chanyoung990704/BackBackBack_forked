@@ -64,7 +64,7 @@ import org.testcontainers.utility.DockerImageName;
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 @Transactional
 @Import({AuthIntegrationTest.TestSecurityController.class, TestSecurityConfig.class})
 class AuthIntegrationTest {

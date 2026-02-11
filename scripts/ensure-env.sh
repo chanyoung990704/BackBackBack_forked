@@ -7,7 +7,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 APP_NAME="${APP_NAME:-backbackback}"
-APP_DIR="${APP_DIR:-/home/ec2-user/app/BackBackBack}"
+APP_DIR="${APP_DIR:-/opt/project}"
 LOG_DIR="${LOG_DIR:-$APP_DIR/logs}"
 
 ENV_DIR="/etc/${APP_NAME}"
