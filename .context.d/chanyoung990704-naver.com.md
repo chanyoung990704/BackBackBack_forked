@@ -6,6 +6,9 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-11 | 작업: 관리자 사용자 목록에서 ROLE_ADMIN 제외(#91) | 결과: `UserRepository`에 `NOT EXISTS` 기반 역할 제외 쿼리를 추가하고 `AdminUserQueryService` 호출을 변경했으며, `UserRepositoryTest`로 관리자/복합권한 제외 동작을 검증함. `./gradlew test` 전체 통과 | 이슈: 없음
+- 2026-02-11 | 작업: CodeBuild ApplicationContext 실패(뉴스/업종 통합테스트) 대응 | 결과: 테스트 전용 RSA 키(`src/test/resources/jwt`)를 추가하고 `application-test.yaml`에 JWT 키 경로/issuer/kid를 명시했으며, `buildspec.yml` 테스트 단계에서 `JWT_PRIVATE_KEY_PATH`/`JWT_PUBLIC_KEY_PATH`를 강제 지정해 CI 환경 의존성 제거. 대상 4개 테스트 클래스 재실행 통과 | 이슈: 없음
+- 2026-02-10 | 작업: CI 테스트 컨텍스트 연쇄 실패 안정화(#90) | 결과: `dev` 프로필 기반 테스트를 `test`로 통일하고 파일 업로드 통합테스트를 테스트 스토리지 스텁 기준으로 보정, `buildspec.yml`에 test/package 단계 분리 및 상세 로그 옵션 추가 | 이슈: 샌드박스 네트워크 제한으로 `./gradlew bootJar -x test` 단독 검증 불가
 - 2026-02-11 | 작업: CodeBuild ApplicationContext 실패(뉴스/업종 통합테스트) 대응 | 결과: 테스트 전용 RSA 키(`src/test/resources/jwt`)를 추가하고 `application-test.yaml`에 JWT 키 경로/issuer/kid를 명시했으며, `buildspec.yml` 테스트 단계에서 `JWT_PRIVATE_KEY_PATH`/`JWT_PUBLIC_KEY_PATH`를 강제 지정해 CI 환경 의존성 제거. 대상 4개 테스트 클래스 재실행 통과 | 이슈: 없음
 - 2026-02-10 | 작업: CI 테스트 컨텍스트 연쇄 실패 안정화(#90) | 결과: `dev` 프로필 기반 테스트를 `test`로 통일하고 파일 업로드 통합테스트를 테스트 스토리지 스텁 기준으로 보정, `buildspec.yml`에 test/package 단계 분리 및 상세 로그 옵션 추가 | 이슈: 샌드박스 네트워크 제한으로 `./gradlew bootJar -x test` 단독 검증 불가
 - 2026-02-10 | 작업: companies 이름 FULLTEXT 인덱스 마이그레이션 분리 | 결과: MySQL에 `V25__add_companies_name_fulltext_index.sql` 멱등 인덱스 생성 추가, H2에는 no-op `V25` 추가 | 이슈: 없음

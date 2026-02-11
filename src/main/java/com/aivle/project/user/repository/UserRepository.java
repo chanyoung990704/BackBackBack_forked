@@ -1,6 +1,7 @@
 package com.aivle.project.user.repository;
 
 import com.aivle.project.user.dto.AdminUserListItemDto;
+import com.aivle.project.user.entity.RoleName;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.entity.UserStatus;
 import java.util.List;
@@ -25,10 +26,29 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 		select new com.aivle.project.user.dto.AdminUserListItemDto(u.id, u.name, u.email)
 		from UserEntity u
 		where u.status = :status
-			and u.deletedAt is null
+				and u.deletedAt is null
 		order by u.id asc
 		""")
 	List<AdminUserListItemDto> findListByStatusAndDeletedAtIsNullOrderByIdAsc(@Param("status") UserStatus status);
+
+	@Query("""
+		select new com.aivle.project.user.dto.AdminUserListItemDto(u.id, u.name, u.email)
+		from UserEntity u
+		where u.status = :status
+			and u.deletedAt is null
+			and not exists (
+				select 1
+				from UserRoleEntity ur
+				join ur.role r
+				where ur.user = u
+					and r.name = :excludedRole
+			)
+		order by u.id asc
+		""")
+	List<AdminUserListItemDto> findListByStatusAndDeletedAtIsNullOrderByIdAscExcludingRole(
+		@Param("status") UserStatus status,
+		@Param("excludedRole") RoleName excludedRole
+	);
 
 	boolean existsByIdAndStatusAndDeletedAtIsNull(Long id, UserStatus status);
 }

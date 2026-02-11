@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.user.dto.AdminUserListItemDto;
+import com.aivle.project.user.entity.RoleName;
 import com.aivle.project.user.entity.UserStatus;
 import com.aivle.project.user.repository.UserRepository;
 import java.util.List;
@@ -35,7 +36,10 @@ class AdminUserQueryServiceTest {
 			new AdminUserListItemDto(1L, "홍길동", "hong@test.com"),
 			new AdminUserListItemDto(2L, "김테스트", "kim@test.com")
 		);
-		given(userRepository.findListByStatusAndDeletedAtIsNullOrderByIdAsc(UserStatus.ACTIVE))
+		given(userRepository.findListByStatusAndDeletedAtIsNullOrderByIdAscExcludingRole(
+			UserStatus.ACTIVE,
+			RoleName.ROLE_ADMIN
+		))
 			.willReturn(expected);
 
 		// when

@@ -3,6 +3,7 @@ package com.aivle.project.user.service;
 import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.user.dto.AdminUserListItemDto;
+import com.aivle.project.user.entity.RoleName;
 import com.aivle.project.user.entity.UserStatus;
 import com.aivle.project.user.repository.UserRepository;
 import java.util.List;
@@ -24,7 +25,10 @@ public class AdminUserQueryService {
 	 * 활성 + 미삭제 사용자 목록을 반환한다.
 	 */
 	public List<AdminUserListItemDto> getActiveUsers() {
-		return userRepository.findListByStatusAndDeletedAtIsNullOrderByIdAsc(UserStatus.ACTIVE);
+		return userRepository.findListByStatusAndDeletedAtIsNullOrderByIdAscExcludingRole(
+			UserStatus.ACTIVE,
+			RoleName.ROLE_ADMIN
+		);
 	}
 
 	/**
