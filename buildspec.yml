@@ -40,5 +40,6 @@ artifacts:
   files:
     - appspec.yml
     - image-uri.env
+    - build/libs/app.jar
     - docker-compose.app.yml
     - scripts/**/*
