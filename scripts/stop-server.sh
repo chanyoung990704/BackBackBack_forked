@@ -2,6 +2,26 @@
 set -euo pipefail
 
 APP_NAME="${APP_NAME:-backbackback}"
+APP_DIR="${APP_DIR:-/opt/project}"
+LIB_FILE="${APP_DIR}/scripts/lib/deploy-runtime.sh"
+
+if [ -f "$LIB_FILE" ]; then
+  # shellcheck disable=SC1090
+  . "$LIB_FILE"
+  DEPLOY_RUNTIME_RESOLVED="$(resolve_deploy_runtime)"
+else
+  DEPLOY_RUNTIME_RESOLVED="${DEPLOY_RUNTIME:-systemd}"
+fi
+
+if [ "$DEPLOY_RUNTIME_RESOLVED" = "docker" ]; then
+  if [ ! -f "$LIB_FILE" ]; then
+    echo "[WARN] docker 런타임 공통 스크립트가 없어 종료를 건너뜁니다: $LIB_FILE" >&2
+    exit 0
+  fi
+  run_compose_command down --remove-orphans || true
+  echo "[INFO] 서버 종료 완료 (docker compose)"
+  exit 0
+fi
 
 if command -v systemctl >/dev/null 2>&1; then
   if systemctl list-unit-files --type=service | awk '{print $1}' | grep -qx "${APP_NAME}.service"; then
@@ -11,7 +31,6 @@ if command -v systemctl >/dev/null 2>&1; then
   fi
 fi
 
-APP_DIR="${APP_DIR:-/opt/project}"
 PID_FILE="${PID_FILE:-$APP_DIR/app.pid}"
 JAR_PATH="${JAR_PATH:-$APP_DIR/app.jar}"
 

@@ -1,5 +1,10 @@
 version: 0.2
 
+env:
+  variables:
+    AWS_REGION: ap-northeast-2
+    ECR_REPO_URI: 160885260227.dkr.ecr.ap-northeast-2.amazonaws.com/aivle-back-app
+
 phases:
   install:
     runtime-versions:
@@ -9,16 +14,24 @@ phases:
       - chmod +x gradlew
       - ./gradlew --version
       - chmod +x scripts/*.sh
+      - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
+      - REPO_HOST="${ECR_REPO_URI%%/*}"
+      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REPO_HOST"
   build:
     commands:
       - rm -rf build/test-results/test build/reports/tests/test
       - JWT_PRIVATE_KEY_PATH=src/test/resources/jwt/private.pem JWT_PUBLIC_KEY_PATH=src/test/resources/jwt/public.pem JWT_CURRENT_KID=test-key ./gradlew cleanTest test --rerun-tasks --stacktrace --info
+      - ./gradlew bootJar -x test
+      - docker build -t "$ECR_REPO_URI:$IMAGE_TAG" -t "$ECR_REPO_URI:latest" .
   post_build:
     commands:
-      - ./gradlew bootJar -x test
+      - docker push "$ECR_REPO_URI:$IMAGE_TAG"
+      - docker push "$ECR_REPO_URI:latest"
+      - echo "APP_IMAGE=$ECR_REPO_URI:$IMAGE_TAG" > image-uri.env
 
 artifacts:
   files:
     - appspec.yml
-    - build/libs/*.jar
+    - image-uri.env
+    - docker-compose.app.yml
     - scripts/**/*

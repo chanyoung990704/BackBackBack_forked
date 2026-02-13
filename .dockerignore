@@ -1,0 +1,15 @@
+.git
+.github
+.gradle
+.idea
+.context.d
+.context.md
+build/
+logs/
+upload/
+perf/results/
+*.log
+test_output.log
+spy.log
+jmeter.log
+AGENTS.md

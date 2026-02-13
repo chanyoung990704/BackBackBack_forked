@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  app:
+    env_file:
+      - ${LOCAL_ENV_FILE:-.env}
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      REDIS_HOST: ${REDIS_HOST_DOCKER:-redis}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-bigprj}?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-${MYSQL_USER:-bigprj}}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-${MYSQL_PASSWORD:-bigprj}}
+    volumes:
+      - ${JWT_HOST_PATH:-./secrets/jwt}:/secrets/jwt:ro
+      - ${UPLOAD_HOST_PATH:-./upload/files}:/var/app/uploads
+      - ${LOG_HOST_PATH:-./logs}:/var/log/backbackback
+    depends_on:
+      - redis
+      - mysql
+
+  redis:
+    env_file:
+      - ${LOCAL_ENV_FILE:-.env}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  mysql:
+    image: mysql:8.0
+    container_name: project-mysql-local
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-bigprj}
+      MYSQL_USER: ${MYSQL_USER:-bigprj}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-bigprj}
+      TZ: Asia/Seoul
+    command:
+      - "--character-set-server=utf8mb4"
+      - "--collation-server=utf8mb4_unicode_ci"
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data-local:/var/lib/mysql
+
+volumes:
+  mysql-data-local:

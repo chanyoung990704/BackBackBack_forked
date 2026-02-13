@@ -8,6 +8,7 @@ fi
 
 APP_NAME="${APP_NAME:-backbackback}"
 APP_DIR="${APP_DIR:-/opt/project}"
+LIB_FILE="${APP_DIR}/scripts/lib/deploy-runtime.sh"
 
 SYSTEMD_DIR="/etc/systemd/system"
 ENV_DIR="/etc/${APP_NAME}"
@@ -16,6 +17,19 @@ ENV_FILE="${ENV_DIR}/${APP_NAME}.env"
 
 SERVICE_SOURCE="${APP_DIR}/scripts/systemd/${APP_NAME}.service"
 ENV_SOURCE="${APP_DIR}/scripts/systemd/${APP_NAME}.env.example"
+
+if [ -f "$LIB_FILE" ]; then
+  # shellcheck disable=SC1090
+  . "$LIB_FILE"
+  DEPLOY_RUNTIME_RESOLVED="$(resolve_deploy_runtime)"
+else
+  DEPLOY_RUNTIME_RESOLVED="${DEPLOY_RUNTIME:-systemd}"
+fi
+
+if [ "$DEPLOY_RUNTIME_RESOLVED" = "docker" ]; then
+  echo "[INFO] DEPLOY_RUNTIME=docker 이므로 systemd 설치를 건너뜁니다."
+  exit 0
+fi
 
 mkdir -p "$ENV_DIR"
 

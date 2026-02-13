@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  app:
+    image: ${APP_IMAGE:?APP_IMAGE is required}
+    container_name: backbackback-app
+    restart: always
+    env_file:
+      - ${APP_ENV_FILE:-/etc/backbackback/backbackback.env}
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      REDIS_HOST: ${REDIS_HOST_DOCKER:-redis}
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    depends_on:
+      - redis
+    volumes:
+      - ${JWT_HOST_PATH:-/secrets/jwt}:/secrets/jwt:ro
+      - ${UPLOAD_HOST_PATH:-/var/app/uploads}:/var/app/uploads
+      - ${LOG_HOST_PATH:-/var/log/backbackback}:/var/log/backbackback
+
+  redis:
+    image: redis:7.0
+    container_name: project-redis
+    restart: always
+    command:
+      - /bin/sh
+      - -c
+      - >
+        if [ -n "$$REDIS_PASSWORD" ]; then
+          exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD";
+        else
+          exec redis-server --appendonly yes;
+        fi
+    env_file:
+      - ${APP_ENV_FILE:-/etc/backbackback/backbackback.env}
+    volumes:
+      - redis-data:/data
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+
+volumes:
+  redis-data:

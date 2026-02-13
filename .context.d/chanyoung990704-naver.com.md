@@ -6,6 +6,9 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-13 | 작업: 로컬 Docker 실행 오버라이드 정리 | 결과: `docker-compose.local.yml` 추가, `docker-compose.app.yml`의 env file 경로를 `APP_ENV_FILE`로 변수화, `LOCAL_ENV_FILE` 지원으로 운영/로컬 compose 병합 실행 가능하도록 보정 | 이슈: 없음
+- 2026-02-13 | 작업: Docker 배포 전환 2차(CI/아티팩트/문서) | 결과: `Dockerfile`/`.dockerignore`/`docker-compose.app.yml` 추가, `buildspec.yml`을 ECR 이미지 빌드·푸시 + `image-uri.env` 아티팩트 생성으로 변경, `README.MD` 배포 가이드 반영, `./gradlew test` 및 배포 스크립트 테스트 통과 | 이슈: 없음
+- 2026-02-13 | 작업: Docker 배포 전환 1차(스크립트 듀얼 런타임 리팩토링) | 결과: `scripts/lib/deploy-runtime.sh` 공통 모듈 추가, `setup/install/start/stop/health-check`에 `DEPLOY_RUNTIME(systemd|docker)` 분기 반영, env 예시에 Docker 변수 추가, `scripts/tests/deploy-runtime-test.sh` 작성 후 `bash -n`/테스트 통과 | 이슈: 없음
 - 2026-02-12 | 작업: 전체 테스트 회귀 보정(role 시드 파급) | 결과: `CompanyOverviewServiceTest`에 `CompanyReportVersionIssueService` mock bean을 추가하고, `CustomUserDetailsServiceTest`를 role 시드 조회 방식으로 전환해 role UNIQUE 충돌을 제거. `./gradlew test` 전체 통과(383 tests, 15 skipped) 확인 | 이슈: 없음
 - 2026-02-12 | 작업: role 시드 고정 + signup duplicate 도메인 변환(P0) | 결과: Flyway `V26__seed_roles`(MySQL/H2)를 추가해 `ROLE_USER/ROLE_ADMIN/ROLE_ANALYST`를 멱등 시드로 고정하고, `UserDomainService`의 역할 동적 생성을 제거해 시드 미존재 시 실패하도록 변경. `SignUpService`에 `DataIntegrityViolationException` -> `EMAIL_ALREADY_EXISTS(409)` 변환을 추가하고 관련 단위/통합 테스트(`SignUpServiceTest`, `UserDomainServiceTest`, `AuthIntegrationTest`, `CompanyWatchlistServiceTest`, `UserRepositoryTest`) 통과 | 이슈: 없음
 - 2026-02-12 | 작업: 리포트 버전 발급 공통화(P0) 1차 | 결과: `CompanyReportVersionIssueService`를 추가해 report row lock + next version 발급을 단일 경로로 통합하고, report import/publish/predict/pdf + `CompanyAiService`가 공통 서비스를 사용하도록 정리. `CompanyAiServiceTest`/`CompanyReportVersionIssueServiceTest` 통과 후 커밋(`fix(report): centralize company report version issuance`) 완료 | 이슈: 없음
