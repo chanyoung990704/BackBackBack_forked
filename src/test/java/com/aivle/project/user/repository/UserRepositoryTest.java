@@ -53,8 +53,8 @@ class UserRepositoryTest {
 			UserEntity.create("mixed@test.com", "encoded", "복합권한", "010-3333-3333", UserStatus.ACTIVE)
 		);
 
-		RoleEntity userRole = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "일반 사용자"));
-		RoleEntity adminRole = roleRepository.save(new RoleEntity(RoleName.ROLE_ADMIN, "관리자"));
+		RoleEntity userRole = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
+		RoleEntity adminRole = roleRepository.findByName(RoleName.ROLE_ADMIN).orElseThrow();
 
 		userRoleRepository.save(new UserRoleEntity(normalUser, userRole));
 		userRoleRepository.save(new UserRoleEntity(adminUser, adminRole));

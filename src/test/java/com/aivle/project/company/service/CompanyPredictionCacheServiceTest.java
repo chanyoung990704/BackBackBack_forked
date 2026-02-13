@@ -23,6 +23,7 @@ import com.aivle.project.report.entity.CompanyReportsEntity;
 import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
 import com.aivle.project.report.repository.CompanyReportVersionsRepository;
 import com.aivle.project.report.repository.CompanyReportsRepository;
+import com.aivle.project.report.service.CompanyReportVersionIssueService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -37,7 +38,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @DataJpaTest
 @ActiveProfiles("test")
-@Import({QuerydslConfig.class, CompanyPredictionCacheService.class})
+@Import({QuerydslConfig.class, CompanyPredictionCacheService.class, CompanyReportVersionIssueService.class})
 class CompanyPredictionCacheServiceTest {
 
 	@Autowired

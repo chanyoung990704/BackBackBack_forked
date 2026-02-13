@@ -68,7 +68,7 @@ class CompanyWatchlistServiceTest {
 	void getWatchlist_shouldReturnList() {
 		// given
 		UserEntity user = userRepository.save(UserEntity.create("list@test.com", "pw", "list", null, UserStatus.ACTIVE));
-		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		RoleEntity role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 		userRoleRepository.save(new UserRoleEntity(user, role));
 
 		CompaniesEntity companyA = companiesRepository.save(CompaniesEntity.create("00000001", "기업A", "A", "000001", LocalDate.now()));
@@ -93,7 +93,7 @@ class CompanyWatchlistServiceTest {
 	void addWatchlistThrowsWhenDuplicate() {
 		// given
 		UserEntity user = userRepository.save(UserEntity.create("dup@test.com", "pw", "dup", null, UserStatus.ACTIVE));
-		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		RoleEntity role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 		userRoleRepository.save(new UserRoleEntity(user, role));
 		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create("00000078", "중복기업", "DUP", "778888", LocalDate.now()));
 		service.addWatchlist(user.getId(), company.getId(), "first");
@@ -110,7 +110,7 @@ class CompanyWatchlistServiceTest {
 	void addWatchlistRestoresSoftDeleted() {
 		// given
 		UserEntity user = userRepository.save(UserEntity.create("restore@test.com", "pw", "restore", null, UserStatus.ACTIVE));
-		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		RoleEntity role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 		userRoleRepository.save(new UserRoleEntity(user, role));
 		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create("00000079", "복구기업", "RST", "779999", LocalDate.now()));
 		service.addWatchlist(user.getId(), company.getId(), "first");
@@ -130,7 +130,7 @@ class CompanyWatchlistServiceTest {
 	void dashboardFiltersCorrectly() {
 		// given
 		UserEntity user = userRepository.save(UserEntity.create("w@test.com", "pw", "w", null, UserStatus.ACTIVE));
-		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		RoleEntity role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 		userRoleRepository.save(new UserRoleEntity(user, role));
 		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create("00000077", "기업", "C", "777777", LocalDate.now()));
 		service.addWatchlist(user.getId(), company.getId(), "note");
@@ -162,7 +162,7 @@ class CompanyWatchlistServiceTest {
 	void metricAveragesFiltersCorrectly() {
 		// given
 		UserEntity user = userRepository.save(UserEntity.create("avg@test.com", "pw", "avg", null, UserStatus.ACTIVE));
-		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		RoleEntity role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 		userRoleRepository.save(new UserRoleEntity(user, role));
 
 		CompaniesEntity companyA = companiesRepository.save(CompaniesEntity.create("00000011", "기업A", "A", "111111", LocalDate.now()));
@@ -200,7 +200,7 @@ class CompanyWatchlistServiceTest {
 	void metricValuesReturnsActualLatestOnly() {
 		// given
 		UserEntity user = userRepository.save(UserEntity.create("values@test.com", "pw", "values", null, UserStatus.ACTIVE));
-		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		RoleEntity role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 		userRoleRepository.save(new UserRoleEntity(user, role));
 
 		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create("00000033", "기업C", "C", "333333", LocalDate.now()));
@@ -230,7 +230,7 @@ class CompanyWatchlistServiceTest {
 	void metricValuesRangeGroupsByQuarter() {
 		// given
 		UserEntity user = userRepository.save(UserEntity.create("range@test.com", "pw", "range", null, UserStatus.ACTIVE));
-		RoleEntity role = roleRepository.save(new RoleEntity(RoleName.ROLE_USER, "user"));
+		RoleEntity role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 		userRoleRepository.save(new UserRoleEntity(user, role));
 
 		CompaniesEntity company = companiesRepository.save(CompaniesEntity.create("00000044", "기업D", "D", "444444", LocalDate.now()));

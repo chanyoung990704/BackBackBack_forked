@@ -25,6 +25,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -156,6 +157,27 @@ class SignUpServiceTest {
 		when(userDomainService.existsByEmail("dup@test.com")).thenReturn(true);
 
 		// when & then: 예외가 발생한다
+		assertThatThrownBy(() -> signUpService.signup(request, "127.0.0.1"))
+			.isInstanceOf(AuthException.class)
+			.hasMessage(AuthErrorCode.EMAIL_ALREADY_EXISTS.getMessage());
+	}
+
+	@Test
+	@DisplayName("회원가입 저장 중 이메일 유니크 충돌이 발생하면 도메인 예외로 변환한다")
+	void signup_shouldMapDuplicateEmailConflictToDomainError() {
+		SignUpService signUpService = new SignUpService(userDomainService, emailVerificationService, turnstileService, passwordEncoder, authMapper);
+		SignupRequest request = new SignupRequest();
+		request.setEmail("race@test.com");
+		request.setPassword("password123");
+		request.setName("tester");
+		request.setTurnstileToken("valid-token");
+
+		when(turnstileService.verifyTokenSync("valid-token", "127.0.0.1")).thenReturn(true);
+		when(userDomainService.existsByEmail("race@test.com")).thenReturn(false);
+		when(passwordEncoder.encode("password123")).thenReturn("encoded");
+		when(userDomainService.register("race@test.com", "encoded", request.getName(), null, RoleName.ROLE_USER))
+			.thenThrow(new DataIntegrityViolationException("uk_users_email"));
+
 		assertThatThrownBy(() -> signUpService.signup(request, "127.0.0.1"))
 			.isInstanceOf(AuthException.class)
 			.hasMessage(AuthErrorCode.EMAIL_ALREADY_EXISTS.getMessage());

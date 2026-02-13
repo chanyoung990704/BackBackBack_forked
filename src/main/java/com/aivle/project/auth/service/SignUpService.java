@@ -12,6 +12,7 @@ import com.aivle.project.user.service.EmailVerificationService;
 import com.aivle.project.user.service.UserDomainService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -51,13 +52,19 @@ public class SignUpService {
 		}
 
 		String encodedPassword = passwordEncoder.encode(request.getPassword());
-		UserEntity user = userDomainService.register(
-			request.getEmail(),
-			encodedPassword,
-			request.getName(),
-			null,
-			RoleName.ROLE_USER
-		);
+		UserEntity user;
+		try {
+			user = userDomainService.register(
+				request.getEmail(),
+				encodedPassword,
+				request.getName(),
+				null,
+				RoleName.ROLE_USER
+			);
+		} catch (DataIntegrityViolationException ex) {
+			log.warn("Signup failed due to DB unique conflict for email: {}", request.getEmail());
+			throw new AuthException(AuthErrorCode.EMAIL_ALREADY_EXISTS);
+		}
 
 		if (skipEmailVerification) {
 			userDomainService.activateUser(user.getId());

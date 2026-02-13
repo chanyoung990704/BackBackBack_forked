@@ -30,6 +30,7 @@ import com.aivle.project.report.entity.SignalColor;
 import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
 import com.aivle.project.report.repository.CompanyReportVersionsRepository;
 import com.aivle.project.report.repository.CompanyReportsRepository;
+import com.aivle.project.report.service.CompanyReportVersionIssueService;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -94,6 +95,9 @@ class CompanyOverviewServiceTest {
 
 	@MockBean
 	private CompanyReputationScoreService companyReputationScoreService;
+
+	@MockBean
+	private CompanyReportVersionIssueService companyReportVersionIssueService;
 
 	@Test
 	@DisplayName("기업 개요 응답을 구성한다")

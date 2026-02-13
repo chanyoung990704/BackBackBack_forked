@@ -18,6 +18,7 @@ import com.aivle.project.report.entity.CompanyReportsEntity;
 import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
 import com.aivle.project.report.repository.CompanyReportVersionsRepository;
 import com.aivle.project.report.repository.CompanyReportsRepository;
+import com.aivle.project.report.service.CompanyReportVersionIssueService;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.atLeastOnce;
@@ -74,6 +76,9 @@ class CompanyAiServiceTest {
 
     @Mock
     private AiReportRequestStatusService aiReportRequestStatusService;
+
+    @Mock
+    private CompanyReportVersionIssueService companyReportVersionIssueService;
 
     @Test
     @DisplayName("AI 예측 분석 결과를 조회하고 저장한다 (Cache Miss)")
@@ -178,8 +183,14 @@ class CompanyAiServiceTest {
 
         given(companyReportsRepository.findByCompanyIdAndQuarterId(any(), any())).willReturn(Optional.empty());
         given(companyReportsRepository.save(any(CompanyReportsEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
-        given(companyReportVersionsRepository.findTopByCompanyReportOrderByVersionNoDesc(any())).willReturn(Optional.empty());
-        given(companyReportVersionsRepository.save(any(CompanyReportVersionsEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(companyReportVersionIssueService.issueNextVersion(any(), anyBoolean(), any()))
+            .willReturn(CompanyReportVersionsEntity.create(
+                CompanyReportsEntity.create(company, newQuarter, null),
+                1,
+                java.time.LocalDateTime.now(),
+                true,
+                savedEntity
+            ));
 
         // when
         FilesEntity result = companyAiService.generateAndSaveReport(companyId, null, null);
@@ -188,7 +199,7 @@ class CompanyAiServiceTest {
         assertThat(result).isNotNull();
         verify(quartersRepository).save(any(QuartersEntity.class)); // 분기 생성 확인
         verify(companyReportsRepository).save(any(CompanyReportsEntity.class)); // 보고서 생성 확인
-        verify(companyReportVersionsRepository).save(any(CompanyReportVersionsEntity.class)); // 버전 생성 확인
+        verify(companyReportVersionIssueService).issueNextVersion(any(), eq(true), eq(savedEntity)); // 버전 생성 확인
     }
 
     @Test
@@ -224,7 +235,14 @@ class CompanyAiServiceTest {
         given(quartersRepository.findByYearAndQuarter(any(Short.class), any(Byte.class))).willReturn(Optional.of(quarterEntity));
         given(companyReportsRepository.findByCompanyIdAndQuarterId(any(), any())).willReturn(Optional.empty());
         given(companyReportsRepository.save(any(CompanyReportsEntity.class))).willAnswer(inv -> inv.getArgument(0));
-        given(companyReportVersionsRepository.save(any(CompanyReportVersionsEntity.class))).willAnswer(inv -> inv.getArgument(0));
+        given(companyReportVersionIssueService.issueNextVersion(any(), anyBoolean(), any()))
+            .willReturn(CompanyReportVersionsEntity.create(
+                CompanyReportsEntity.create(company, quarterEntity, null),
+                1,
+                java.time.LocalDateTime.now(),
+                true,
+                savedEntity
+            ));
 
         // when
         FilesEntity result = companyAiService.generateAndSaveReport(companyId, null, null);
@@ -273,15 +291,21 @@ class CompanyAiServiceTest {
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
         given(quartersRepository.findByYearAndQuarter(year.shortValue(), quarter.byteValue())).willReturn(Optional.of(quarterEntity));
         given(companyReportsRepository.findByCompanyIdAndQuarterId(any(), any())).willReturn(Optional.of(report));
-        given(companyReportVersionsRepository.findTopByCompanyReportOrderByVersionNoDesc(any())).willReturn(Optional.empty());
-        given(companyReportVersionsRepository.save(any(CompanyReportVersionsEntity.class))).willAnswer(inv -> inv.getArgument(0));
+        given(companyReportVersionIssueService.issueNextVersion(any(), anyBoolean(), any()))
+            .willReturn(CompanyReportVersionsEntity.create(
+                report,
+                1,
+                java.time.LocalDateTime.now(),
+                true,
+                savedEntity
+            ));
 
         // when
         FilesEntity result = companyAiService.generateAndSaveReport(companyId, year, quarter);
 
         // then
         assertThat(result).isNotNull();
-        verify(companyReportVersionsRepository).save(any(CompanyReportVersionsEntity.class));
+        verify(companyReportVersionIssueService).issueNextVersion(report, true, savedEntity);
     }
 
     @Test
@@ -381,8 +405,8 @@ class CompanyAiServiceTest {
     }
 
     @Test
-    @DisplayName("리포트 ID가 있으면 버전 저장 전에 비관적 락 조회를 수행한다")
-    void generateAndSaveReport_WithReportId_LockBeforeVersionInsert() {
+    @DisplayName("리포트 버전 발급은 공통 서비스에 위임한다")
+    void generateAndSaveReport_WithReportId_DelegatesVersionIssuance() {
         // given
         Long companyId = 1L;
         String companyCode = "005930";
@@ -418,15 +442,14 @@ class CompanyAiServiceTest {
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
         given(quartersRepository.findByYearAndQuarter(year.shortValue(), quarter.byteValue())).willReturn(Optional.of(quarterEntity));
         given(companyReportsRepository.findByCompanyIdAndQuarterId(any(), any())).willReturn(Optional.of(report));
-        given(companyReportsRepository.findByIdForUpdate(10L)).willReturn(Optional.of(report));
-        given(companyReportVersionsRepository.findTopByCompanyReportOrderByVersionNoDesc(report)).willReturn(Optional.of(existingVersion));
-        given(companyReportVersionsRepository.save(any(CompanyReportVersionsEntity.class))).willAnswer(inv -> inv.getArgument(0));
+        given(companyReportVersionIssueService.issueNextVersion(report, true, savedEntity))
+            .willReturn(existingVersion);
 
         // when
         FilesEntity result = companyAiService.generateAndSaveReport(companyId, year, quarter);
 
         // then
         assertThat(result).isNotNull();
-        verify(companyReportsRepository).findByIdForUpdate(10L);
+        verify(companyReportVersionIssueService).issueNextVersion(report, true, savedEntity);
     }
 }

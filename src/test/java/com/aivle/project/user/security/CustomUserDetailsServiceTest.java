@@ -7,6 +7,7 @@ import com.aivle.project.user.entity.RoleName;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.entity.UserRoleEntity;
 import com.aivle.project.user.entity.UserStatus;
+import com.aivle.project.user.repository.RoleRepository;
 import com.aivle.project.user.repository.UserRepository;
 import com.aivle.project.user.repository.UserRoleRepository;
 import jakarta.persistence.EntityManager;
@@ -41,6 +42,9 @@ class CustomUserDetailsServiceTest {
 	@Autowired
 	private UserRoleRepository userRoleRepository;
 
+	@Autowired
+	private RoleRepository roleRepository;
+
 	@PersistenceContext
 	private EntityManager entityManager;
 
@@ -51,8 +55,7 @@ class CustomUserDetailsServiceTest {
 		UserEntity user = createUser(email, UserStatus.ACTIVE);
 		userRepository.save(user);
 
-		RoleEntity role = new RoleEntity(RoleName.ROLE_USER, "user role");
-		entityManager.persist(role);
+		RoleEntity role = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow();
 
 		userRoleRepository.save(new UserRoleEntity(user, role));
 		entityManager.flush();

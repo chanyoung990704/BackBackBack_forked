@@ -2,6 +2,7 @@ package com.aivle.project.report.service;
 
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
+import com.aivle.project.common.util.GetOrCreateResolver;
 import com.aivle.project.metric.entity.MetricValueType;
 import com.aivle.project.metric.entity.MetricsEntity;
 import com.aivle.project.metric.repository.MetricsRepository;
@@ -17,7 +18,6 @@ import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
 import com.aivle.project.report.repository.CompanyReportVersionsRepository;
 import com.aivle.project.report.repository.CompanyReportsRepository;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +42,7 @@ public class CompanyReportMetricPublishService {
 	private final CompanyReportsRepository companyReportsRepository;
 	private final CompanyReportVersionsRepository companyReportVersionsRepository;
 	private final CompanyReportMetricValuesRepository companyReportMetricValuesRepository;
+	private final CompanyReportVersionIssueService companyReportVersionIssueService;
 
 	@Transactional
 	public ReportPublishResult publishMetrics(
@@ -68,10 +69,7 @@ public class CompanyReportMetricPublishService {
 
 		YearQuarter baseQuarter = QuarterCalculator.parseQuarterKey(quarterKey);
 		QuartersEntity quarter = getOrCreateQuarter(quarterKey, baseQuarter);
-		CompanyReportsEntity report = companyReportsRepository.findByCompanyIdAndQuarterId(
-			company.get().getId(),
-			quarter.getId()
-		).orElseGet(() -> companyReportsRepository.save(CompanyReportsEntity.create(company.get(), quarter, null)));
+		CompanyReportsEntity report = getOrCreateReport(company.get(), quarter);
 
 		CompanyReportVersionsEntity version = resolveMetricVersion(report, valueType);
 
@@ -142,28 +140,29 @@ public class CompanyReportMetricPublishService {
 	}
 
 	private CompanyReportVersionsEntity createNewVersion(CompanyReportsEntity report) {
-		int nextVersion = companyReportVersionsRepository.findTopByCompanyReportOrderByVersionNoDesc(report)
-			.map(existing -> existing.getVersionNo() + 1)
-			.orElse(1);
-		CompanyReportVersionsEntity version = CompanyReportVersionsEntity.create(
-			report,
-			nextVersion,
-			LocalDateTime.now(),
-			false,
-			null
+		return companyReportVersionIssueService.issueNextVersion(report, false, null);
+	}
+
+	private CompanyReportsEntity getOrCreateReport(CompaniesEntity company, QuartersEntity quarter) {
+		return GetOrCreateResolver.resolve(
+			() -> companyReportsRepository.findByCompanyIdAndQuarterId(company.getId(), quarter.getId()),
+			() -> companyReportsRepository.save(CompanyReportsEntity.create(company, quarter, null)),
+			() -> companyReportsRepository.findByCompanyIdAndQuarterId(company.getId(), quarter.getId())
 		);
-		return companyReportVersionsRepository.save(version);
 	}
 
 	private QuartersEntity getOrCreateQuarter(int quarterKey, YearQuarter yearQuarter) {
-		return quartersRepository.findByQuarterKey(quarterKey)
-			.orElseGet(() -> quartersRepository.save(QuartersEntity.create(
+		return GetOrCreateResolver.resolve(
+			() -> quartersRepository.findByQuarterKey(quarterKey),
+			() -> quartersRepository.save(QuartersEntity.create(
 				yearQuarter.year(),
 				yearQuarter.quarter(),
 				quarterKey,
 				QuarterCalculator.startDate(yearQuarter),
 				QuarterCalculator.endDate(yearQuarter)
-			)));
+			)),
+			() -> quartersRepository.findByQuarterKey(quarterKey)
+		);
 	}
 
 	private String normalizeStockCode(String stockCode) {

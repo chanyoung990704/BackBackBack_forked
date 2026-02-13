@@ -4,6 +4,7 @@ import com.aivle.project.company.client.AiServerClient;
 import com.aivle.project.company.dto.AiAnalysisResponse;
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
+import com.aivle.project.common.util.GetOrCreateResolver;
 import com.aivle.project.metric.entity.MetricValueType;
 import com.aivle.project.metric.entity.MetricsEntity;
 import com.aivle.project.metric.repository.MetricsRepository;
@@ -17,8 +18,8 @@ import com.aivle.project.report.entity.CompanyReportsEntity;
 import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
 import com.aivle.project.report.repository.CompanyReportVersionsRepository;
 import com.aivle.project.report.repository.CompanyReportsRepository;
+import com.aivle.project.report.service.CompanyReportVersionIssueService;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,6 +45,7 @@ public class CompanyPredictionCacheService {
 	private final CompanyReportVersionsRepository companyReportVersionsRepository;
 	private final MetricsRepository metricsRepository;
 	private final CompanyReportMetricValuesRepository companyReportMetricValuesRepository;
+	private final CompanyReportVersionIssueService companyReportVersionIssueService;
 
 	/**
 	 * 최신 ACTUAL 분기 기준으로 다음 분기 예측값을 캐시한다.
@@ -71,19 +73,11 @@ public class CompanyPredictionCacheService {
 		YearQuarter targetQuarter = QuarterCalculator.offset(baseQuarter, 1);
 		QuartersEntity targetQuarterEntity = getOrCreateQuarter(targetQuarter);
 
-		CompanyReportsEntity report = companyReportsRepository
-			.findByCompanyIdAndQuarterId(company.getId(), targetQuarterEntity.getId())
-			.orElseGet(() -> companyReportsRepository.save(CompanyReportsEntity.create(company, targetQuarterEntity, null)));
+		CompanyReportsEntity report = getOrCreateReport(company, targetQuarterEntity);
 
 		CompanyReportVersionsEntity latestVersion = companyReportVersionsRepository
 			.findTopByCompanyReportOrderByVersionNoDesc(report)
-			.orElseGet(() -> companyReportVersionsRepository.save(CompanyReportVersionsEntity.create(
-				report,
-				1,
-				LocalDateTime.now(),
-				true,
-				null
-			)));
+			.orElseGet(() -> companyReportVersionIssueService.issueNextVersion(report, true, null));
 
 		if (companyReportMetricValuesRepository.existsByReportVersionAndValueTypeAndMetricValueIsNotNull(
 			latestVersion,
@@ -109,14 +103,25 @@ public class CompanyPredictionCacheService {
 	}
 
 	private QuartersEntity getOrCreateQuarter(YearQuarter quarter) {
-		return quartersRepository.findByYearAndQuarter((short) quarter.year(), (byte) quarter.quarter())
-			.orElseGet(() -> quartersRepository.save(QuartersEntity.create(
+		return GetOrCreateResolver.resolve(
+			() -> quartersRepository.findByYearAndQuarter((short) quarter.year(), (byte) quarter.quarter()),
+			() -> quartersRepository.save(QuartersEntity.create(
 				quarter.year(),
 				quarter.quarter(),
 				quarter.toQuarterKey(),
 				QuarterCalculator.startDate(quarter),
 				QuarterCalculator.endDate(quarter)
-			)));
+			)),
+			() -> quartersRepository.findByYearAndQuarter((short) quarter.year(), (byte) quarter.quarter())
+		);
+	}
+
+	private CompanyReportsEntity getOrCreateReport(CompaniesEntity company, QuartersEntity quarter) {
+		return GetOrCreateResolver.resolve(
+			() -> companyReportsRepository.findByCompanyIdAndQuarterId(company.getId(), quarter.getId()),
+			() -> companyReportsRepository.save(CompanyReportsEntity.create(company, quarter, null)),
+			() -> companyReportsRepository.findByCompanyIdAndQuarterId(company.getId(), quarter.getId())
+		);
 	}
 
 	private void savePredictions(

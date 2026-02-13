@@ -1,6 +1,7 @@
 package com.aivle.project.user.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -69,22 +70,19 @@ class UserDomainServiceTest {
 	}
 
 	@Test
-	@DisplayName("역할이 없으면 새 역할을 생성하고 사용자 등록을 완료한다")
-	void register_shouldCreateRoleWhenMissing() {
+	@DisplayName("역할 시드가 없으면 사용자 등록에 실패한다")
+	void register_shouldFailWhenRoleMissing() {
 		// given
 		given(roleRepository.findByName(RoleName.ROLE_ADMIN)).willReturn(Optional.empty());
-		given(roleRepository.save(org.mockito.ArgumentMatchers.any(RoleEntity.class)))
-			.willAnswer(invocation -> invocation.getArgument(0));
 		given(userRepository.save(org.mockito.ArgumentMatchers.any(UserEntity.class)))
 			.willAnswer(invocation -> invocation.getArgument(0));
 
-		// when
-		UserEntity user = userDomainService.register("admin@test.com", "encoded", "name", "010", RoleName.ROLE_ADMIN);
-
-		// then
-		assertThat(user.getEmail()).isEqualTo("admin@test.com");
-		verify(roleRepository).save(org.mockito.ArgumentMatchers.any(RoleEntity.class));
-		verify(userRoleRepository).save(org.mockito.ArgumentMatchers.any(UserRoleEntity.class));
+		// when & then
+		assertThatThrownBy(() -> userDomainService.register("admin@test.com", "encoded", "name", "010", RoleName.ROLE_ADMIN))
+			.isInstanceOf(IllegalStateException.class)
+			.hasMessageContaining("역할 시드가 존재하지 않습니다");
+		verify(roleRepository, never()).save(org.mockito.ArgumentMatchers.any(RoleEntity.class));
+		verify(userRoleRepository, never()).save(org.mockito.ArgumentMatchers.any(UserRoleEntity.class));
 	}
 
 	private <T> T newEntity(Class<T> type) {

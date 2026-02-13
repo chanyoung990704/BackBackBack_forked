@@ -39,7 +39,7 @@ public class UserDomainService {
 		userRepository.save(user);
 
 		RoleEntity role = roleRepository.findByName(roleName)
-			.orElseGet(() -> roleRepository.save(new RoleEntity(roleName, roleName.name().toLowerCase() + " role")));
+			.orElseThrow(() -> new IllegalStateException("역할 시드가 존재하지 않습니다: " + roleName));
 		userRoleRepository.save(new UserRoleEntity(user, role));
 
 		return user;
