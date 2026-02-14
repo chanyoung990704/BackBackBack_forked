@@ -5,7 +5,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
 import com.aivle.project.category.entity.CategoriesEntity;
-import com.aivle.project.comment.entity.CommentsEntity;
 import com.aivle.project.common.util.NameMaskingUtil;
 import com.aivle.project.post.dto.PostResponse;
 import com.aivle.project.post.entity.PostStatus;
@@ -35,7 +34,7 @@ class PostMapperTest {
 		ReflectionTestUtils.setField(post, "id", 100L);
 
 		// when
-		PostResponse response = postMapper.toResponse(post);
+		PostResponse response = postMapper.toResponseWithQnaStatus(post, "pending");
 
 		// then
 		assertThat(response.qnaStatus()).isEqualTo("pending");
@@ -43,11 +42,12 @@ class PostMapperTest {
 	}
 
 	@Test
-	@DisplayName("QnA 게시글에 관리자 답변이 있으면 qnaStatus는 answered이다")
-	void toResponse_shouldReturnAnsweredWhenAdminReplyExists() {
+	@DisplayName("QnA 상태를 answered로 지정하면 응답에 반영된다")
+	void toResponseWithQnaStatus_shouldReturnAnswered() {
 		// given
 		CategoriesEntity qnaCategory = mock(CategoriesEntity.class);
 		given(qnaCategory.getName()).willReturn("qna");
+		given(qnaCategory.getId()).willReturn(2L);
 
 		UserEntity author = UserEntity.create("user@test.com", "pw", "user", null, UserStatus.ACTIVE);
 		ReflectionTestUtils.setField(author, "id", 1L);
@@ -55,18 +55,8 @@ class PostMapperTest {
 		PostsEntity post = PostsEntity.create(author, qnaCategory, "Title", "Content", false, PostStatus.PUBLISHED);
 		ReflectionTestUtils.setField(post, "id", 100L);
 
-		UserEntity admin = UserEntity.create("admin@test.com", "pw", "admin", null, UserStatus.ACTIVE);
-		ReflectionTestUtils.setField(admin, "id", 2L);
-
-		CommentsEntity reply = CommentsEntity.create(post, admin, null, "Reply", 0, 1);
-		post.getReplies().add(reply);
-
-		// Mock Role check
-		RoleEntity adminRole = new RoleEntity(RoleName.ROLE_ADMIN, "Admin");
-		given(userRoleRepository.findAllByUserId(2L)).willReturn(List.of(new UserRoleEntity(admin, adminRole)));
-
 		// when
-		PostResponse response = postMapper.toResponse(post);
+		PostResponse response = postMapper.toResponseWithQnaStatus(post, "answered");
 
 		// then
 		assertThat(response.qnaStatus()).isEqualTo("answered");

@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-14 | 작업: CodeBuild test 컴파일 실패(compileTestJava) 후속 수정 | 결과: `CommentsService.listByPost(Long)` 시그니처 변경에 맞춰 `CommentsServiceTest`/`CommentIntegrationTest` 호출부를 정리하고, `AuthIntegrationTest`에 `TokenHashService` import를 추가했으며, `PostMapperTest`의 구 role-mocking 테스트를 현재 `PostMapper` 구현(`toResponseWithQnaStatus`) 기준으로 정합화 | 이슈: 로컬 샌드박스 네트워크 제한으로 Gradle 전체 재검증은 미실행
 - 2026-02-14 | 작업: upstream/main CodeBuild 컴파일 실패 핫픽스 정리 | 결과: `CommentController`의 `commentsService.listByPost` 호출 시그니처를 단일 인자로 정합화하고, `PostMapper`의 미사용/미완성 `isAdminComment` 블록을 제거해 `UserRoleEntity/userRoleRepository/RoleName` 심볼 오류를 해소 | 이슈: 샌드박스 네트워크 제한으로 로컬 Gradle 컴파일 재검증은 미실행
 - 2026-02-14 | 작업: CodeBuild 댓글 컴파일 오류 수정 및 배포 브랜치 반영 | 결과: `CommentsRepository`에 `findByPostIdAndDeletedAtIsNullOrderByDepthAscSequenceAsc`를 추가하고 `CommentsService.listByPost` 시그니처를 정합화해 CodeBuild `cannot find symbol` 컴파일 실패를 해소. 관련 테스트(`CommentsRepositoryTest`, `CommentIntegrationTest`)와 `compileJava` 통과 확인 후 `origin/main` 및 upstream PR(#117) 반영 진행 | 이슈: 없음
 - 2026-02-14 | 작업: 이슈 #115 사용자명 마스킹 + 로그인 실패 잠금 구현 | 결과: `NameMaskingUtil` 기반으로 `PostMapper`/`CommentMapper`/`UserMapper`/`AdminUserQueryService`의 name 노출을 마스킹 처리하고, `LoginAttemptService`(Redis) + `LoginAttemptProperties` + `AuthService` 연동으로 5회 실패 시 15분 잠금(`AUTH_429`)을 적용. 단위/통합 타깃 테스트 통과 및 `./gradlew cleanTest test` 재실행 통과, upstream 이슈 #115/PR #117 및 Notion 상위·하위 페이지 기록 완료 | 이슈: `cleanTest test` 1회차에서 Gradle XML test-results 쓰기 오류가 간헐 발생했으나 재실행으로 해소

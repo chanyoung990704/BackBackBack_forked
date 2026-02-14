@@ -16,6 +16,7 @@ import com.aivle.project.auth.dto.TokenResponse;
 import com.aivle.project.auth.service.TurnstileService;
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.config.TestSecurityConfig;
+import com.aivle.project.common.security.TokenHashService;
 import com.aivle.project.common.util.NameMaskingUtil;
 import com.aivle.project.user.entity.RoleEntity;
 import com.aivle.project.user.entity.RoleName;

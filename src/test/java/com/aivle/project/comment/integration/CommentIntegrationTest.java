@@ -58,7 +58,7 @@ class CommentIntegrationTest {
 		CommentResponse childResponse = commentsService.create(writer, childRequest);
 
 		// then: 계층 구조가 올바르게 조회된다
-			List<CommentResponse> responses = commentsService.listByPost(post.getId(), commenter);
+		List<CommentResponse> responses = commentsService.listByPost(post.getId());
 		assertThat(responses).hasSize(2);
 
 		CommentResponse root = responses.get(0);
@@ -100,7 +100,7 @@ class CommentIntegrationTest {
 		CommentResponse replyTwo = commentsService.create(writer, replyTwoRequest);
 
 		// when
-			List<CommentResponse> responses = commentsService.listByPost(post.getId(), writer);
+		List<CommentResponse> responses = commentsService.listByPost(post.getId());
 
 		// then
 		assertThat(responses).hasSize(3);

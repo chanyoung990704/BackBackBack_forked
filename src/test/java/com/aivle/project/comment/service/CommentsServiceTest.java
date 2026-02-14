@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 import com.aivle.project.comment.dto.CommentCreateRequest;
 import com.aivle.project.comment.dto.CommentResponse;
@@ -50,19 +49,15 @@ class CommentsServiceTest {
 	void listByPost_success() {
 		// given
 		Long postId = 10L;
-		UserEntity user = mock(UserEntity.class);
-		PostsEntity post = mock(PostsEntity.class);
 		CommentsEntity comment = mock(CommentsEntity.class);
-		given(postsRepository.findByIdAndDeletedAtIsNull(postId)).willReturn(Optional.of(post));
 		given(commentsRepository.findByPostIdAndDeletedAtIsNullOrderByDepthAscSequenceAsc(postId)).willReturn(List.of(comment));
 		given(commentMapper.toResponse(comment)).willReturn(new CommentResponse(1L, "홍길동", postId, null, "댓글", 0, 0, null, null));
 
 		// when
-		List<CommentResponse> result = commentsService.listByPost(postId, user);
+		List<CommentResponse> result = commentsService.listByPost(postId);
 
 		// then
 		assertThat(result).hasSize(1);
-		verify(postReadAccessPolicy).validateReadable(post, user);
 	}
 
 	@Test
