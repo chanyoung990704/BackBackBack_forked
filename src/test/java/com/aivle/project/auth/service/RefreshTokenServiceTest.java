@@ -2,6 +2,7 @@ package com.aivle.project.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
@@ -13,6 +14,7 @@ import com.aivle.project.auth.entity.RefreshTokenEntity;
 import com.aivle.project.auth.repository.RefreshTokenRepository;
 import com.aivle.project.auth.token.JwtTokenService;
 import com.aivle.project.auth.token.RefreshTokenCache;
+import com.aivle.project.common.security.TokenHashProperties;
 import com.aivle.project.common.security.TokenHashService;
 import com.aivle.project.user.security.CustomUserDetails;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,7 +70,11 @@ class RefreshTokenServiceTest {
 		ObjectMapper objectMapper = new ObjectMapper();
 		lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 		lenient().when(redisTemplate.opsForSet()).thenReturn(setOperations);
-		tokenHashService = new TokenHashService();
+		lenient().when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
+		lenient().when(refreshTokenRepository.findByTokenValue(anyString())).thenReturn(Optional.empty());
+		TokenHashProperties properties = new TokenHashProperties();
+		properties.setPepperBase64("dGVzdC1wZXBwZXI=");
+		tokenHashService = new TokenHashService(properties);
 		refreshTokenService = new RefreshTokenService(
 			redisTemplate,
 			objectMapper,
@@ -112,8 +118,10 @@ class RefreshTokenServiceTest {
 		RefreshTokenEntity entity = new RefreshTokenEntity(USER_ID, "rt-2", "android", "127.0.0.1", expiresAt);
 		ReflectionTestUtils.setField(entity, "createdAt", LocalDateTime.now().minusMinutes(5));
 		String tokenHash = tokenHashService.hash("rt-2");
+		String legacyTokenHash = tokenHashService.legacyHash("rt-2");
 
 		when(valueOperations.get("refresh:" + tokenHash)).thenReturn(null);
+		when(valueOperations.get("refresh:" + legacyTokenHash)).thenReturn(null);
 		when(valueOperations.get("refresh:rt-2")).thenReturn(null);
 		when(refreshTokenRepository.findByTokenValue("rt-2")).thenReturn(Optional.of(entity));
 
@@ -167,6 +175,7 @@ class RefreshTokenServiceTest {
 		// given: 레거시(초 단위) 캐시 토큰이 Redis에 저장되어 있다
 		long nowSeconds = System.currentTimeMillis() / 1000;
 		String tokenHash = tokenHashService.hash("legacy-rt");
+		String legacyTokenHash = tokenHashService.legacyHash("legacy-rt");
 		RefreshTokenCache legacyCache = new RefreshTokenCache(
 			"legacy-rt",
 			USER_ID,
@@ -179,6 +188,7 @@ class RefreshTokenServiceTest {
 		);
 		String legacyJson = new ObjectMapper().writeValueAsString(legacyCache);
 		when(valueOperations.get("refresh:" + tokenHash)).thenReturn(null);
+		when(valueOperations.get("refresh:" + legacyTokenHash)).thenReturn(null);
 		when(valueOperations.get("refresh:legacy-rt")).thenReturn(legacyJson);
 
 		// when

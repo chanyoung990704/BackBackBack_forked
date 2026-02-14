@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-14 | 작업: 토큰 해시 pepper(HMAC) 적용(#109) | 결과: `TokenHashService`를 HMAC-SHA256(+pepper)로 전환하고 `APP_TOKEN_HASH_PEPPER_B64` 미설정/오형식 시 Fail-Fast를 적용, refresh/email verification 조회에 레거시 SHA-256 fallback+자동 마이그레이션을 반영했으며 `./gradlew cleanTest test` 전체 통과 | 이슈: 없음
 - 2026-02-14 | 작업: 인증 재전송 API 보안 전환(#107) | 결과: `POST /api/auth/resend-verification` 인증 기반 경로 추가, legacy `GET`에 Deprecation/Sunset 헤더 적용, Redis 기반 사용자/IP 레이트리밋 추가 및 컨트롤러/서비스 테스트 통과 | 이슈: 없음
 - 2026-02-14 | 작업: 토큰 저장 해시 전환(#107) | 결과: refresh/email verification 토큰을 SHA-256 해시 저장으로 전환하고 MySQL/H2 `V27__hash_auth_tokens` 마이그레이션 추가, dual-read fallback 및 관련 서비스 테스트 통과 | 이슈: 없음
 - 2026-02-14 | 작업: refresh/logout CSRF 더블서브밋 적용(#107) | 결과: `csrf_token` 쿠키 발급 및 `X-CSRF-Token` 검증 추가, CORS 허용 헤더 반영, `AuthIntegrationTest` 포함 `./gradlew cleanTest test` 전체 통과 | 이슈: 없음

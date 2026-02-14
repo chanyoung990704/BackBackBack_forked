@@ -90,9 +90,11 @@ public class RefreshTokenService {
 
 	public RefreshTokenCache loadValidToken(String refreshToken) {
 		String tokenHash = tokenHashService.hash(refreshToken);
+		String legacyTokenHash = tokenHashService.legacyHash(refreshToken);
 		RefreshTokenCache cache = loadRedis(tokenHash)
+			.or(() -> loadRedis(legacyTokenHash).map(legacy -> migrateLegacyCache(legacy, legacyTokenHash, tokenHash)))
 			.or(() -> loadLegacyRedis(refreshToken).map(legacy -> migrateLegacyCache(legacy, refreshToken, tokenHash)))
-			.orElseGet(() -> loadFromDatabase(refreshToken, tokenHash));
+			.orElseGet(() -> loadFromDatabase(refreshToken, tokenHash, legacyTokenHash));
 		long now = Instant.now(clock).toEpochMilli();
 		long expiresAt = normalizeEpochMillis(cache.expiresAt());
 		if (expiresAt <= now) {
@@ -163,7 +165,7 @@ public class RefreshTokenService {
 		return loadRedis(refreshToken);
 	}
 
-	private RefreshTokenCache migrateLegacyCache(RefreshTokenCache legacyCache, String refreshToken, String tokenHash) {
+	private RefreshTokenCache migrateLegacyCache(RefreshTokenCache legacyCache, String legacyIdentifier, String tokenHash) {
 		RefreshTokenCache migratedCache = new RefreshTokenCache(
 			tokenHash,
 			legacyCache.userId(),
@@ -176,13 +178,14 @@ public class RefreshTokenService {
 		);
 		storeRedis(migratedCache);
 		storeSession(migratedCache.userId(), tokenHash);
-		redisTemplate.delete(redisKey(refreshToken));
-		redisTemplate.opsForSet().remove(sessionKey(migratedCache.userId()), refreshToken);
+		redisTemplate.delete(redisKey(legacyIdentifier));
+		redisTemplate.opsForSet().remove(sessionKey(migratedCache.userId()), legacyIdentifier);
 		return migratedCache;
 	}
 
-	private RefreshTokenCache loadFromDatabase(String refreshToken, String tokenHash) {
+	private RefreshTokenCache loadFromDatabase(String refreshToken, String tokenHash, String legacyTokenHash) {
 		RefreshTokenEntity entity = refreshTokenRepository.findByTokenHash(tokenHash)
+			.or(() -> refreshTokenRepository.findByTokenHash(legacyTokenHash))
 			.or(() -> refreshTokenRepository.findByTokenValue(refreshToken))
 			.orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 		if (entity.isRevoked()) {
@@ -192,7 +195,7 @@ public class RefreshTokenService {
 		if (expiresAt.isBefore(LocalDateTime.now(clock))) {
 			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
 		}
-		if (entity.getTokenHash() == null) {
+		if (entity.getTokenHash() == null || tokenHashService.isLegacyHash(refreshToken, entity.getTokenHash())) {
 			entity.migrateToHashed(tokenHash);
 			refreshTokenRepository.save(entity);
 		}
@@ -217,15 +220,20 @@ public class RefreshTokenService {
 
 	private void revokeRedis(String refreshToken, Long userId) {
 		String tokenHash = tokenHashService.hash(refreshToken);
+		String legacyTokenHash = tokenHashService.legacyHash(refreshToken);
 		redisTemplate.delete(redisKey(tokenHash));
+		redisTemplate.delete(redisKey(legacyTokenHash));
 		redisTemplate.delete(redisKey(refreshToken));
 		redisTemplate.opsForSet().remove(sessionKey(userId), tokenHash);
+		redisTemplate.opsForSet().remove(sessionKey(userId), legacyTokenHash);
 		redisTemplate.opsForSet().remove(sessionKey(userId), refreshToken);
 	}
 
 	private void revokeEntity(String refreshToken) {
 		String tokenHash = tokenHashService.hash(refreshToken);
+		String legacyTokenHash = tokenHashService.legacyHash(refreshToken);
 		refreshTokenRepository.findByTokenHash(tokenHash)
+			.or(() -> refreshTokenRepository.findByTokenHash(legacyTokenHash))
 			.or(() -> refreshTokenRepository.findByTokenValue(refreshToken))
 			.ifPresent(entity -> {
 				entity.revoke();

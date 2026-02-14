@@ -135,6 +135,7 @@ docker compose -f docker-compose.app.yml -f docker-compose.local.yml down
 - `JWT_PRIVATE_KEY_PATH`
 - `JWT_PUBLIC_KEY_PATH`
 - `JWT_CURRENT_KID`
+- `APP_TOKEN_HASH_PEPPER_B64` (Base64 인코딩된 pepper, 토큰 해시 필수값)
 - `APP_BASE_URL`
 - `API_BASE_URL`
 

@@ -64,10 +64,12 @@ public class EmailVerificationService {
     @Transactional
     public void verifyEmail(String token) {
         String tokenHash = tokenHashService.hash(token);
+        String legacyTokenHash = tokenHashService.legacyHash(token);
         EmailVerificationEntity verification = emailVerificationRepository.findByTokenHash(tokenHash)
+                .or(() -> emailVerificationRepository.findByTokenHash(legacyTokenHash))
                 .or(() -> emailVerificationRepository.findByToken(token))
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 인증 토큰입니다."));
-        if (verification.getTokenHash() == null) {
+        if (verification.getTokenHash() == null || tokenHashService.isLegacyHash(token, verification.getTokenHash())) {
             verification.migrateToHashed(tokenHash);
         }
 

@@ -24,3 +24,8 @@ jwt:
     private-key-path: src/test/resources/jwt/private.pem
     public-key-path: src/test/resources/jwt/public.pem
     current-kid: test-key
+
+app:
+  security:
+    token-hash:
+      pepper-base64: dGVzdC1wZXBwZXI=

@@ -56,6 +56,9 @@ springdoc:
 app:
   api:
     version: v1
+  security:
+    token-hash:
+      pepper-base64: ${APP_TOKEN_HASH_PEPPER_B64:}
   virtual-thread:
     enabled: ${APP_VIRTUAL_THREAD_ENABLED:false}
     insight-enabled: ${APP_VIRTUAL_THREAD_INSIGHT_ENABLED:false}
