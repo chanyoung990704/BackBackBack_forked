@@ -80,8 +80,7 @@ public class SecurityConfig {
 		"/api/auth/login",
 		"/api/auth/refresh",
 		"/api/auth/signup",
-		"/api/auth/verify-email",
-		"/api/auth/resend-verification"
+		"/api/auth/verify-email"
 	};
 
 	private static final String[] PUBLIC_GET_ENDPOINTS = {
@@ -122,7 +121,8 @@ public class SecurityConfig {
 	private static final String[] USER_POST_ENDPOINTS = {
 		"/api/companies/*/news/refresh-latest",
 		"/api/watchlists",
-		"/api/companies/*/ai-report"
+		"/api/companies/*/ai-report",
+		"/api/auth/resend-verification"
 	};
 
 	private static final String[] USER_DELETE_ENDPOINTS = {

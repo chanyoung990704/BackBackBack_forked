@@ -1,5 +1,6 @@
 package com.aivle.project.user.service;
 
+import com.aivle.project.auth.service.VerificationResendRateLimiter;
 import com.aivle.project.user.entity.EmailVerificationEntity;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.entity.UserStatus;
@@ -26,6 +27,7 @@ public class EmailVerificationService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final EmailService emailService;
     private final UserDomainService userDomainService;
+    private final VerificationResendRateLimiter verificationResendRateLimiter;
 
     @Value("${app.email.verification.expire-minutes:30}")
     private int expireMinutes;
@@ -86,6 +88,15 @@ public class EmailVerificationService {
      */
     @Transactional
     public void resendVerificationEmail(Long userId) {
+        resendVerificationEmail(userId, null);
+    }
+
+    /**
+     * 인증 토큰 재전송.
+     */
+    @Transactional
+    public void resendVerificationEmail(Long userId, String clientIp) {
+        verificationResendRateLimiter.checkLimit(userId, clientIp);
         UserEntity user = userDomainService.getUserById(userId);
 
         // 이미 인증된 사용자는 재전송 불가

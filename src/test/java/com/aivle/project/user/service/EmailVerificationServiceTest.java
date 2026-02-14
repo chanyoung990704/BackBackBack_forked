@@ -1,6 +1,7 @@
 package com.aivle.project.user.service;
 
 import com.aivle.project.common.config.TestSecurityConfig;
+import com.aivle.project.auth.service.VerificationResendRateLimiter;
 import com.aivle.project.user.entity.EmailVerificationEntity;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.entity.UserStatus;
@@ -43,6 +44,9 @@ class EmailVerificationServiceTest {
 
     @MockBean
     private EmailService emailService;
+
+    @MockBean
+    private VerificationResendRateLimiter verificationResendRateLimiter;
 
     private UserEntity testUser;
 
@@ -130,9 +134,10 @@ class EmailVerificationServiceTest {
         emailVerificationService.sendVerificationEmail(testUser, "test@example.com");
 
         // When
-        emailVerificationService.resendVerificationEmail(testUser.getId());
+        emailVerificationService.resendVerificationEmail(testUser.getId(), "127.0.0.1");
 
         // Then
+        verify(verificationResendRateLimiter).checkLimit(testUser.getId(), "127.0.0.1");
         verify(emailService, times(2)).sendVerificationEmail(eq("test@example.com"), anyString());
         assertThat(emailVerificationRepository.findAll()).hasSize(2);
     }

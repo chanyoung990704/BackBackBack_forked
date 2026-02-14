@@ -3,6 +3,7 @@ package com.aivle.project.auth.controller;
 import static org.mockito.BDDMockito.doThrow;
 import static org.mockito.BDDMockito.willDoNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -17,6 +18,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(
@@ -153,34 +157,73 @@ class EmailVerificationControllerTest {
 	}
 
 	@Test
-	@DisplayName("재전송 성공 시 공통 응답 포맷으로 반환한다")
-	void resendVerification_returnsApiResponseOnSuccess() throws Exception {
+	@DisplayName("POST 재전송 성공 시 공통 응답 포맷으로 반환한다")
+	void resendVerificationPost_returnsApiResponseOnSuccess() throws Exception {
 		// given
-		willDoNothing().given(emailVerificationService).resendVerificationEmail(1L);
+		willDoNothing().given(emailVerificationService).resendVerificationEmail(1L, "127.0.0.1");
+		setJwtAuthentication(1L);
 
 		// when & then
-		mockMvc.perform(get("/api/auth/resend-verification")
-				.param("userId", "1"))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.success").value(true))
-			.andExpect(jsonPath("$.data.status").value("success"))
-			.andExpect(jsonPath("$.data.message").value("인증 이메일이 재전송되었습니다."));
+		try {
+			mockMvc.perform(post("/api/auth/resend-verification"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.status").value("success"))
+				.andExpect(jsonPath("$.data.message").value("인증 이메일이 재전송되었습니다."));
+		} finally {
+			SecurityContextHolder.clearContext();
+		}
 	}
 
 	@Test
-	@DisplayName("재전송 실패 시 공통 에러 응답을 반환한다")
-	void resendVerification_returnsApiErrorOnFailure() throws Exception {
+	@DisplayName("GET 레거시 재전송 성공 시 deprecation 헤더를 포함한다")
+	void resendVerificationLegacy_returnsDeprecationHeaders() throws Exception {
+		// given
+		willDoNothing().given(emailVerificationService).resendVerificationEmail(1L, "127.0.0.1");
+		setJwtAuthentication(1L);
+
+		// when & then
+		try {
+			mockMvc.perform(get("/api/auth/resend-verification")
+					.param("userId", "1"))
+				.andExpect(status().isOk())
+				.andExpect(header().string("Deprecation", "true"))
+				.andExpect(header().string("Warning", "299 - \"Deprecated API. Use POST /api/auth/resend-verification\""))
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.status").value("success"));
+		} finally {
+			SecurityContextHolder.clearContext();
+		}
+	}
+
+	@Test
+	@DisplayName("GET 레거시 재전송 실패 시 공통 에러 응답을 반환한다")
+	void resendVerificationLegacy_returnsApiErrorOnFailure() throws Exception {
 		// given
 		doThrow(new IllegalArgumentException("존재하지 않는 사용자입니다."))
 			.when(emailVerificationService)
-			.resendVerificationEmail(1L);
+			.resendVerificationEmail(1L, "127.0.0.1");
+		setJwtAuthentication(1L);
 
 		// when & then
-		mockMvc.perform(get("/api/auth/resend-verification")
-				.param("userId", "1"))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.success").value(false))
-			.andExpect(jsonPath("$.error.code").value("EMAIL_VERIFICATION_RESEND_FAILED"))
-			.andExpect(jsonPath("$.error.message").value("존재하지 않는 사용자입니다."));
+		try {
+			mockMvc.perform(get("/api/auth/resend-verification")
+					.param("userId", "1"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.error.code").value("EMAIL_VERIFICATION_RESEND_FAILED"))
+				.andExpect(jsonPath("$.error.message").value("존재하지 않는 사용자입니다."));
+		} finally {
+			SecurityContextHolder.clearContext();
+		}
+	}
+
+	private void setJwtAuthentication(Long userId) {
+		Jwt jwt = Jwt.withTokenValue("test-token")
+			.header("alg", "none")
+			.claim("userId", userId)
+			.subject("test-subject")
+			.build();
+		SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
 	}
 }
