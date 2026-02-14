@@ -13,6 +13,7 @@ import com.aivle.project.auth.entity.RefreshTokenEntity;
 import com.aivle.project.auth.repository.RefreshTokenRepository;
 import com.aivle.project.auth.token.JwtTokenService;
 import com.aivle.project.auth.token.RefreshTokenCache;
+import com.aivle.project.common.security.TokenHashService;
 import com.aivle.project.user.security.CustomUserDetails;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
@@ -60,13 +61,21 @@ class RefreshTokenServiceTest {
 	private ArgumentCaptor<Duration> durationCaptor;
 
 	private RefreshTokenService refreshTokenService;
+	private TokenHashService tokenHashService;
 
 	@BeforeEach
 	void setUp() {
 		ObjectMapper objectMapper = new ObjectMapper();
 		lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 		lenient().when(redisTemplate.opsForSet()).thenReturn(setOperations);
-		refreshTokenService = new RefreshTokenService(redisTemplate, objectMapper, refreshTokenRepository, jwtTokenService);
+		tokenHashService = new TokenHashService();
+		refreshTokenService = new RefreshTokenService(
+			redisTemplate,
+			objectMapper,
+			refreshTokenRepository,
+			jwtTokenService,
+			tokenHashService
+		);
 	}
 
 	@Test
@@ -76,20 +85,22 @@ class RefreshTokenServiceTest {
 		CustomUserDetails userDetails = mock(CustomUserDetails.class);
 		when(userDetails.getId()).thenReturn(USER_ID);
 		when(jwtTokenService.getRefreshTokenExpirationSeconds()).thenReturn(600L);
+		String tokenHash = tokenHashService.hash("rt-1");
 
 		// when: 리프레시 토큰을 저장
 		refreshTokenService.storeToken(userDetails, "rt-1", "device-1", "ios", "127.0.0.1");
 
 		// then: Redis 저장과 DB 저장이 수행된다
-		verify(valueOperations).set(eq("refresh:rt-1"), valueCaptor.capture(), durationCaptor.capture());
+		verify(valueOperations).set(eq("refresh:" + tokenHash), valueCaptor.capture(), durationCaptor.capture());
 		RefreshTokenCache cache = new ObjectMapper().readValue(valueCaptor.getValue(), RefreshTokenCache.class);
-		assertThat(cache.token()).isEqualTo("rt-1");
+		assertThat(cache.token()).isEqualTo(tokenHash);
 		assertThat(cache.userId()).isEqualTo(USER_ID);
 		assertThat(durationCaptor.getValue().getSeconds()).isPositive();
 
 		ArgumentCaptor<RefreshTokenEntity> entityCaptor = ArgumentCaptor.forClass(RefreshTokenEntity.class);
 		verify(refreshTokenRepository).save(entityCaptor.capture());
-		assertThat(entityCaptor.getValue().getTokenValue()).isEqualTo("rt-1");
+		assertThat(entityCaptor.getValue().getTokenValue()).isNull();
+		assertThat(entityCaptor.getValue().getTokenHash()).isEqualTo(tokenHash);
 		assertThat(entityCaptor.getValue().getUserId()).isEqualTo(USER_ID);
 	}
 
@@ -100,7 +111,9 @@ class RefreshTokenServiceTest {
 		LocalDateTime expiresAt = LocalDateTime.now().plusDays(1);
 		RefreshTokenEntity entity = new RefreshTokenEntity(USER_ID, "rt-2", "android", "127.0.0.1", expiresAt);
 		ReflectionTestUtils.setField(entity, "createdAt", LocalDateTime.now().minusMinutes(5));
+		String tokenHash = tokenHashService.hash("rt-2");
 
+		when(valueOperations.get("refresh:" + tokenHash)).thenReturn(null);
 		when(valueOperations.get("refresh:rt-2")).thenReturn(null);
 		when(refreshTokenRepository.findByTokenValue("rt-2")).thenReturn(Optional.of(entity));
 
@@ -108,19 +121,21 @@ class RefreshTokenServiceTest {
 		RefreshTokenCache cache = refreshTokenService.loadValidToken("rt-2");
 
 		// then: 캐시가 재구성된다
-		assertThat(cache.token()).isEqualTo("rt-2");
+		assertThat(cache.token()).isEqualTo(tokenHash);
 		assertThat(cache.userId()).isEqualTo(USER_ID);
 		assertThat(cache.deviceId()).isEqualTo("default");
-		verify(valueOperations).set(eq("refresh:rt-2"), any(String.class), any(Duration.class));
-		verify(setOperations).add("sessions:" + USER_ID, "rt-2");
+		verify(valueOperations).set(eq("refresh:" + tokenHash), any(String.class), any(Duration.class));
+		verify(setOperations).add("sessions:" + USER_ID, tokenHash);
 	}
 
 	@Test
 	@DisplayName("리프레시 회전 시 기존 토큰이 폐기되고 신규 토큰이 저장된다")
 	void rotateToken_shouldRevokeOldAndStoreNew() throws Exception {
 		// given: 기존 토큰이 Redis와 DB에 존재하는 상태를 준비
+		String oldTokenHash = tokenHashService.hash("rt-old");
+		String newTokenHash = tokenHashService.hash("rt-new");
 		RefreshTokenCache existing = new RefreshTokenCache(
-			"rt-old",
+			oldTokenHash,
 			USER_ID,
 			"device-3",
 			"ios",
@@ -130,19 +145,19 @@ class RefreshTokenServiceTest {
 			1L
 		);
 		String json = new ObjectMapper().writeValueAsString(existing);
-		when(valueOperations.get("refresh:rt-old")).thenReturn(json);
+		when(valueOperations.get("refresh:" + oldTokenHash)).thenReturn(json);
 		when(jwtTokenService.getRefreshTokenExpirationSeconds()).thenReturn(600L);
 
-		RefreshTokenEntity entity = new RefreshTokenEntity(USER_ID, "rt-old", "ios", "127.0.0.1", LocalDateTime.now().plusDays(1));
-		when(refreshTokenRepository.findByTokenValue("rt-old")).thenReturn(Optional.of(entity));
+		RefreshTokenEntity entity = RefreshTokenEntity.hashed(USER_ID, oldTokenHash, "ios", "127.0.0.1", LocalDateTime.now().plusDays(1));
+		when(refreshTokenRepository.findByTokenHash(oldTokenHash)).thenReturn(Optional.of(entity));
 
 		// when: 리프레시 토큰을 회전
 		refreshTokenService.rotateToken("rt-old", "rt-new");
 
 		// then: 기존 토큰 삭제와 신규 토큰 저장이 수행된다
-		verify(redisTemplate).delete("refresh:rt-old");
-		verify(setOperations).remove("sessions:" + USER_ID, "rt-old");
-		verify(valueOperations).set(eq("refresh:rt-new"), any(String.class), any(Duration.class));
+		verify(redisTemplate).delete("refresh:" + oldTokenHash);
+		verify(setOperations).remove("sessions:" + USER_ID, oldTokenHash);
+		verify(valueOperations).set(eq("refresh:" + newTokenHash), any(String.class), any(Duration.class));
 		verify(refreshTokenRepository, atLeastOnce()).save(any(RefreshTokenEntity.class));
 	}
 
@@ -151,6 +166,7 @@ class RefreshTokenServiceTest {
 	void loadValidToken_shouldSupportLegacySecondEpochCache() throws Exception {
 		// given: 레거시(초 단위) 캐시 토큰이 Redis에 저장되어 있다
 		long nowSeconds = System.currentTimeMillis() / 1000;
+		String tokenHash = tokenHashService.hash("legacy-rt");
 		RefreshTokenCache legacyCache = new RefreshTokenCache(
 			"legacy-rt",
 			USER_ID,
@@ -162,13 +178,14 @@ class RefreshTokenServiceTest {
 			nowSeconds - 10
 		);
 		String legacyJson = new ObjectMapper().writeValueAsString(legacyCache);
+		when(valueOperations.get("refresh:" + tokenHash)).thenReturn(null);
 		when(valueOperations.get("refresh:legacy-rt")).thenReturn(legacyJson);
 
 		// when
 		RefreshTokenCache loaded = refreshTokenService.loadValidToken("legacy-rt");
 
 		// then
-		assertThat(loaded.token()).isEqualTo("legacy-rt");
+		assertThat(loaded.token()).isEqualTo(tokenHash);
 		assertThat(loaded.userId()).isEqualTo(USER_ID);
 	}
 
@@ -176,17 +193,19 @@ class RefreshTokenServiceTest {
 	@DisplayName("전체 로그아웃 시 사용자 리프레시 토큰을 Redis/DB에서 모두 폐기한다")
 	void revokeAllByUserId_shouldRevokeAllUserTokens() {
 		// given: 사용자 세션 키에 토큰들이 존재하고 DB에 활성 토큰이 있다
-		RefreshTokenEntity first = new RefreshTokenEntity(USER_ID, "rt-1", "ios", "127.0.0.1", LocalDateTime.now().plusDays(1));
-		RefreshTokenEntity second = new RefreshTokenEntity(USER_ID, "rt-2", "android", "127.0.0.1", LocalDateTime.now().plusDays(1));
-		when(setOperations.members("sessions:" + USER_ID)).thenReturn(Set.of("rt-1", "rt-2"));
+		String firstHash = tokenHashService.hash("rt-1");
+		String secondHash = tokenHashService.hash("rt-2");
+		RefreshTokenEntity first = RefreshTokenEntity.hashed(USER_ID, firstHash, "ios", "127.0.0.1", LocalDateTime.now().plusDays(1));
+		RefreshTokenEntity second = RefreshTokenEntity.hashed(USER_ID, secondHash, "android", "127.0.0.1", LocalDateTime.now().plusDays(1));
+		when(setOperations.members("sessions:" + USER_ID)).thenReturn(Set.of(firstHash, secondHash));
 		when(refreshTokenRepository.findAllByUserIdAndRevokedFalse(USER_ID)).thenReturn(List.of(first, second));
 
 		// when: 전체 토큰 폐기
 		refreshTokenService.revokeAllByUserId(USER_ID);
 
 		// then: Redis 토큰 키/세션 키가 삭제되고 DB 토큰이 revoke 처리된다
-		verify(redisTemplate).delete("refresh:rt-1");
-		verify(redisTemplate).delete("refresh:rt-2");
+		verify(redisTemplate).delete("refresh:" + firstHash);
+		verify(redisTemplate).delete("refresh:" + secondHash);
 		verify(redisTemplate).delete("sessions:" + USER_ID);
 		verify(refreshTokenRepository).saveAll(List.of(first, second));
 		assertThat(first.isRevoked()).isTrue();

@@ -215,7 +215,7 @@ public class SecurityConfig {
 		}
 		configuration.setAllowedOrigins(origins);
 		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"));
 		configuration.setAllowCredentials(true);
 		configuration.setMaxAge(3600L);
 

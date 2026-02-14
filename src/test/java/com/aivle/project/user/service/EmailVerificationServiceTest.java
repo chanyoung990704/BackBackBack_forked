@@ -19,7 +19,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -76,6 +76,8 @@ class EmailVerificationServiceTest {
         EmailVerificationEntity verification = emailVerificationRepository.findAll().get(0);
         assertThat(verification.getEmail()).isEqualTo("test@example.com");
         assertThat(verification.getStatus()).isEqualTo(VerificationStatus.PENDING);
+        assertThat(verification.getToken()).isNull();
+        assertThat(verification.getTokenHash()).isNotBlank();
         assertThat(verification.getExpiredAt()).isAfter(LocalDateTime.now());
     }
 
@@ -84,13 +86,16 @@ class EmailVerificationServiceTest {
     void verifyEmail_Success() {
         // Given
         emailVerificationService.sendVerificationEmail(testUser, "test@example.com");
-        EmailVerificationEntity verification = emailVerificationRepository.findAll().get(0);
+        Long verificationId = emailVerificationRepository.findAll().get(0).getId();
+        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendVerificationEmail(eq("test@example.com"), tokenCaptor.capture());
+        String token = tokenCaptor.getValue();
 
         // When
-        emailVerificationService.verifyEmail(verification.getToken());
+        emailVerificationService.verifyEmail(token);
 
         // Then
-        EmailVerificationEntity updatedVerification = emailVerificationRepository.findById(verification.getId()).orElseThrow();
+        EmailVerificationEntity updatedVerification = emailVerificationRepository.findById(verificationId).orElseThrow();
         assertThat(updatedVerification.getStatus()).isEqualTo(VerificationStatus.VERIFIED);
         assertThat(updatedVerification.getVerifiedAt()).isNotNull();
 
@@ -104,13 +109,16 @@ class EmailVerificationServiceTest {
         // Given
         emailVerificationService.sendVerificationEmail(testUser, "test@example.com");
         EmailVerificationEntity verification = emailVerificationRepository.findAll().get(0);
+        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendVerificationEmail(eq("test@example.com"), tokenCaptor.capture());
+        String token = tokenCaptor.getValue();
 
         // 만료 시간을 과거로 설정
         verification.setExpiredAt(LocalDateTime.now().minusMinutes(1));
         emailVerificationRepository.save(verification);
 
         // When & Then
-        assertThatThrownBy(() -> emailVerificationService.verifyEmail(verification.getToken()))
+        assertThatThrownBy(() -> emailVerificationService.verifyEmail(token))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("만료되었습니다");
 

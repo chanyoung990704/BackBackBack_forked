@@ -37,8 +37,11 @@ public class EmailVerificationEntity extends BaseEntity {
     @Column(name = "email", nullable = false, length = 100)
     private String email;
 
-    @Column(name = "token", nullable = false, length = 255)
+    @Column(name = "token", length = 255)
     private String token;
+
+    @Column(name = "token_hash", length = 64, unique = true)
+    private String tokenHash;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
@@ -53,13 +56,18 @@ public class EmailVerificationEntity extends BaseEntity {
     /**
      * 인증 토큰 생성.
      */
-    public static EmailVerificationEntity create(UserEntity user, String email, String token, int expireMinutes) {
+    public static EmailVerificationEntity create(UserEntity user, String email, String tokenHash, int expireMinutes) {
         EmailVerificationEntity verification = new EmailVerificationEntity();
         verification.user = user;
         verification.email = email;
-        verification.token = token;
+        verification.tokenHash = tokenHash;
         verification.expiredAt = LocalDateTime.now().plusMinutes(expireMinutes);
         return verification;
+    }
+
+    public void migrateToHashed(String tokenHash) {
+        this.tokenHash = tokenHash;
+        this.token = null;
     }
 
     /**

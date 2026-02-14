@@ -1,6 +1,7 @@
 package com.aivle.project.user.service;
 
 import com.aivle.project.auth.service.VerificationResendRateLimiter;
+import com.aivle.project.common.security.TokenHashService;
 import com.aivle.project.user.entity.EmailVerificationEntity;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.entity.UserStatus;
@@ -28,6 +29,7 @@ public class EmailVerificationService {
     private final EmailService emailService;
     private final UserDomainService userDomainService;
     private final VerificationResendRateLimiter verificationResendRateLimiter;
+    private final TokenHashService tokenHashService;
 
     @Value("${app.email.verification.expire-minutes:30}")
     private int expireMinutes;
@@ -46,7 +48,8 @@ public class EmailVerificationService {
 
         // 새로운 인증 토큰 생성
         String token = generateSecureToken();
-        EmailVerificationEntity verification = EmailVerificationEntity.create(user, email, token, expireMinutes);
+        String tokenHash = tokenHashService.hash(token);
+        EmailVerificationEntity verification = EmailVerificationEntity.create(user, email, tokenHash, expireMinutes);
         emailVerificationRepository.save(verification);
 
         // 이메일 전송
@@ -60,8 +63,13 @@ public class EmailVerificationService {
      */
     @Transactional
     public void verifyEmail(String token) {
-        EmailVerificationEntity verification = emailVerificationRepository.findByToken(token)
+        String tokenHash = tokenHashService.hash(token);
+        EmailVerificationEntity verification = emailVerificationRepository.findByTokenHash(tokenHash)
+                .or(() -> emailVerificationRepository.findByToken(token))
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 인증 토큰입니다."));
+        if (verification.getTokenHash() == null) {
+            verification.migrateToHashed(tokenHash);
+        }
 
         // 만료 여부 확인
         if (verification.isExpired()) {
