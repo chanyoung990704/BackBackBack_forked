@@ -9,9 +9,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.Named;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import java.util.List;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public abstract class PostMapper {
@@ -53,13 +50,5 @@ public abstract class PostMapper {
 	@Named("maskName")
 	protected String maskName(String name) {
 		return NameMaskingUtil.mask(name);
-	}
-
-	private boolean isAdminComment(CommentsEntity comment) {
-		if (comment.getUser() == null) return false;
-		
-		List<UserRoleEntity> userRoles = userRoleRepository.findAllByUserId(comment.getUser().getId());
-		return userRoles.stream()
-			.anyMatch(ur -> ur.getRole().getName() == RoleName.ROLE_ADMIN);
 	}
 }
