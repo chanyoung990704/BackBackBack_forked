@@ -101,7 +101,15 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	def excludeTagsProp = (project.findProperty("excludeTags") ?: System.getenv("JUNIT_EXCLUDE_TAGS"))?.toString()?.trim()
+	if (excludeTagsProp) {
+		def excludeTagList = excludeTagsProp.split(',')*.trim().findAll { !it.isEmpty() }
+		useJUnitPlatform {
+			excludeTags excludeTagList as String[]
+		}
+	} else {
+		useJUnitPlatform()
+	}
 	jvmArgs "-javaagent:${configurations.mockitoAgent.singleFile}"
 	systemProperty "spring.profiles.active", "test"
 }

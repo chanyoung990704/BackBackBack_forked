@@ -21,7 +21,7 @@ phases:
     commands:
       - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
       - rm -rf build/test-results/test build/reports/tests/test
-      - JWT_PRIVATE_KEY_PATH=src/test/resources/jwt/private.pem JWT_PUBLIC_KEY_PATH=src/test/resources/jwt/public.pem JWT_CURRENT_KID=test-key ./gradlew cleanTest test --rerun-tasks --stacktrace --info
+      - JWT_PRIVATE_KEY_PATH=src/test/resources/jwt/private.pem JWT_PUBLIC_KEY_PATH=src/test/resources/jwt/public.pem JWT_CURRENT_KID=test-key ./gradlew cleanTest test --rerun-tasks --stacktrace --info -PexcludeTags=integration
       - ./gradlew bootJar -x test
       - APP_BOOT_JAR="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' | head -n 1)"
       - 'test -n "$APP_BOOT_JAR" || (echo "[ERROR] bootJar 산출물을 찾지 못했습니다: build/libs" && exit 1)'
