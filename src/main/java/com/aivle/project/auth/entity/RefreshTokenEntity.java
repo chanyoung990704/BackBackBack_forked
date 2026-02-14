@@ -29,8 +29,11 @@ public class RefreshTokenEntity {
 	@Column(name = "user_id", nullable = false)
 	private Long userId;
 
-	@Column(name = "token_value", nullable = false, length = 512, unique = true)
+	@Column(name = "token_value", length = 512, unique = true)
 	private String tokenValue;
+
+	@Column(name = "token_hash", length = 64, unique = true)
+	private String tokenHash;
 
 	@Column(name = "device_info", length = 500)
 	private String deviceInfo;
@@ -59,12 +62,39 @@ public class RefreshTokenEntity {
 		String ipAddress,
 		LocalDateTime expiresAt
 	) {
+		this(userId, null, tokenValue, deviceInfo, ipAddress, expiresAt);
+	}
+
+	public RefreshTokenEntity(
+		Long userId,
+		String tokenHash,
+		String tokenValue,
+		String deviceInfo,
+		String ipAddress,
+		LocalDateTime expiresAt
+	) {
 		this.userId = userId;
+		this.tokenHash = tokenHash;
 		this.tokenValue = tokenValue;
 		this.deviceInfo = deviceInfo;
 		this.ipAddress = ipAddress;
 		this.expiresAt = expiresAt;
 		this.revoked = false;
+	}
+
+	public static RefreshTokenEntity hashed(
+		Long userId,
+		String tokenHash,
+		String deviceInfo,
+		String ipAddress,
+		LocalDateTime expiresAt
+	) {
+		return new RefreshTokenEntity(userId, tokenHash, null, deviceInfo, ipAddress, expiresAt);
+	}
+
+	public void migrateToHashed(String tokenHash) {
+		this.tokenHash = tokenHash;
+		this.tokenValue = null;
 	}
 
 	public void revoke() {

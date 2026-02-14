@@ -18,6 +18,11 @@ public interface EmailVerificationRepository extends JpaRepository<EmailVerifica
     Optional<EmailVerificationEntity> findByToken(String token);
 
     /**
+     * 토큰 해시로 인증 정보 조회.
+     */
+    Optional<EmailVerificationEntity> findByTokenHash(String tokenHash);
+
+    /**
      * 이메일로 가장 최근 인증 정보 조회.
      */
     @Query("SELECT ev FROM EmailVerificationEntity ev " +

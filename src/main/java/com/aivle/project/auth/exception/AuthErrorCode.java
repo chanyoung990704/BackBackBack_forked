@@ -11,7 +11,9 @@ public enum AuthErrorCode implements ErrorCode {
 	EMAIL_VERIFICATION_REQUIRED("EMAIL_VERIFICATION_REQUIRED", "이메일 인증이 필요합니다.", HttpStatus.UNAUTHORIZED),
 	EMAIL_ALREADY_EXISTS("EMAIL_ALREADY_EXISTS", "이미 존재하는 이메일입니다.", HttpStatus.CONFLICT),
 	TURNSTILE_VERIFICATION_FAILED("TURNSTILE_VERIFICATION_FAILED", "보안 검증에 실패했습니다. 다시 시도해주세요.", HttpStatus.BAD_REQUEST),
-	INVALID_REFRESH_TOKEN("AUTH_401", "인증에 실패했습니다. (토큰 만료 또는 유효하지 않음)", HttpStatus.UNAUTHORIZED);
+	INVALID_REFRESH_TOKEN("AUTH_401", "인증에 실패했습니다. (토큰 만료 또는 유효하지 않음)", HttpStatus.UNAUTHORIZED),
+	CSRF_VALIDATION_FAILED("AUTH_403", "CSRF 검증에 실패했습니다.", HttpStatus.FORBIDDEN),
+	RESEND_VERIFICATION_RATE_LIMITED("AUTH_429", "요청이 너무 많습니다. 잠시 후 다시 시도해주세요.", HttpStatus.TOO_MANY_REQUESTS);
 
 	private final String code;
 	private final String message;

@@ -15,6 +15,7 @@ import com.aivle.project.file.storage.StoredFile;
 import com.aivle.project.file.validator.FileValidator;
 import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.post.repository.PostsRepository;
+import com.aivle.project.post.service.PostReadAccessPolicy;
 import com.aivle.project.user.entity.UserEntity;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +37,7 @@ public class FileService {
 	private final FilesRepository filesRepository;
 	private final PostFilesRepository postFilesRepository;
 	private final PostsRepository postsRepository;
+	private final PostReadAccessPolicy postReadAccessPolicy;
 	private final com.aivle.project.file.mapper.FileMapper fileMapper;
 
 	public List<FileResponse> upload(Long postId, UserEntity user, List<MultipartFile> files) {
@@ -69,6 +71,7 @@ public class FileService {
 	public List<FileResponse> list(Long postId, UserEntity user) {
 		PostsEntity post = findPost(postId);
 		requireUserId(user);
+		postReadAccessPolicy.validateReadable(post, user);
 		return postFilesRepository.findAllActiveByPostIdOrderByCreatedAtAsc(postId).stream()
 			.map(mapping -> fileMapper.toResponse(postId, mapping.getFile()))
 			.toList();
@@ -83,6 +86,7 @@ public class FileService {
 			throw new FileException(FileErrorCode.FILE_404_NOT_FOUND);
 		}
 		requireUserId(user);
+		postReadAccessPolicy.validateReadable(mapping.getPost(), user);
 		return file;
 	}
 

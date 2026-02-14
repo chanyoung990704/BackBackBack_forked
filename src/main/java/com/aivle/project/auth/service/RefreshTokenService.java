@@ -6,6 +6,7 @@ import com.aivle.project.auth.exception.AuthException;
 import com.aivle.project.auth.repository.RefreshTokenRepository;
 import com.aivle.project.auth.token.JwtTokenService;
 import com.aivle.project.auth.token.RefreshTokenCache;
+import com.aivle.project.common.security.TokenHashService;
 import com.aivle.project.user.security.CustomUserDetails;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,6 +38,7 @@ public class RefreshTokenService {
 	private final ObjectMapper objectMapper;
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final JwtTokenService jwtTokenService;
+	private final TokenHashService tokenHashService;
 	private final Clock clock = Clock.systemUTC();
 
 	@Transactional
@@ -48,11 +50,12 @@ public class RefreshTokenService {
 		String ipAddress
 	) {
 		String normalizedDeviceId = normalizeDeviceId(deviceId);
+		String tokenHash = tokenHashService.hash(refreshToken);
 		long now = Instant.now(clock).toEpochMilli();
 		long expiresAt = now + (jwtTokenService.getRefreshTokenExpirationSeconds() * 1000);
 
 		RefreshTokenCache cache = new RefreshTokenCache(
-			refreshToken,
+			tokenHash,
 			userDetails.getId(),
 			normalizedDeviceId,
 			deviceInfo,
@@ -63,7 +66,7 @@ public class RefreshTokenService {
 		);
 
 		storeRedis(cache);
-		storeSession(cache.userId(), refreshToken);
+		storeSession(cache.userId(), tokenHash);
 		storeEntity(cache);
 		return cache;
 	}
@@ -76,16 +79,20 @@ public class RefreshTokenService {
 
 		long now = Instant.now(clock).toEpochMilli();
 		long expiresAt = now + (jwtTokenService.getRefreshTokenExpirationSeconds() * 1000);
-		RefreshTokenCache rotated = current.rotate(newToken, now, expiresAt);
+		String newTokenHash = tokenHashService.hash(newToken);
+		RefreshTokenCache rotated = current.rotate(newTokenHash, now, expiresAt);
 
 		storeRedis(rotated);
-		storeSession(rotated.userId(), newToken);
+		storeSession(rotated.userId(), newTokenHash);
 		storeEntity(rotated);
 		return rotated;
 	}
 
 	public RefreshTokenCache loadValidToken(String refreshToken) {
-		RefreshTokenCache cache = loadRedis(refreshToken).orElseGet(() -> loadFromDatabase(refreshToken));
+		String tokenHash = tokenHashService.hash(refreshToken);
+		RefreshTokenCache cache = loadRedis(tokenHash)
+			.or(() -> loadLegacyRedis(refreshToken).map(legacy -> migrateLegacyCache(legacy, refreshToken, tokenHash)))
+			.orElseGet(() -> loadFromDatabase(refreshToken, tokenHash));
 		long now = Instant.now(clock).toEpochMilli();
 		long expiresAt = normalizeEpochMillis(cache.expiresAt());
 		if (expiresAt <= now) {
@@ -140,8 +147,8 @@ public class RefreshTokenService {
 		}
 	}
 
-	private Optional<RefreshTokenCache> loadRedis(String refreshToken) {
-		String json = redisTemplate.opsForValue().get(redisKey(refreshToken));
+	private Optional<RefreshTokenCache> loadRedis(String tokenIdentifier) {
+		String json = redisTemplate.opsForValue().get(redisKey(tokenIdentifier));
 		if (json == null) {
 			return Optional.empty();
 		}
@@ -152,8 +159,31 @@ public class RefreshTokenService {
 		}
 	}
 
-	private RefreshTokenCache loadFromDatabase(String refreshToken) {
-		RefreshTokenEntity entity = refreshTokenRepository.findByTokenValue(refreshToken)
+	private Optional<RefreshTokenCache> loadLegacyRedis(String refreshToken) {
+		return loadRedis(refreshToken);
+	}
+
+	private RefreshTokenCache migrateLegacyCache(RefreshTokenCache legacyCache, String refreshToken, String tokenHash) {
+		RefreshTokenCache migratedCache = new RefreshTokenCache(
+			tokenHash,
+			legacyCache.userId(),
+			legacyCache.deviceId(),
+			legacyCache.deviceInfo(),
+			legacyCache.ipAddress(),
+			legacyCache.issuedAt(),
+			legacyCache.expiresAt(),
+			legacyCache.lastUsedAt()
+		);
+		storeRedis(migratedCache);
+		storeSession(migratedCache.userId(), tokenHash);
+		redisTemplate.delete(redisKey(refreshToken));
+		redisTemplate.opsForSet().remove(sessionKey(migratedCache.userId()), refreshToken);
+		return migratedCache;
+	}
+
+	private RefreshTokenCache loadFromDatabase(String refreshToken, String tokenHash) {
+		RefreshTokenEntity entity = refreshTokenRepository.findByTokenHash(tokenHash)
+			.or(() -> refreshTokenRepository.findByTokenValue(refreshToken))
 			.orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN));
 		if (entity.isRevoked()) {
 			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
@@ -162,12 +192,16 @@ public class RefreshTokenService {
 		if (expiresAt.isBefore(LocalDateTime.now(clock))) {
 			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
 		}
+		if (entity.getTokenHash() == null) {
+			entity.migrateToHashed(tokenHash);
+			refreshTokenRepository.save(entity);
+		}
 
 		long issuedAt = toEpochMillis(entity.getCreatedAt());
 		long expiresAtEpoch = toEpochMillis(entity.getExpiresAt());
 
 		RefreshTokenCache cache = new RefreshTokenCache(
-			entity.getTokenValue(),
+			tokenHash,
 			entity.getUserId(),
 			DEFAULT_DEVICE_ID,
 			entity.getDeviceInfo(),
@@ -182,21 +216,27 @@ public class RefreshTokenService {
 	}
 
 	private void revokeRedis(String refreshToken, Long userId) {
+		String tokenHash = tokenHashService.hash(refreshToken);
+		redisTemplate.delete(redisKey(tokenHash));
 		redisTemplate.delete(redisKey(refreshToken));
+		redisTemplate.opsForSet().remove(sessionKey(userId), tokenHash);
 		redisTemplate.opsForSet().remove(sessionKey(userId), refreshToken);
 	}
 
 	private void revokeEntity(String refreshToken) {
-		refreshTokenRepository.findByTokenValue(refreshToken).ifPresent(entity -> {
-			entity.revoke();
-			refreshTokenRepository.save(entity);
-		});
+		String tokenHash = tokenHashService.hash(refreshToken);
+		refreshTokenRepository.findByTokenHash(tokenHash)
+			.or(() -> refreshTokenRepository.findByTokenValue(refreshToken))
+			.ifPresent(entity -> {
+				entity.revoke();
+				refreshTokenRepository.save(entity);
+			});
 	}
 
 	private void storeEntity(RefreshTokenCache cache) {
 		long expiresAtEpochMillis = normalizeEpochMillis(cache.expiresAt());
 		LocalDateTime expiresAt = LocalDateTime.ofInstant(Instant.ofEpochMilli(expiresAtEpochMillis), ZoneOffset.UTC);
-		RefreshTokenEntity entity = new RefreshTokenEntity(
+		RefreshTokenEntity entity = RefreshTokenEntity.hashed(
 			cache.userId(),
 			cache.token(),
 			cache.deviceInfo(),
@@ -206,8 +246,8 @@ public class RefreshTokenService {
 		refreshTokenRepository.save(entity);
 	}
 
-	private void storeSession(Long userId, String refreshToken) {
-		redisTemplate.opsForSet().add(sessionKey(userId), refreshToken);
+	private void storeSession(Long userId, String tokenIdentifier) {
+		redisTemplate.opsForSet().add(sessionKey(userId), tokenIdentifier);
 	}
 
 	private String redisKey(String refreshToken) {

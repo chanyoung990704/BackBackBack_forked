@@ -15,6 +15,6 @@ public interface PostFilesRepository extends JpaRepository<PostFilesEntity, Long
 	@Query("select pf from PostFilesEntity pf join fetch pf.file f where pf.post.id = :postId and f.deletedAt is null order by pf.createdAt asc")
 	List<PostFilesEntity> findAllActiveByPostIdOrderByCreatedAtAsc(@Param("postId") Long postId);
 
-	@Query("select pf from PostFilesEntity pf join fetch pf.file f join fetch pf.post p where f.id = :fileId")
+	@Query("select pf from PostFilesEntity pf join fetch pf.file f join fetch pf.post p where f.id = :fileId and f.deletedAt is null and p.deletedAt is null")
 	Optional<PostFilesEntity> findByFileId(@Param("fileId") Long fileId);
 }

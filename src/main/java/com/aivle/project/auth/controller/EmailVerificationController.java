@@ -1,6 +1,8 @@
 package com.aivle.project.auth.controller;
 
 import com.aivle.project.auth.dto.EmailVerificationResultResponse;
+import com.aivle.project.common.error.CommonErrorCode;
+import com.aivle.project.common.error.CommonException;
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.error.ErrorResponse;
 import com.aivle.project.user.service.EmailVerificationService;
@@ -14,10 +16,14 @@ import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,6 +39,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequestMapping("/api/auth")
 @Tag(name = "인증", description = "이메일 인증 API")
 public class EmailVerificationController {
+
+    private static final String LEGACY_RESEND_SUNSET = "Sat, 28 Feb 2026 00:00:00 GMT";
 
     private final EmailVerificationService emailVerificationService;
 
@@ -97,30 +105,95 @@ public class EmailVerificationController {
     /**
      * 이메일 인증 재전송.
      */
-    @GetMapping("/resend-verification")
-    @Operation(summary = "이메일 인증 재전송", description = "사용자에게 인증 메일을 재전송합니다.", security = {})
+    @PostMapping("/resend-verification")
+    @Operation(summary = "이메일 인증 재전송", description = "인증된 사용자에게 인증 메일을 재전송합니다.")
     @ApiResponses({
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "재전송 성공"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "재전송 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "요청 횟수 초과"),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
     })
     public ResponseEntity<ApiResponse<EmailVerificationResultResponse>> resendVerification(
-        @Parameter(description = "사용자 ID", example = "1")
-        @RequestParam Long userId
+        @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt,
+        @Parameter(hidden = true) HttpServletRequest request
     ) {
         try {
-            emailVerificationService.resendVerificationEmail(userId);
+            emailVerificationService.resendVerificationEmail(resolveUserId(jwt), resolveIp(request));
             return ResponseEntity.ok(ApiResponse.ok(successResponse("인증 이메일이 재전송되었습니다.")));
         } catch (IllegalStateException | IllegalArgumentException e) {
             log.warn("인증 이메일 재전송 실패: {}", e.getMessage());
             return ResponseEntity.badRequest().body(ApiResponse.fail(
-                ErrorResponse.of("EMAIL_VERIFICATION_RESEND_FAILED", e.getMessage(), "/api/auth/resend-verification")
+                ErrorResponse.of("EMAIL_VERIFICATION_RESEND_FAILED", e.getMessage(), request.getRequestURI())
+            ));
+        }
+    }
+
+    /**
+     * 이메일 인증 재전송 레거시 경로(유예 운영).
+     */
+    @GetMapping("/resend-verification")
+    @Operation(summary = "[Deprecated] 이메일 인증 재전송", description = "다음 스프린트 제거 예정 레거시 경로입니다.")
+    @ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "재전송 성공"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "재전송 실패"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "429", description = "요청 횟수 초과"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "410", description = "사용 중단 예정")
+    })
+    public ResponseEntity<ApiResponse<EmailVerificationResultResponse>> resendVerificationLegacy(
+        @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt,
+        @Parameter(description = "레거시 호환 파라미터(무시됨)", example = "1")
+        @RequestParam(required = false) Long userId,
+        @Parameter(hidden = true) HttpServletRequest request
+    ) {
+        Long currentUserId = resolveUserId(jwt);
+        if (userId != null && !userId.equals(currentUserId)) {
+            throw new CommonException(CommonErrorCode.COMMON_403);
+        }
+        log.warn("Deprecated API called: GET /api/auth/resend-verification (sunset={})", LEGACY_RESEND_SUNSET);
+        try {
+            emailVerificationService.resendVerificationEmail(currentUserId, resolveIp(request));
+            return ResponseEntity.ok()
+                .header(HttpHeaders.WARNING, "299 - \"Deprecated API. Use POST /api/auth/resend-verification\"")
+                .header("Deprecation", "true")
+                .header("Sunset", LEGACY_RESEND_SUNSET)
+                .body(ApiResponse.ok(successResponse("인증 이메일이 재전송되었습니다.")));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            log.warn("인증 이메일 재전송 실패: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(ApiResponse.fail(
+                ErrorResponse.of("EMAIL_VERIFICATION_RESEND_FAILED", e.getMessage(), request.getRequestURI())
             ));
         }
     }
 
     private EmailVerificationResultResponse successResponse(String message) {
         return new EmailVerificationResultResponse(VerificationRedirectStatus.SUCCESS.value, message);
+    }
+
+    private Long resolveUserId(Jwt jwt) {
+        if (jwt == null) {
+            throw new CommonException(CommonErrorCode.COMMON_403);
+        }
+        Object value = jwt.getClaims().get("userId");
+        if (value instanceof Number number) {
+            return number.longValue();
+        }
+        if (value instanceof String text && !text.isBlank()) {
+            try {
+                return Long.parseLong(text);
+            } catch (NumberFormatException ignored) {
+                // fall through
+            }
+        }
+        throw new CommonException(CommonErrorCode.COMMON_403);
+    }
+
+    private String resolveIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     private String buildRedirectUrl(VerificationRedirectStatus status, String returnUrl) {

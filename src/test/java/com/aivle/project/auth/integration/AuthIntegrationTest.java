@@ -16,6 +16,7 @@ import com.aivle.project.auth.dto.TokenResponse;
 import com.aivle.project.auth.service.TurnstileService;
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.config.TestSecurityConfig;
+import com.aivle.project.common.security.TokenHashService;
 import com.aivle.project.user.entity.RoleEntity;
 import com.aivle.project.user.entity.RoleName;
 import com.aivle.project.user.entity.UserEntity;
@@ -71,6 +72,7 @@ class AuthIntegrationTest {
 
 	private static final String TEST_ISSUER = "project-test";
 	private static final String TEST_KID = "test-kid";
+	private static final String CSRF_HEADER_NAME = "X-CSRF-Token";
 
 	@Container
 	static final GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7.0"))
@@ -99,6 +101,9 @@ class AuthIntegrationTest {
 
 	@Autowired
 	private AuthCookieProperties authCookieProperties;
+
+	@Autowired
+	private TokenHashService tokenHashService;
 
 	@PersistenceContext
 	private EntityManager entityManager;
@@ -139,16 +144,16 @@ class AuthIntegrationTest {
 			.andReturn();
 
 		// then: 토큰 응답이 반환된다
-			ApiResponse<AuthLoginResponse> apiResponse = objectMapper.readValue(
-				result.getResponse().getContentAsString(),
-				new TypeReference<ApiResponse<AuthLoginResponse>>() {}
-			);
-			assertThat(apiResponse.success()).isTrue();
-			assertThat(apiResponse.data()).isNotNull();
-			AuthLoginResponse response = apiResponse.data();
-			assertThat(response.accessToken()).isNotBlank();
-			assertThat(response.refreshToken()).isNull(); // @JsonIgnore ensures this is null in JSON
-			assertThat(response.tokenType()).isEqualTo("Bearer");
+		ApiResponse<AuthLoginResponse> apiResponse = objectMapper.readValue(
+			result.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<AuthLoginResponse>>() {}
+		);
+		assertThat(apiResponse.success()).isTrue();
+		assertThat(apiResponse.data()).isNotNull();
+		AuthLoginResponse response = apiResponse.data();
+		assertThat(response.accessToken()).isNotBlank();
+		assertThat(response.refreshToken()).isNull(); // @JsonIgnore ensures this is null in JSON
+		assertThat(response.tokenType()).isEqualTo("Bearer");
 		
 		// then: 사용자 정보가 포함되어 있다
 		assertThat(response.user()).isNotNull();
@@ -161,14 +166,18 @@ class AuthIntegrationTest {
 		assertThat(cookie).isNotNull();
 		assertThat(cookie.isHttpOnly()).isTrue();
 		assertThat(cookie.getSecure()).isEqualTo(authCookieProperties.isSecure());
+		Cookie csrfCookie = result.getResponse().getCookie("csrf_token");
+		assertThat(csrfCookie).isNotNull();
+		assertThat(csrfCookie.isHttpOnly()).isFalse();
 		String setCookieHeader = result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
 		assertThat(setCookieHeader).contains("SameSite=" + authCookieProperties.getSameSite());
 
 		String refreshToken = cookie.getValue();
-		String refreshKey = "refresh:" + refreshToken;
+		String refreshTokenHash = tokenHashService.hash(refreshToken);
+		String refreshKey = "refresh:" + refreshTokenHash;
 		String sessionKey = "sessions:" + user.getId();
 		assertThat(redisTemplate.opsForValue().get(refreshKey)).isNotNull();
-		assertThat(redisTemplate.opsForSet().isMember(sessionKey, refreshToken)).isTrue();
+		assertThat(redisTemplate.opsForSet().isMember(sessionKey, refreshTokenHash)).isTrue();
 	}
 
 	@Test
@@ -337,26 +346,32 @@ class AuthIntegrationTest {
 
 		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
 		assertThat(refreshCookie).isNotNull();
+		Cookie csrfCookie = loginResult.getResponse().getCookie("csrf_token");
+		assertThat(csrfCookie).isNotNull();
 
 		// when: 쿠키와 함께 리프레시 요청
 		MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
-				.cookie(refreshCookie))
+				.cookie(refreshCookie, csrfCookie)
+				.header(CSRF_HEADER_NAME, csrfCookie.getValue()))
 			.andExpect(status().isOk())
 			.andReturn();
 
 		// then: 새로운 액세스 토큰이 발급되고 새 쿠키가 설정된다
-			ApiResponse<TokenResponse> apiResponse = objectMapper.readValue(
-				refreshResult.getResponse().getContentAsString(),
-				new TypeReference<ApiResponse<TokenResponse>>() {}
-			);
-			assertThat(apiResponse.success()).isTrue();
-			assertThat(apiResponse.data()).isNotNull();
-			assertThat(apiResponse.data().accessToken()).isNotBlank();
-		
+		ApiResponse<TokenResponse> apiResponse = objectMapper.readValue(
+			refreshResult.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<TokenResponse>>() {}
+		);
+		assertThat(apiResponse.success()).isTrue();
+		assertThat(apiResponse.data()).isNotNull();
+		assertThat(apiResponse.data().accessToken()).isNotBlank();
+
 		Cookie newCookie = refreshResult.getResponse().getCookie("refresh_token");
-			assertThat(newCookie).isNotNull();
-			assertThat(newCookie.getValue()).isNotEqualTo(refreshCookie.getValue());
-		}
+		assertThat(newCookie).isNotNull();
+		assertThat(newCookie.getValue()).isNotEqualTo(refreshCookie.getValue());
+		Cookie newCsrfCookie = refreshResult.getResponse().getCookie("csrf_token");
+		assertThat(newCsrfCookie).isNotNull();
+		assertThat(newCsrfCookie.getValue()).isNotEqualTo(csrfCookie.getValue());
+	}
 
 	@Test
 	@DisplayName("리프레시 토큰 없이 재발급 요청하면 공통 에러 응답을 반환한다")
@@ -374,6 +389,42 @@ class AuthIntegrationTest {
 		assertThat(response.success()).isFalse();
 		assertThat(response.error()).isNotNull();
 		assertThat(response.error().code()).isEqualTo("AUTH_401");
+	}
+
+	@Test
+	@DisplayName("리프레시 요청 시 CSRF 토큰이 없으면 403 응답을 반환한다")
+	void refresh_withoutCsrf_shouldReturnForbidden() throws Exception {
+		// given
+		createActiveUserWithRole("refresh-csrf@test.com", "password", RoleName.ROLE_USER);
+
+		LoginRequest loginRequest = new LoginRequest();
+		loginRequest.setEmail("refresh-csrf@test.com");
+		loginRequest.setPassword("password");
+		loginRequest.setDeviceId("device-1");
+
+		MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(loginRequest)))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
+		assertThat(refreshCookie).isNotNull();
+
+		// when
+		MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
+				.cookie(refreshCookie))
+			.andExpect(status().isForbidden())
+			.andReturn();
+
+		// then
+		ApiResponse<Void> response = objectMapper.readValue(
+			refreshResult.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<Void>>() {}
+		);
+		assertThat(response.success()).isFalse();
+		assertThat(response.error()).isNotNull();
+		assertThat(response.error().code()).isEqualTo("AUTH_403");
 	}
 
 	@Test
@@ -402,11 +453,14 @@ class AuthIntegrationTest {
 		String accessToken = loginApiResponse.data().accessToken();
 		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
 		assertThat(refreshCookie).isNotNull();
+		Cookie csrfCookie = loginResult.getResponse().getCookie("csrf_token");
+		assertThat(csrfCookie).isNotNull();
 
 		// when: 로그아웃 요청
 		MvcResult logoutResult = mockMvc.perform(post("/api/auth/logout")
 				.header("Authorization", "Bearer " + accessToken)
-				.cookie(refreshCookie))
+				.cookie(refreshCookie, csrfCookie)
+				.header(CSRF_HEADER_NAME, csrfCookie.getValue()))
 			.andExpect(status().isOk())
 			.andDo(print())
 			.andReturn();
@@ -416,6 +470,9 @@ class AuthIntegrationTest {
 		assertThat(clearedCookie).isNotNull();
 		assertThat(clearedCookie.getMaxAge()).isZero();
 		assertThat(clearedCookie.getValue()).isEmpty();
+		Cookie clearedCsrfCookie = logoutResult.getResponse().getCookie("csrf_token");
+		assertThat(clearedCsrfCookie).isNotNull();
+		assertThat(clearedCsrfCookie.getMaxAge()).isZero();
 	}
 
 	@Test
@@ -423,11 +480,35 @@ class AuthIntegrationTest {
 	void logout_shouldRejectClaims() throws Exception {
 		// given
 		createActiveUserWithRole("logout-claims@test.com", "password", RoleName.ROLE_USER);
-		String accessToken = loginAndGetAccessToken("logout-claims@test.com", "password", "device-1");
+		LoginRequest loginRequest = new LoginRequest();
+		loginRequest.setEmail("logout-claims@test.com");
+		loginRequest.setPassword("password");
+		loginRequest.setDeviceId("device-1");
+		loginRequest.setDeviceInfo("test-device");
+
+		MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(objectMapper.writeValueAsString(loginRequest)))
+			.andExpect(status().isOk())
+			.andReturn();
+
+		ApiResponse<AuthLoginResponse> apiResponse = objectMapper.readValue(
+			loginResult.getResponse().getContentAsString(),
+			new TypeReference<ApiResponse<AuthLoginResponse>>() {}
+		);
+		assertThat(apiResponse.success()).isTrue();
+		assertThat(apiResponse.data()).isNotNull();
+		String accessToken = apiResponse.data().accessToken();
+		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
+		Cookie csrfCookie = loginResult.getResponse().getCookie("csrf_token");
+		assertThat(refreshCookie).isNotNull();
+		assertThat(csrfCookie).isNotNull();
 
 		// when: 로그아웃 요청
 		mockMvc.perform(post("/api/auth/logout")
-				.header("Authorization", "Bearer " + accessToken))
+				.header("Authorization", "Bearer " + accessToken)
+				.header(CSRF_HEADER_NAME, csrfCookie.getValue())
+				.cookie(refreshCookie, csrfCookie))
 			.andExpect(status().isOk());
 
 		// then: 기존 토큰으로 클레임 조회 시 실패
@@ -472,6 +553,9 @@ class AuthIntegrationTest {
 		Cookie clearedCookie = logoutAllResult.getResponse().getCookie("refresh_token");
 		assertThat(clearedCookie).isNotNull();
 		assertThat(clearedCookie.getMaxAge()).isZero();
+		Cookie clearedCsrfCookie = logoutAllResult.getResponse().getCookie("csrf_token");
+		assertThat(clearedCsrfCookie).isNotNull();
+		assertThat(clearedCsrfCookie.getMaxAge()).isZero();
 	}
 
 	@Test
@@ -515,20 +599,23 @@ class AuthIntegrationTest {
 		);
 		assertThat(loginApiResponse.success()).isTrue();
 		assertThat(loginApiResponse.data()).isNotNull();
-		String accessToken = loginApiResponse.data().accessToken();
-		Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
-		assertThat(refreshCookie).isNotNull();
+			String accessToken = loginApiResponse.data().accessToken();
+			Cookie refreshCookie = loginResult.getResponse().getCookie("refresh_token");
+			assertThat(refreshCookie).isNotNull();
+			Cookie csrfCookie = loginResult.getResponse().getCookie("csrf_token");
+			assertThat(csrfCookie).isNotNull();
 
-		// when: 전체 로그아웃 후 기존 쿠키로 재발급 시도
-		mockMvc.perform(post("/api/auth/logout-all")
-				.header("Authorization", "Bearer " + accessToken)
-				.cookie(refreshCookie))
-			.andExpect(status().isOk());
+			// when: 전체 로그아웃 후 기존 쿠키로 재발급 시도
+			mockMvc.perform(post("/api/auth/logout-all")
+					.header("Authorization", "Bearer " + accessToken)
+					.cookie(refreshCookie))
+				.andExpect(status().isOk());
 
-		MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
-				.cookie(refreshCookie))
-			.andExpect(status().isUnauthorized())
-			.andReturn();
+			MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
+					.cookie(refreshCookie, csrfCookie)
+					.header(CSRF_HEADER_NAME, csrfCookie.getValue()))
+				.andExpect(status().isUnauthorized())
+				.andReturn();
 
 		// then
 		ApiResponse<Void> refreshApiResponse = objectMapper.readValue(
