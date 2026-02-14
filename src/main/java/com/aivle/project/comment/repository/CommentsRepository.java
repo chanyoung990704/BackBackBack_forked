@@ -10,7 +10,7 @@ import java.util.List;
 
 @Repository
 public interface CommentsRepository extends JpaRepository<CommentsEntity, Long> {
-    List<CommentsEntity> findByPostIdOrderByDepthAscSequenceAsc(Long postId);
+    List<CommentsEntity> findByPostIdAndDeletedAtIsNullOrderByDepthAscSequenceAsc(Long postId);
 
     @Query("SELECT COALESCE(MAX(c.sequence), -1) FROM CommentsEntity c WHERE c.post.id = :postId AND c.parent IS NULL")
     int findMaxSequenceByPostIdAndParentIsNull(@Param("postId") Long postId);

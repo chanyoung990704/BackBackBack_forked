@@ -113,7 +113,45 @@ class CommentControllerIntegrationTest {
 			result.getResponse().getContentAsString(),
 			new TypeReference<ApiResponse<List<CommentResponse>>>() {}
 		);
-		assertThat(apiResponse.data()).hasSize(2);
+			assertThat(apiResponse.data()).hasSize(2);
+	}
+
+	@Test
+	@DisplayName("QnA 댓글 목록은 비로그인 사용자가 조회할 수 없다")
+	void list_qna_shouldFailWhenAnonymous() throws Exception {
+		// given
+		UserEntity owner = persistUser("comment-qna-owner@test.com");
+		CategoriesEntity qna = persistCategory("qna");
+		PostsEntity post = persistPost(owner, qna, "qna", "content");
+
+		CommentCreateRequest request = new CommentCreateRequest();
+		request.setPostId(post.getId());
+		request.setContent("비밀 댓글");
+		commentsService.create(owner, request);
+
+		// when & then
+		mockMvc.perform(get("/api/posts/{postId}/comments", post.getId()))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@DisplayName("QnA 댓글 목록은 작성자가 아니면 조회할 수 없다")
+	void list_qna_shouldFailWhenNotOwner() throws Exception {
+		// given
+		UserEntity owner = persistUser("comment-qna-owner2@test.com");
+		UserEntity other = persistUser("comment-qna-other@test.com");
+		CategoriesEntity qna = persistCategory("qna");
+		PostsEntity post = persistPost(owner, qna, "qna", "content");
+
+		CommentCreateRequest request = new CommentCreateRequest();
+		request.setPostId(post.getId());
+		request.setContent("비밀 댓글");
+		commentsService.create(owner, request);
+
+		// when & then
+		mockMvc.perform(get("/api/posts/{postId}/comments", post.getId())
+				.with(jwt().jwt(jwt -> jwt.subject(other.getUuid().toString()))))
+			.andExpect(status().isForbidden());
 	}
 
 	@Test
@@ -183,6 +221,18 @@ class CommentControllerIntegrationTest {
 	}
 
 	private CategoriesEntity persistCategory(String name) {
+		CategoriesEntity existing = entityManager.createQuery(
+			"select c from CategoriesEntity c where c.name = :name",
+			CategoriesEntity.class
+		)
+			.setParameter("name", name)
+			.getResultStream()
+			.findFirst()
+			.orElse(null);
+		if (existing != null) {
+			return existing;
+		}
+
 		CategoriesEntity category = newEntity(CategoriesEntity.class);
 		ReflectionTestUtils.setField(category, "name", name);
 		entityManager.persist(category);

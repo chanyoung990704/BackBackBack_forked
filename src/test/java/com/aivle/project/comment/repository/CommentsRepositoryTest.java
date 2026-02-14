@@ -45,15 +45,16 @@ class CommentsRepositoryTest {
 		entityManager.persist(replyOne);
 		entityManager.persist(replyTwo);
 		entityManager.flush();
+		replyTwo.markDeleted();
+		entityManager.flush();
 
 		// when
-		List<CommentsEntity> results = commentsRepository.findByPostIdOrderByDepthAscSequenceAsc(post.getId());
+		List<CommentsEntity> results = commentsRepository.findByPostIdAndDeletedAtIsNullOrderByDepthAscSequenceAsc(post.getId());
 
 		// then
-		assertThat(results).hasSize(3);
+		assertThat(results).hasSize(2);
 		assertThat(results.get(0).getContent()).isEqualTo("parent");
 		assertThat(results.get(1).getContent()).isEqualTo("reply-1");
-		assertThat(results.get(2).getContent()).isEqualTo("reply-2");
 	}
 
 	@Test

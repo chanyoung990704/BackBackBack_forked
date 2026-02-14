@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.times;
 
 import com.aivle.project.common.error.CommonException;
+import com.aivle.project.category.entity.CategoriesEntity;
 import com.aivle.project.file.dto.FileResponse;
 import com.aivle.project.file.entity.FileUsageType;
 import com.aivle.project.file.entity.FilesEntity;
@@ -22,6 +23,7 @@ import com.aivle.project.file.storage.StoredFile;
 import com.aivle.project.file.validator.FileValidator;
 import com.aivle.project.post.entity.PostsEntity;
 import com.aivle.project.post.repository.PostsRepository;
+import com.aivle.project.post.service.PostReadAccessPolicy;
 import com.aivle.project.user.entity.UserEntity;
 import com.aivle.project.user.entity.UserStatus;
 import java.util.List;
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -58,6 +61,9 @@ class FileServiceTest {
 
 	@Mock
 	private PostsRepository postsRepository;
+
+	@Spy
+	private PostReadAccessPolicy postReadAccessPolicy;
 
 	@Mock
 	private com.aivle.project.file.mapper.FileMapper fileMapper;
@@ -182,6 +188,33 @@ class FileServiceTest {
 	}
 
 	@Test
+	@DisplayName("QnA 게시글 파일은 작성자가 아니면 다운로드할 수 없다")
+	void getFile_shouldFailWhenQnaNotOwner() {
+		// given
+		Long postId = 10L;
+		Long fileId = 5L;
+		UserEntity owner = newUser(1L, UUID.randomUUID());
+		UserEntity other = newUser(2L, UUID.randomUUID());
+		PostsEntity post = newPost(postId, owner);
+		setCategory(post, "qna");
+		FilesEntity file = FilesEntity.create(
+			FileUsageType.POST_ATTACHMENT,
+			"url",
+			"key",
+			"file.png",
+			10L,
+			"image/png"
+		);
+		ReflectionTestUtils.setField(file, "id", fileId);
+		PostFilesEntity mapping = PostFilesEntity.create(post, file);
+		given(postFilesRepository.findByFileId(fileId)).willReturn(Optional.of(mapping));
+
+		// when & then
+		assertThatThrownBy(() -> fileService.getFile(fileId, other))
+			.isInstanceOf(CommonException.class);
+	}
+
+	@Test
 	@DisplayName("로그인하지 않은 사용자는 파일 다운로드가 불가능하다")
 	void getFile_shouldFailWhenUserMissing() {
 		// given
@@ -241,6 +274,23 @@ class FileServiceTest {
 		assertThat(responses.get(0).postId()).isEqualTo(postId);
 	}
 
+	@Test
+	@DisplayName("QnA 게시글 파일 목록은 작성자가 아니면 조회할 수 없다")
+	void list_shouldFailWhenQnaNotOwner() {
+		// given
+		Long postId = 10L;
+		UserEntity owner = newUser(1L, UUID.randomUUID());
+		UserEntity other = newUser(2L, UUID.randomUUID());
+		PostsEntity post = newPost(postId, owner);
+		setCategory(post, "qna");
+
+		given(postsRepository.findByIdAndDeletedAtIsNull(postId)).willReturn(Optional.of(post));
+
+		// when & then
+		assertThatThrownBy(() -> fileService.list(postId, other))
+			.isInstanceOf(CommonException.class);
+	}
+
 	private UserEntity newUser(Long id, UUID uuid) {
 		try {
 			var ctor = UserEntity.class.getDeclaredConstructor();
@@ -265,6 +315,18 @@ class FileServiceTest {
 			return post;
 		} catch (ReflectiveOperationException ex) {
 			throw new IllegalStateException("PostsEntity 생성에 실패했습니다", ex);
+		}
+	}
+
+	private void setCategory(PostsEntity post, String name) {
+		try {
+			var ctor = CategoriesEntity.class.getDeclaredConstructor();
+			ctor.setAccessible(true);
+			CategoriesEntity category = ctor.newInstance();
+			ReflectionTestUtils.setField(category, "name", name);
+			ReflectionTestUtils.setField(post, "category", category);
+		} catch (ReflectiveOperationException ex) {
+			throw new IllegalStateException("CategoriesEntity 생성에 실패했습니다", ex);
 		}
 	}
 }
