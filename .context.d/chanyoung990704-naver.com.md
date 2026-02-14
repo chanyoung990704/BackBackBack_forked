@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-14 | 작업: upstream/main CodeBuild 컴파일 실패 핫픽스 정리 | 결과: `CommentController`의 `commentsService.listByPost` 호출 시그니처를 단일 인자로 정합화하고, `PostMapper`의 미사용/미완성 `isAdminComment` 블록을 제거해 `UserRoleEntity/userRoleRepository/RoleName` 심볼 오류를 해소 | 이슈: 샌드박스 네트워크 제한으로 로컬 Gradle 컴파일 재검증은 미실행
 - 2026-02-14 | 작업: CodeBuild 댓글 컴파일 오류 수정 및 배포 브랜치 반영 | 결과: `CommentsRepository`에 `findByPostIdAndDeletedAtIsNullOrderByDepthAscSequenceAsc`를 추가하고 `CommentsService.listByPost` 시그니처를 정합화해 CodeBuild `cannot find symbol` 컴파일 실패를 해소. 관련 테스트(`CommentsRepositoryTest`, `CommentIntegrationTest`)와 `compileJava` 통과 확인 후 `origin/main` 및 upstream PR(#117) 반영 진행 | 이슈: 없음
 - 2026-02-14 | 작업: 이슈 #115 사용자명 마스킹 + 로그인 실패 잠금 구현 | 결과: `NameMaskingUtil` 기반으로 `PostMapper`/`CommentMapper`/`UserMapper`/`AdminUserQueryService`의 name 노출을 마스킹 처리하고, `LoginAttemptService`(Redis) + `LoginAttemptProperties` + `AuthService` 연동으로 5회 실패 시 15분 잠금(`AUTH_429`)을 적용. 단위/통합 타깃 테스트 통과 및 `./gradlew cleanTest test` 재실행 통과, upstream 이슈 #115/PR #117 및 Notion 상위·하위 페이지 기록 완료 | 이슈: `cleanTest test` 1회차에서 Gradle XML test-results 쓰기 오류가 간헐 발생했으나 재실행으로 해소
 - 2026-02-14 | 작업: 외부 AI 호출 회복탄력성 + 대시보드/게시글 성능 최적화(#113) | 결과: `AiWebClientConfig`와 Resilience4j(timeout/circuit breaker/retry/bulkhead) 적용, 수동 재시도 제거, 벤치마크 전/후 delta CSV(`comparison-api-delta.csv`, `comparison-runtime-delta.csv`) 산출 추가, QnA `qnaStatus`를 role 기반 쿼리로 계산, 대시보드 risk 집계 쿼리 최적화. `./gradlew cleanTest test` 및 변경 범위 타깃 테스트 통과 | 이슈: `upload/` 런타임 산출 디렉터리는 커밋 제외
