@@ -48,10 +48,11 @@ public class CommentController {
 		@io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 오류")
 	})
 	public ResponseEntity<ApiResponse<List<CommentResponse>>> list(
+		@CurrentUser UserEntity user,
 		@Parameter(description = "게시글 ID", example = "100")
 		@PathVariable Long postId
 	) {
-		return ResponseEntity.ok(ApiResponse.ok(commentsService.listByPost(postId)));
+		return ResponseEntity.ok(ApiResponse.ok(commentsService.listByPost(postId, user)));
 	}
 
 	@PostMapping("/posts/{postId}/comments")

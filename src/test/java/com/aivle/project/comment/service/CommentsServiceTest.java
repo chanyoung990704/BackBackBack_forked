@@ -50,11 +50,14 @@ class CommentsServiceTest {
 		// given
 		Long postId = 10L;
 		CommentsEntity comment = mock(CommentsEntity.class);
+		PostsEntity post = mock(PostsEntity.class);
+
+		given(postsRepository.findByIdAndDeletedAtIsNull(postId)).willReturn(Optional.of(post));
 		given(commentsRepository.findByPostIdAndDeletedAtIsNullOrderByDepthAscSequenceAsc(postId)).willReturn(List.of(comment));
 		given(commentMapper.toResponse(comment)).willReturn(new CommentResponse(1L, "홍길동", postId, null, "댓글", 0, 0, null, null));
 
 		// when
-		List<CommentResponse> result = commentsService.listByPost(postId);
+		List<CommentResponse> result = commentsService.listByPost(postId, null);
 
 		// then
 		assertThat(result).hasSize(1);

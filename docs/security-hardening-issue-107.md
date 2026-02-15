@@ -31,6 +31,11 @@
 - 불일치/누락 시 403(`AUTH_403`)으로 차단합니다.
 - CORS 허용 헤더에 `X-CSRF-Token`을 추가했습니다.
 
+### 2.4 QnA/댓글 접근 제어 보강
+- `CommentController`: 댓글 목록 조회 시 `UserEntity`(@CurrentUser)를 주입받아 서비스로 전달하도록 수정했습니다.
+- `CommentsService`: `listByPost`에서 `PostReadAccessPolicy`를 호출하여 QnA 게시글의 경우 작성자 본인 여부를 검증하도록 로직을 추가했습니다.
+- 테스트: `CommentControllerIntegrationTest`의 접근 제어 실패 케이스를 해결했습니다.
+
 ## 3. 검증
 - 수행 테스트
   - `EmailVerificationControllerTest`
