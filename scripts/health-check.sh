@@ -6,6 +6,13 @@ ENV_FILE="${ENV_FILE:-/etc/${APP_NAME}/${APP_NAME}.env}"
 APP_DIR="${APP_DIR:-/opt/project}"
 LIB_FILE="${APP_DIR}/scripts/lib/deploy-runtime.sh"
 
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
+
 if [ -f "$LIB_FILE" ]; then
   # shellcheck disable=SC1090
   . "$LIB_FILE"
@@ -14,17 +21,10 @@ else
   DEPLOY_RUNTIME_RESOLVED="${DEPLOY_RUNTIME:-systemd}"
 fi
 
-if [ -f "$ENV_FILE" ]; then
-  set -a
-  # shellcheck disable=SC1090
-  . "$ENV_FILE"
-  set +a
-fi
-
 HEALTHCHECK_PATH="${HEALTHCHECK_PATH:-/actuator/health}"
-HEALTHCHECK_MAX_RETRIES="${HEALTHCHECK_MAX_RETRIES:-30}"
+HEALTHCHECK_MAX_RETRIES="${HEALTHCHECK_MAX_RETRIES:-90}" # 30 -> 90회 (약 3분으로 연장)
 HEALTHCHECK_INTERVAL_SECONDS="${HEALTHCHECK_INTERVAL_SECONDS:-2}"
-HEALTHCHECK_INITIAL_DELAY_SECONDS="${HEALTHCHECK_INITIAL_DELAY_SECONDS:-5}"
+HEALTHCHECK_INITIAL_DELAY_SECONDS="${HEALTHCHECK_INITIAL_DELAY_SECONDS:-10}"
 
 HEALTHCHECK_URL="${HEALTHCHECK_URL:-}"
 if [ -z "$HEALTHCHECK_URL" ]; then

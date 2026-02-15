@@ -18,6 +18,13 @@ ENV_FILE="${ENV_DIR}/${APP_NAME}.env"
 SERVICE_SOURCE="${APP_DIR}/scripts/systemd/${APP_NAME}.service"
 ENV_SOURCE="${APP_DIR}/scripts/systemd/${APP_NAME}.env.example"
 
+if [ -f "$ENV_FILE" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$ENV_FILE"
+  set +a
+fi
+
 if [ -f "$LIB_FILE" ]; then
   # shellcheck disable=SC1090
   . "$LIB_FILE"
