@@ -83,6 +83,10 @@ run_compose_command() {
   if [ -f "$env_file" ]; then
     cmd+=("--env-file" "$env_file")
   fi
+  # APP_IMAGE 같은 이미지 치환 변수는 배포 산출물(image-uri.env)에서 보완합니다.
+  if [ -f "$image_env_file" ]; then
+    cmd+=("--env-file" "$image_env_file")
+  fi
   cmd+=("-f" "$compose_file")
   cmd+=("$@")
 

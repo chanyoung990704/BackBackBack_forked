@@ -61,9 +61,32 @@ check_docker_dependency_state() {
     return 0
   fi
 
-  local service_status
-  for service in redis kafka; do
+  local kafka_enabled_raw="${APP_AI_JOB_KAFKA_ENABLED:-true}"
+  local kafka_enabled
+  kafka_enabled="$(printf '%s' "$kafka_enabled_raw" | tr '[:upper:]' '[:lower:]')"
+
+  local required_services=("redis")
+  if [ "$kafka_enabled" = "true" ]; then
+    required_services+=("kafka")
+  fi
+
+  local defined_services service_status
+  defined_services="$(run_compose_command config --services 2>/dev/null || true)"
+
+  for service in "${required_services[@]}"; do
+    if ! grep -qx "$service" <<< "$defined_services"; then
+      echo "[ERROR] docker compose에 필수 서비스(${service})가 정의되어 있지 않습니다." >&2
+      echo "[ERROR] 배포 산출물의 docker-compose.app.yml 버전을 확인하세요." >&2
+      print_service_diagnostics
+      exit 1
+    fi
+
     service_status="$(run_compose_command ps "$service" 2>/dev/null | tr -d '\n' || true)"
+    if [ -z "$service_status" ]; then
+      echo "[ERROR] docker ${service} 컨테이너 상태를 조회하지 못했습니다." >&2
+      print_service_diagnostics
+      exit 1
+    fi
     if [[ "$service_status" == *"Exit"* ]] || [[ "$service_status" == *"exited"* ]] || [[ "$service_status" == *"dead"* ]]; then
       echo "[ERROR] docker ${service} 컨테이너 상태 비정상" >&2
       print_service_diagnostics

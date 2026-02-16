@@ -104,6 +104,7 @@ dependencies {
 
 tasks.named('test') {
 	def excludeTagsProp = (project.findProperty("excludeTags") ?: System.getenv("JUNIT_EXCLUDE_TAGS"))?.toString()?.trim()
+	def excludeIntegrationByName = (project.findProperty("excludeIntegrationByName") ?: System.getenv("JUNIT_EXCLUDE_INTEGRATION_BY_NAME"))?.toString()?.toBoolean()
 	if (excludeTagsProp) {
 		def excludeTagList = excludeTagsProp.split(',')*.trim().findAll { !it.isEmpty() }
 		useJUnitPlatform {
@@ -111,6 +112,10 @@ tasks.named('test') {
 		}
 	} else {
 		useJUnitPlatform()
+	}
+	if (excludeIntegrationByName) {
+		// CI 속도 개선용: 명시적으로 IntegrationTest 네이밍을 제외
+		exclude '**/*IntegrationTest.class'
 	}
 	jvmArgs "-javaagent:${configurations.mockitoAgent.singleFile}"
 	systemProperty "spring.profiles.active", "test"
