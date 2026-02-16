@@ -17,17 +17,18 @@ phases:
       - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
       - REPO_HOST="${ECR_REPO_URI%%/*}"
       - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REPO_HOST"
+      - docker pull "$ECR_REPO_URI:latest" || true
   build:
     commands:
       - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
       - rm -rf build/test-results/test build/reports/tests/test
-      - JWT_PRIVATE_KEY_PATH=src/test/resources/jwt/private.pem JWT_PUBLIC_KEY_PATH=src/test/resources/jwt/public.pem JWT_CURRENT_KID=test-key ./gradlew cleanTest test --rerun-tasks --stacktrace --info -PexcludeTags=integration
+      - JWT_PRIVATE_KEY_PATH=src/test/resources/jwt/private.pem JWT_PUBLIC_KEY_PATH=src/test/resources/jwt/public.pem JWT_CURRENT_KID=test-key ./gradlew test --stacktrace --warn -PexcludeTags=integration
       - ./gradlew bootJar -x test
       - APP_BOOT_JAR="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' | head -n 1)"
       - 'test -n "$APP_BOOT_JAR" || (echo "[ERROR] bootJar 산출물을 찾지 못했습니다: build/libs" && exit 1)'
       - cp "$APP_BOOT_JAR" build/libs/app.jar
       - ls -lh build/libs
-      - docker build -t "$ECR_REPO_URI:$IMAGE_TAG" -t "$ECR_REPO_URI:latest" .
+      - docker build --cache-from "$ECR_REPO_URI:latest" -t "$ECR_REPO_URI:$IMAGE_TAG" -t "$ECR_REPO_URI:latest" .
   post_build:
     commands:
       - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
@@ -43,3 +44,8 @@ artifacts:
     - build/libs/app.jar
     - docker-compose.app.yml
     - scripts/**/*
+
+cache:
+  paths:
+    - '/root/.gradle/caches/**/*'
+    - '/root/.gradle/wrapper/**/*'
