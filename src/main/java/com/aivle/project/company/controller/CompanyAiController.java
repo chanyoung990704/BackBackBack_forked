@@ -5,6 +5,7 @@ import com.aivle.project.company.dto.AiAnalysisResponse;
 import com.aivle.project.company.dto.AiReportFileResponse;
 import com.aivle.project.company.dto.AiReportRequestResponse;
 import com.aivle.project.company.dto.AiReportStatusResponse;
+import com.aivle.project.company.job.AiJobDispatchService;
 import com.aivle.project.company.service.AiReportRequestStatusService;
 import com.aivle.project.company.service.CompanyAiService;
 import com.aivle.project.file.entity.FilesEntity;
@@ -41,6 +42,7 @@ public class CompanyAiController {
     private final CompanyAiService companyAiService;
     private final FileStreamService fileStreamService;
     private final AiReportRequestStatusService aiReportRequestStatusService;
+    private final AiJobDispatchService aiJobDispatchService;
 
     @GetMapping({"/{companyId}/analysis", "/{companyId}/ai-analysis"})
     @Operation(summary = "기업 AI 분석 조회", description = "기업 ID로 AI 예측 분석 결과를 조회합니다. 연도와 분기를 입력하면 해당 시점의 예측치를 조회하며, 미입력 시 최신 실적 기준 다음 분기를 조회합니다.", security = @SecurityRequirement(name = "bearerAuth"))
@@ -68,7 +70,11 @@ public class CompanyAiController {
     ) {
         String requestId = UUID.randomUUID().toString();
         aiReportRequestStatusService.createPending(requestId, companyId.toString(), year, quarter);
-        companyAiService.generateReportAsync(requestId, companyId, year, quarter);
+        boolean dispatched = aiJobDispatchService.dispatchReport(requestId, companyId, year, quarter);
+        if (!dispatched) {
+            // 카프카 비활성/미설정 환경에서는 기존 비동기 경로로 안전하게 fallback한다.
+            companyAiService.generateReportAsync(requestId, companyId, year, quarter);
+        }
         return ResponseEntity.accepted().body(ApiResponse.ok(new AiReportRequestResponse(requestId)));
     }
 

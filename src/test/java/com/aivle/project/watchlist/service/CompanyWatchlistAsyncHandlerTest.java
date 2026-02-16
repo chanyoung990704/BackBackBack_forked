@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.aivle.project.company.entity.CompaniesEntity;
+import com.aivle.project.company.job.AiJobDispatchService;
 import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.company.service.CompanyAiCommentService;
 import com.aivle.project.company.service.CompanyHealthScoreCacheService;
@@ -48,6 +49,9 @@ class CompanyWatchlistAsyncHandlerTest {
 
 	@Mock
 	private CompanyReputationScoreService companyReputationScoreService;
+
+	@Mock
+	private AiJobDispatchService aiJobDispatchService;
 
 	@InjectMocks
 	private CompanyWatchlistAsyncHandler companyWatchlistAsyncHandler;

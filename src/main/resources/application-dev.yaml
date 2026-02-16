@@ -1,6 +1,8 @@
 spring:
   config:
     import: optional:classpath:application-email.yml
+  devtools:
+    add-properties: false
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:${MYSQL_PORT:3306}/${MYSQL_DATABASE:bigprj}?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8}
     username: ${SPRING_DATASOURCE_USERNAME:${MYSQL_USER:bigprj}}
@@ -18,14 +20,27 @@ spring:
   flyway:
     locations: classpath:db/migration
     validate-on-migrate: true
+  data:
+    redis:
+      repositories:
+        enabled: false
   test:
     database:
       replace: none
 logging:
   level:
-    org.hibernate.SQL: debug # Hibernate가 생성하는 SQL을 콘솔에 출력 (개발 시 필수)
-    org.hibernate.orm.jdbc.bind: trace # SQL 파라미터 바인딩 정보 출력 (개발 시 필수)
-    com.github.gavlyukovskiy.p6spy: debug # P6Spy SQL 로깅 활성화 (개발 시 필수)
+    org.hibernate.SQL: info
+    org.hibernate.orm.jdbc.bind: info
+    com.github.gavlyukovskiy.p6spy: info
+    p6spy: warn
+    org.springframework.boot.devtools.env.DevToolsPropertyDefaultsPostProcessor: warn
+    org.springframework.data.repository.config.RepositoryConfigurationDelegate: warn
+    org.springframework.data.repository.config.RepositoryConfigurationExtensionSupport: warn
+    org.apache.kafka.clients.admin.AdminClientConfig: warn
+    org.apache.kafka.clients.consumer.ConsumerConfig: warn
+    org.apache.kafka.clients.consumer.internals: warn
+    org.apache.kafka.common.utils.AppInfoParser: warn
+    org.springframework.kafka.listener.KafkaMessageListenerContainer: warn
     # JPQL 쿼리 로깅 (필요시 주석 해제)
     # org.hibernate.hql.internal.ast.HqlSqlWalker: debug
     # org.hibernate.hql.internal.ast.QueryTranslatorImpl: debug
@@ -40,6 +55,9 @@ app:
   email:
     verification:
       skip: true
+  ai:
+    job:
+      kafka-enabled: ${APP_AI_JOB_KAFKA_ENABLED:true}
 
   file:
     upload:

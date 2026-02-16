@@ -7,6 +7,7 @@ import com.aivle.project.company.service.CompanyAiCommentService;
 import com.aivle.project.company.service.CompanyPredictionCacheService;
 import com.aivle.project.company.service.CompanyReputationScoreService;
 import com.aivle.project.company.service.CompanySignalCacheService;
+import com.aivle.project.company.job.AiJobDispatchService;
 import com.aivle.project.common.error.ExternalAiUnavailableException;
 import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
 import com.aivle.project.watchlist.event.CompanyWatchlistCreatedEvent;
@@ -30,6 +31,7 @@ public class CompanyWatchlistAsyncHandler {
 	private final CompanyPredictionCacheService companyPredictionCacheService;
 	private final CompanySignalCacheService companySignalCacheService;
 	private final CompanyReputationScoreService companyReputationScoreService;
+	private final AiJobDispatchService aiJobDispatchService;
 
 	@Async("insightExecutor")
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
@@ -52,7 +54,15 @@ public class CompanyWatchlistAsyncHandler {
 			companyPredictionCacheService.ensurePredictionCached(event.companyId(), latestActualQuarterKey);
 			companySignalCacheService.ensureSignalsCached(event.companyId(), latestActualQuarterKey);
 				companyReputationScoreService.syncExternalHealthScoreIfPresent(event.companyId(), stockCode);
-				companyAiCommentService.ensureAiCommentCached(event.companyId(), String.valueOf(latestActualQuarterKey));
+				boolean dispatched = aiJobDispatchService.dispatchCommentWarmup(
+					java.util.UUID.randomUUID().toString(),
+					event.companyId(),
+					String.valueOf(latestActualQuarterKey)
+				);
+				if (!dispatched) {
+					// 카프카 비활성/미설정 환경에서는 기존 동기 적재를 유지한다.
+					companyAiCommentService.ensureAiCommentCached(event.companyId(), String.valueOf(latestActualQuarterKey));
+				}
 			} catch (Exception e) {
 				String reasonCode = resolveReasonCode(e);
 				log.warn(

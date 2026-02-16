@@ -56,6 +56,22 @@ print_service_diagnostics() {
   journalctl -u "$APP_NAME" -n 120 --no-pager || true
 }
 
+check_docker_dependency_state() {
+  if [ ! -f "$LIB_FILE" ]; then
+    return 0
+  fi
+
+  local service_status
+  for service in redis kafka; do
+    service_status="$(run_compose_command ps "$service" 2>/dev/null | tr -d '\n' || true)"
+    if [[ "$service_status" == *"Exit"* ]] || [[ "$service_status" == *"exited"* ]] || [[ "$service_status" == *"dead"* ]]; then
+      echo "[ERROR] docker ${service} 컨테이너 상태 비정상" >&2
+      print_service_diagnostics
+      exit 1
+    fi
+  done
+}
+
 if [ "$HEALTHCHECK_INITIAL_DELAY_SECONDS" -gt 0 ]; then
   echo "[INFO] 헬스체크 전 초기 대기: ${HEALTHCHECK_INITIAL_DELAY_SECONDS}초"
   sleep "$HEALTHCHECK_INITIAL_DELAY_SECONDS"
@@ -70,6 +86,7 @@ for ((attempt=1; attempt<=HEALTHCHECK_MAX_RETRIES; attempt++)); do
   echo "[WARN] 헬스체크 실패: $HEALTHCHECK_URL (시도 ${attempt}/${HEALTHCHECK_MAX_RETRIES})" >&2
 
   if [ "$DEPLOY_RUNTIME_RESOLVED" = "docker" ]; then
+    check_docker_dependency_state
     if [ -f "$LIB_FILE" ]; then
       app_container_state="$(run_compose_command ps app 2>/dev/null | tr -d '\n' || true)"
       if [[ "$app_container_state" == *"Exit"* ]] || [[ "$app_container_state" == *"exited"* ]] || [[ "$app_container_state" == *"dead"* ]]; then

@@ -385,6 +385,14 @@ public class CompanyAiService {
     @Async("insightExecutor")
     @Transactional
     public void generateReportAsync(String requestId, Long companyId, Integer year, Integer quarter) {
+        processReportGeneration(requestId, companyId, year, quarter);
+    }
+
+    /**
+     * AI 리포트 생성 요청을 동기적으로 처리합니다.
+     */
+    @Transactional
+    public void processReportGeneration(String requestId, Long companyId, Integer year, Integer quarter) {
         log.info("Starting async report generation for requestId: {}, companyId: {}", requestId, companyId);
 
         try {

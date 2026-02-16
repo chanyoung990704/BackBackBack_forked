@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.aivle.project.company.dto.AiAnalysisResponse;
+import com.aivle.project.company.job.AiJobDispatchService;
 import com.aivle.project.company.service.CompanyAiService;
 import com.aivle.project.file.entity.FileUsageType;
 import com.aivle.project.file.entity.FilesEntity;
@@ -42,6 +43,9 @@ class CompanyAiControllerTest {
 
     @MockBean
     private FileStreamService fileStreamService;
+
+    @MockBean
+    private AiJobDispatchService aiJobDispatchService;
 
     @Test
     @DisplayName("ROLE_USER로 기업 AI 분석을 조회한다")

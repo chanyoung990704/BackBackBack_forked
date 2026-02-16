@@ -35,6 +35,16 @@ spring:
       max-file-size: 10MB
       max-request-size: 20MB
       file-size-threshold: 2KB
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+      group-id: ${APP_AI_JOB_KAFKA_GROUP_ID:ai-job-consumer}
 
 springdoc:
   api-docs:
@@ -68,6 +78,10 @@ app:
     enabled: ${APP_VIRTUAL_THREAD_ENABLED:false}
     insight-enabled: ${APP_VIRTUAL_THREAD_INSIGHT_ENABLED:false}
     email-enabled: ${APP_VIRTUAL_THREAD_EMAIL_ENABLED:false}
+  ai:
+    job:
+      kafka-enabled: ${APP_AI_JOB_KAFKA_ENABLED:false}
+      request-topic: ${APP_AI_JOB_REQUEST_TOPIC:ai-job-request}
   file:
     upload:
       max-size: 10485760

@@ -33,10 +33,8 @@ if [ "$DEPLOY_RUNTIME_RESOLVED" = "docker" ]; then
 
   docker_login_to_ecr_if_needed
   run_compose_command pull app
-  
-  # 기존 컨테이너 및 포트 점유 정리
-  run_compose_command down || true
-  
+
+  # 전체 down/up을 피하고 변경된 서비스만 갱신해 다운타임과 부수 영향을 줄입니다.
   run_compose_command up -d --remove-orphans
   echo "[INFO] 서버 시작 완료 (docker compose)"
   exit 0
