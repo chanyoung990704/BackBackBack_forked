@@ -141,6 +141,11 @@ docker compose -f docker-compose.app.yml -f docker-compose.local.yml down
 
 ### 권장
 - `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
+- `SPRING_THREADS_VIRTUAL_ENABLED` (JDK virtual thread 토글)
+- `APP_VIRTUAL_THREAD_ENABLED` (앱 비동기 실행기 전체 virtual thread 토글)
+- `APP_VIRTUAL_THREAD_INSIGHT_ENABLED` (insightExecutor만 virtual thread 토글)
+- `APP_VIRTUAL_THREAD_EMAIL_ENABLED` (emailExecutor만 virtual thread 토글)
+- `APP_AI_JOB_KAFKA_ENABLED` (Kafka 기반 AI job 경로 토글)
 - `TURNSTILE_SECRET_KEY`, `TURNSTILE_SITE_KEY`
 - `EMAIL_USERNAME`, `EMAIL_PASSWORD`
 - `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_S3_PREFIX`
@@ -152,6 +157,11 @@ docker compose -f docker-compose.app.yml -f docker-compose.local.yml down
 - `IMAGE_ENV_FILE`: 기본 `/opt/project/image-uri.env`
 - `APP_ENV_FILE`: compose가 읽을 env 파일 경로
 - `REDIS_HOST_DOCKER`: docker 네트워크 redis 서비스명(권장 `redis`)
+- `SPRING_THREADS_VIRTUAL_ENABLED`: 기본 `false`
+- `APP_VIRTUAL_THREAD_ENABLED`: 기본 `false` (운영에서 비Kafka 비동기를 virtual thread로 쓰려면 `true` 권장)
+- `APP_VIRTUAL_THREAD_INSIGHT_ENABLED`: 기본 `false`
+- `APP_VIRTUAL_THREAD_EMAIL_ENABLED`: 기본 `false`
+- `APP_AI_JOB_KAFKA_ENABLED`: 기본 `true`
 
 ### 샘플 파일
 - 로컬 템플릿: `.env.example`

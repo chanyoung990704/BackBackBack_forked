@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-02-18 | 작업: CompanyOverview ACTUAL 부재 예외 완화 및 배포 설정 보강 | 결과: `CompanyOverviewService`에서 quarterKey 미지정+ACTUAL 부재 시 빈 개요 응답으로 fallback 처리, `ApiLoggingAspect` 비동기 로깅 리팩터링(`ApiLogProcessor`)에 맞춰 테스트 정합화, `.env.example`/`docker-compose.app.yml`/`docker-compose.local.yml`/`README.MD`에 Kafka·Virtual Thread 환경변수 가이드 추가, CI와 동일한 Gradle 테스트 명령 통과 확인 | 이슈: 없음
 - 2026-02-16 | 작업: 이슈 #127 AI 장시간 작업 Kafka+VirtualThread 1차 이관 | 결과: `CompanyAiController` 리포트 요청을 Kafka 디스패치 기반으로 전환(미사용 시 기존 @Async fallback), `CompanyWatchlistAsyncHandler`의 AI 코멘트 워밍업을 Kafka 경로로 우선 전송(미사용 시 동기 fallback), `AiJobDispatchService`/`AiJobKafkaConsumer`/`AiJobMessage`/`AiJobType`/`KafkaTopicConfig` 추가, docker compose(local/app/base)에 Kafka 서비스 연동, 관련 타깃 테스트 통과 | 이슈: 전체 테스트는 실행 세션 지연으로 결과 확정 전 중단
 - 2026-02-16 | 작업: AuthIntegrationTest 전체 회귀 보완(테스트 코드 한정) | 결과: `change-password`/`logout-all` 관련 4개 통합 테스트에 CSRF 쿠키(`csrf_token`) + 헤더(`X-CSRF-Token`) 전달을 반영해 현재 컨트롤러 정책과 정합화, `AuthIntegrationTest` 단독 및 `./gradlew test` 전체 통과 확인 | 이슈: 없음
 - 2026-02-16 | 작업: 이슈 #125 AI 타임아웃 전파 완화 및 인사이트 복원력 강화 | 결과: `application.yaml` AI timeout 기본값(connect/response/call) 상향, `ExternalAiUnavailableException`+`COMMON_503`+전역 핸들러 매핑 추가, `CompanyInsightService` fallback(기존 데이터 우선/데이터 없음 시 503) 적용, `CompanyWatchlistAsyncHandler` 로그에 reasonCode(`AI_TIMEOUT`/`AI_CIRCUIT_OPEN`/`AI_UNAVAILABLE`) 및 구조화 필드(operation/companyId/stockCode) 추가, 관련 타깃 테스트 4종 통과 | 이슈: 전체 테스트(`./gradlew test`)에서 `AuthIntegrationTest` 4건이 기존 기준으로 실패(변경 범위 외 회귀 여부 추가 확인 필요)

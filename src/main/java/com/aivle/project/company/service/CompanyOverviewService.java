@@ -58,6 +58,15 @@ public class CompanyOverviewService {
 	@Transactional(readOnly = true)
 	public CompanyOverviewResponseDto getOverview(Long companyId, String quarterKey) {
 		String resolvedQuarterKey = resolveQuarterKey(companyId, quarterKey);
+		if (resolvedQuarterKey == null) {
+			return new CompanyOverviewResponseDto(
+				companyInfoService.getCompanyInfo(companyId, (Integer) null),
+				new CompanyOverviewForecastDto(null, null, List.of()),
+				List.of(),
+				List.of(),
+				null
+			);
+		}
 		int parsedQuarterKey = parseQuarterKey(resolvedQuarterKey);
 		CompanyInfoDto companyInfo = companyInfoService.getCompanyInfo(companyId, resolvedQuarterKey);
 		QuartersEntity quarter = quartersRepository.findByQuarterKey(parsedQuarterKey)
@@ -91,7 +100,7 @@ public class CompanyOverviewService {
 			.orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
 		return companyReportMetricValuesRepository.findMaxActualQuarterKeyByStockCode(stockCode)
 			.map(String::valueOf)
-			.orElseThrow(() -> new IllegalArgumentException("Actual quarter not found for company: " + companyId));
+			.orElse(null);
 	}
 
 	private List<CompanyOverviewMetricRowProjection> loadSeriesRows(String stockCode, int quarterKey) {
