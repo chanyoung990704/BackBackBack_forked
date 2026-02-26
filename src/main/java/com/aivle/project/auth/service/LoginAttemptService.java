@@ -3,9 +3,11 @@ package com.aivle.project.auth.service;
 import com.aivle.project.auth.config.LoginAttemptProperties;
 import com.aivle.project.auth.exception.AuthErrorCode;
 import com.aivle.project.auth.exception.AuthException;
+import java.util.Collections;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 /**
@@ -17,6 +19,13 @@ public class LoginAttemptService {
 
 	private static final String FAIL_COUNT_KEY = "login:fail-count:%s";
 	private static final String LOCK_KEY = "login:lock:%s";
+
+	private static final String INCREMENT_AND_EXPIRE_LUA = 
+		"local current = redis.call('incr', KEYS[1]) " +
+		"if current == 1 then " +
+		"    redis.call('pexpire', KEYS[1], ARGV[1]) " +
+		"end " +
+		"return current";
 
 	private final StringRedisTemplate redisTemplate;
 	private final LoginAttemptProperties properties;
@@ -30,12 +39,12 @@ public class LoginAttemptService {
 	public boolean recordFailure(String email) {
 		String normalizedEmail = normalizeEmail(email);
 		String failKey = failCountKey(normalizedEmail);
-		Long count = redisTemplate.opsForValue().increment(failKey);
+		
+		DefaultRedisScript<Long> redisScript = new DefaultRedisScript<>(INCREMENT_AND_EXPIRE_LUA, Long.class);
+		Long count = redisTemplate.execute(redisScript, Collections.singletonList(failKey), String.valueOf(properties.getFailureWindow().toMillis()));
+		
 		if (count == null) {
 			return false;
-		}
-		if (count == 1) {
-			redisTemplate.expire(failKey, properties.getFailureWindow());
 		}
 		if (count >= properties.getMaxFailures()) {
 			redisTemplate.opsForValue().set(lockKey(normalizedEmail), "1", properties.getLockDuration());

@@ -21,6 +21,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.dao.DataIntegrityViolationException;
+
 /**
  * 분기별 비위험 지표 통계를 계산한다.
  */
@@ -36,7 +38,6 @@ public class MetricAverageCalculationService {
 	private final QuartersRepository quartersRepository;
 	private final MetricsRepository metricsRepository;
 
-	@Transactional
 	public QuarterMetricAverageSaveResult calculateAndInsertMissingByQuarter(Long quarterId) {
 		List<MetricValueSampleProjection> samples = metricValuesRepository.findNonRiskActualMetricSamplesByQuarterId(
 			quarterId,
@@ -59,8 +60,12 @@ public class MetricAverageCalculationService {
 				continue;
 			}
 			MetricAverageResult result = calculate(metricId, entry.getValue());
-			insert(quarterId, result, now);
-			insertedCount++;
+			try {
+				insert(quarterId, result, now);
+				insertedCount++;
+			} catch (DataIntegrityViolationException e) {
+				skippedCount++;
+			}
 		}
 		return new QuarterMetricAverageSaveResult(insertedCount, skippedCount);
 	}
@@ -101,7 +106,7 @@ public class MetricAverageCalculationService {
 			now,
 			DATA_SOURCE_VERSION
 		);
-		metricAverageRepository.save(entity);
+		metricAverageRepository.saveAndFlush(entity);
 	}
 
 	MetricAverageResult calculate(Long metricId, List<BigDecimal> values) {

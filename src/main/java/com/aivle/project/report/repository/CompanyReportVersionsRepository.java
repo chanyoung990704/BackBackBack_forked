@@ -20,6 +20,26 @@ public interface CompanyReportVersionsRepository extends JpaRepository<CompanyRe
 		CompanyReportsEntity companyReport
 	);
 
+	@Query("""
+		select f.id
+		from CompanyReportVersionsEntity rv
+		join rv.companyReport cr
+		join cr.company c
+		join cr.quarter q
+		join rv.pdfFile f
+		where c.id = :companyId
+		  and q.year = :year
+		  and q.quarter = :quarter
+		  and rv.pdfFile is not null
+		order by rv.versionNo desc
+		""")
+	java.util.List<Long> findLatestPdfFileIdsByCompanyIdAndYearAndQuarter(
+		@org.springframework.data.repository.query.Param("companyId") Long companyId,
+		@org.springframework.data.repository.query.Param("year") Short year,
+		@org.springframework.data.repository.query.Param("quarter") Byte quarter,
+		Pageable pageable
+	);
+
 	Optional<CompanyReportVersionsEntity> findTopByCompanyReportAndPublishedFalseOrderByVersionNoDesc(
 		CompanyReportsEntity companyReport
 	);

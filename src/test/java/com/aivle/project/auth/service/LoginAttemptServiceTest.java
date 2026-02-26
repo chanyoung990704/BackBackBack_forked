@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 @ExtendWith(MockitoExtension.class)
 class LoginAttemptServiceTest {
@@ -43,15 +44,17 @@ class LoginAttemptServiceTest {
 	@DisplayName("첫 로그인 실패는 카운트만 증가시키고 잠금은 하지 않는다")
 	void recordFailure_shouldIncreaseCountWithoutLockOnFirstFailure() {
 		// given
-		when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-		when(valueOperations.increment("login:fail-count:user@example.com")).thenReturn(1L);
+		when(redisTemplate.execute(
+			org.mockito.ArgumentMatchers.any(DefaultRedisScript.class),
+			org.mockito.ArgumentMatchers.eq(java.util.Collections.singletonList("login:fail-count:user@example.com")),
+			org.mockito.ArgumentMatchers.anyString()
+		)).thenReturn(1L);
 
 		// when
 		boolean locked = loginAttemptService.recordFailure("user@example.com");
 
 		// then
 		assertThat(locked).isFalse();
-		verify(redisTemplate).expire("login:fail-count:user@example.com", Duration.ofMinutes(15));
 	}
 
 	@Test
@@ -59,7 +62,11 @@ class LoginAttemptServiceTest {
 	void recordFailure_shouldLockWhenThresholdReached() {
 		// given
 		when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-		when(valueOperations.increment("login:fail-count:user@example.com")).thenReturn(5L);
+		when(redisTemplate.execute(
+			org.mockito.ArgumentMatchers.any(DefaultRedisScript.class),
+			org.mockito.ArgumentMatchers.eq(java.util.Collections.singletonList("login:fail-count:user@example.com")),
+			org.mockito.ArgumentMatchers.anyString()
+		)).thenReturn(5L);
 
 		// when
 		boolean locked = loginAttemptService.recordFailure("user@example.com");

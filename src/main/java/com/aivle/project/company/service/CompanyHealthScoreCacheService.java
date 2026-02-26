@@ -1,5 +1,6 @@
 package com.aivle.project.company.service;
 
+import com.aivle.project.common.util.GetOrCreateResolver;
 import com.aivle.project.company.client.AiServerClient;
 import com.aivle.project.company.dto.AiHealthScoreResponse;
 import com.aivle.project.company.entity.CompaniesEntity;
@@ -69,17 +70,21 @@ public class CompanyHealthScoreCacheService {
 			LocalDateTime now = LocalDateTime.now();
 
 			if (entity == null) {
-				companyKeyMetricRepository.save(CompanyKeyMetricEntity.create(
-					company,
-					quarter,
-					null,
-					score,
-					null,
-					score,
-					riskLevel,
-					DEFAULT_CALCULATION_LOGIC_VER,
-					now
-				));
+				try {
+					companyKeyMetricRepository.saveAndFlush(CompanyKeyMetricEntity.create(
+						company,
+						quarter,
+						null,
+						score,
+						null,
+						score,
+						riskLevel,
+						DEFAULT_CALCULATION_LOGIC_VER,
+						now
+					));
+				} catch (org.springframework.dao.DataIntegrityViolationException e) {
+					log.warn("Concurrent insert detected for health score caching, companyId={}, quarterId={}", companyId, quarter.getId());
+				}
 				continue;
 			}
 
@@ -144,29 +149,37 @@ public class CompanyHealthScoreCacheService {
 		CompaniesEntity company = companiesRepository.findById(companyId)
 			.orElseThrow(() -> new IllegalArgumentException("Company not found: " + companyId));
 		QuartersEntity quarter = getOrCreateQuarter(quarterKey);
-		return companyKeyMetricRepository.save(CompanyKeyMetricEntity.create(
-			company,
-			quarter,
-			null,
-			null,
-			null,
-			null,
-			CompanyKeyMetricRiskLevel.WARN,
-			DEFAULT_CALCULATION_LOGIC_VER,
-			LocalDateTime.now()
-		));
+		
+		return GetOrCreateResolver.resolve(
+			() -> companyKeyMetricRepository.findByCompanyIdAndQuarterId(companyId, quarter.getId()),
+			() -> companyKeyMetricRepository.save(CompanyKeyMetricEntity.create(
+				company,
+				quarter,
+				null,
+				null,
+				null,
+				null,
+				CompanyKeyMetricRiskLevel.WARN,
+				DEFAULT_CALCULATION_LOGIC_VER,
+				LocalDateTime.now()
+			)),
+			() -> companyKeyMetricRepository.findByCompanyIdAndQuarterId(companyId, quarter.getId())
+		);
 	}
 
 	private QuartersEntity getOrCreateQuarter(int quarterKey) {
 		YearQuarter yearQuarter = QuarterCalculator.parseQuarterKey(quarterKey);
-		return quartersRepository.findByYearAndQuarter((short) yearQuarter.year(), (byte) yearQuarter.quarter())
-			.orElseGet(() -> quartersRepository.save(QuartersEntity.create(
+		return GetOrCreateResolver.resolve(
+			() -> quartersRepository.findByYearAndQuarter((short) yearQuarter.year(), (byte) yearQuarter.quarter()),
+			() -> quartersRepository.save(QuartersEntity.create(
 				yearQuarter.year(),
 				yearQuarter.quarter(),
 				quarterKey,
 				QuarterCalculator.startDate(yearQuarter),
 				QuarterCalculator.endDate(yearQuarter)
-			)));
+			)),
+			() -> quartersRepository.findByYearAndQuarter((short) yearQuarter.year(), (byte) yearQuarter.quarter())
+		);
 	}
 
 	private int parseQuarterKey(String period) {

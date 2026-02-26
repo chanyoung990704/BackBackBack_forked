@@ -64,8 +64,12 @@ public class CompanyWatchlistService {
 		}
 		UserEntity user = userRepository.getReferenceById(userId);
 		CompaniesEntity company = companiesRepository.getReferenceById(companyId);
-		companyWatchlistRepository.save(CompanyWatchlistEntity.create(user, company, note));
-		eventPublisher.publishEvent(new CompanyWatchlistCreatedEvent(userId, companyId));
+		try {
+			companyWatchlistRepository.saveAndFlush(CompanyWatchlistEntity.create(user, company, note));
+			eventPublisher.publishEvent(new CompanyWatchlistCreatedEvent(userId, companyId));
+		} catch (org.springframework.dao.DataIntegrityViolationException e) {
+			throw new CommonException(WatchlistErrorCode.WATCHLIST_DUPLICATE);
+		}
 	}
 
 	@Transactional

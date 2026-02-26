@@ -15,4 +15,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenEntity
 	Optional<RefreshTokenEntity> findByTokenValue(String tokenValue);
 
 	List<RefreshTokenEntity> findAllByUserIdAndRevokedFalse(Long userId);
+
+	@org.springframework.data.jpa.repository.Modifying
+	@org.springframework.data.jpa.repository.Query("UPDATE RefreshTokenEntity r SET r.revoked = true WHERE r.tokenHash = :tokenHash AND r.revoked = false")
+	int revokeTokenIfValid(@org.springframework.data.repository.query.Param("tokenHash") String tokenHash);
 }

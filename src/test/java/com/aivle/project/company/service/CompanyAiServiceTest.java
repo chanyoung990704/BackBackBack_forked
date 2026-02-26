@@ -30,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -79,6 +80,12 @@ class CompanyAiServiceTest {
 
     @Mock
     private CompanyReportVersionIssueService companyReportVersionIssueService;
+
+    @Mock
+    private CompanyAiReportStoreService companyAiReportStoreService;
+
+    @Mock
+    private StringRedisTemplate redisTemplate;
 
     @Test
     @DisplayName("AI 예측 분석 결과를 조회하고 저장한다 (Cache Miss)")
@@ -171,35 +178,16 @@ class CompanyAiServiceTest {
         CompaniesEntity company = CompaniesEntity.create("00000001", "삼성전자", null, companyCode, LocalDate.now());
         // 처음에는 분기가 없다고 가정
         given(aiServerClient.getAnalysisReportPdf(companyCode)).willReturn(pdfContent);
-        given(fileStorageService.store(any(MultipartFile.class), any())).willReturn(storedFile);
-        given(filesRepository.save(any(FilesEntity.class))).willReturn(savedEntity);
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
-
-        // 분기 조회 시 empty 반환 -> 생성 로직 유도
-        given(quartersRepository.findByYearAndQuarter((short) expectedYear, (byte) expectedQuarter)).willReturn(Optional.empty());
-        // 생성된 분기 모킹
-        QuartersEntity newQuarter = QuartersEntity.create(expectedYear, expectedQuarter, expectedYear * 10 + expectedQuarter, today, today);
-        given(quartersRepository.save(any(QuartersEntity.class))).willReturn(newQuarter);
-
-        given(companyReportsRepository.findByCompanyIdAndQuarterId(any(), any())).willReturn(Optional.empty());
-        given(companyReportsRepository.save(any(CompanyReportsEntity.class))).willAnswer(invocation -> invocation.getArgument(0));
-        given(companyReportVersionIssueService.issueNextVersion(any(), anyBoolean(), any()))
-            .willReturn(CompanyReportVersionsEntity.create(
-                CompanyReportsEntity.create(company, newQuarter, null),
-                1,
-                java.time.LocalDateTime.now(),
-                true,
-                savedEntity
-            ));
+        given(companyAiReportStoreService.storeAndLinkReport(eq(companyId), eq(expectedYear), eq(expectedQuarter), eq(pdfContent)))
+            .willReturn(savedEntity);
 
         // when
         FilesEntity result = companyAiService.generateAndSaveReport(companyId, null, null);
 
         // then
         assertThat(result).isNotNull();
-        verify(quartersRepository).save(any(QuartersEntity.class)); // 분기 생성 확인
-        verify(companyReportsRepository).save(any(CompanyReportsEntity.class)); // 보고서 생성 확인
-        verify(companyReportVersionIssueService).issueNextVersion(any(), eq(true), eq(savedEntity)); // 버전 생성 확인
+        verify(companyAiReportStoreService).storeAndLinkReport(eq(companyId), eq(expectedYear), eq(expectedQuarter), eq(pdfContent));
     }
 
     @Test
@@ -229,20 +217,9 @@ class CompanyAiServiceTest {
         QuartersEntity quarterEntity = QuartersEntity.create(2026, 1, 20261, LocalDate.now(), LocalDate.now());
 
         given(aiServerClient.getAnalysisReportPdf(companyCode)).willReturn(pdfContent);
-        given(fileStorageService.store(any(MultipartFile.class), eq("reports/005930/2026/1"))).willReturn(storedFile);
-        given(filesRepository.save(any(FilesEntity.class))).willReturn(savedEntity);
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
-        given(quartersRepository.findByYearAndQuarter(any(Short.class), any(Byte.class))).willReturn(Optional.of(quarterEntity));
-        given(companyReportsRepository.findByCompanyIdAndQuarterId(any(), any())).willReturn(Optional.empty());
-        given(companyReportsRepository.save(any(CompanyReportsEntity.class))).willAnswer(inv -> inv.getArgument(0));
-        given(companyReportVersionIssueService.issueNextVersion(any(), anyBoolean(), any()))
-            .willReturn(CompanyReportVersionsEntity.create(
-                CompanyReportsEntity.create(company, quarterEntity, null),
-                1,
-                java.time.LocalDateTime.now(),
-                true,
-                savedEntity
-            ));
+        given(companyAiReportStoreService.storeAndLinkReport(eq(companyId), any(Integer.class), any(Integer.class), eq(pdfContent)))
+            .willReturn(savedEntity);
 
         // when
         FilesEntity result = companyAiService.generateAndSaveReport(companyId, null, null);
@@ -252,7 +229,7 @@ class CompanyAiServiceTest {
         assertThat(result.getStorageUrl()).isEqualTo(storedFile.storageUrl());
 
         verify(aiServerClient).getAnalysisReportPdf(companyCode);
-        verify(filesRepository, atLeastOnce()).save(any(FilesEntity.class));
+        verify(companyAiReportStoreService).storeAndLinkReport(eq(companyId), any(Integer.class), any(Integer.class), eq(pdfContent));
     }
 
     @Test
@@ -286,26 +263,15 @@ class CompanyAiServiceTest {
         CompanyReportsEntity report = CompanyReportsEntity.create(company, quarterEntity, null);
 
         given(aiServerClient.getAnalysisReportPdf(companyCode)).willReturn(pdfContent);
-        given(fileStorageService.store(any(MultipartFile.class), eq("reports/005930/2026/1"))).willReturn(storedFile);
-        given(filesRepository.save(any(FilesEntity.class))).willReturn(savedEntity);
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
-        given(quartersRepository.findByYearAndQuarter(year.shortValue(), quarter.byteValue())).willReturn(Optional.of(quarterEntity));
-        given(companyReportsRepository.findByCompanyIdAndQuarterId(any(), any())).willReturn(Optional.of(report));
-        given(companyReportVersionIssueService.issueNextVersion(any(), anyBoolean(), any()))
-            .willReturn(CompanyReportVersionsEntity.create(
-                report,
-                1,
-                java.time.LocalDateTime.now(),
-                true,
-                savedEntity
-            ));
+        given(companyAiReportStoreService.storeAndLinkReport(companyId, year, quarter, pdfContent)).willReturn(savedEntity);
 
         // when
         FilesEntity result = companyAiService.generateAndSaveReport(companyId, year, quarter);
 
         // then
         assertThat(result).isNotNull();
-        verify(companyReportVersionIssueService).issueNextVersion(report, true, savedEntity);
+        verify(companyAiReportStoreService).storeAndLinkReport(companyId, year, quarter, pdfContent);
     }
 
     @Test
@@ -365,31 +331,13 @@ class CompanyAiServiceTest {
 
         CompaniesEntity company = CompaniesEntity.create("00000001", "삼성전자", null, "005930", LocalDate.now());
         ReflectionTestUtils.setField(company, "id", companyId);
-        QuartersEntity quarterEntity = QuartersEntity.create(year, quarter, 20261, LocalDate.now(), LocalDate.now());
-        CompanyReportsEntity report = CompanyReportsEntity.create(company, quarterEntity, null);
-        FilesEntity pdfFile = FilesEntity.create(
-            FileUsageType.REPORT_PDF,
-            "http://localhost/files/report.pdf",
-            "reports/005930/2026/1/report.pdf",
-            "report_005930.pdf",
-            100L,
-            "application/pdf"
-        );
-        ReflectionTestUtils.setField(pdfFile, "id", 55L);
-        CompanyReportVersionsEntity versionWithPdf = CompanyReportVersionsEntity.create(
-            report,
-            1,
-            java.time.LocalDateTime.now(),
-            true,
-            pdfFile
-        );
-
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
-        given(quartersRepository.findByYearAndQuarter(year.shortValue(), quarter.byteValue())).willReturn(Optional.of(quarterEntity));
-        given(companyReportsRepository.findByCompanyIdAndQuarterId(companyId, quarterEntity.getId()))
-            .willReturn(Optional.of(report));
-        given(companyReportVersionsRepository.findTopByCompanyReportAndPdfFileIsNotNullOrderByVersionNoDesc(report))
-            .willReturn(Optional.of(versionWithPdf));
+        given(companyReportVersionsRepository.findLatestPdfFileIdsByCompanyIdAndYearAndQuarter(
+            eq(companyId),
+            eq((short) 2026),
+            eq((byte) 1),
+            any(org.springframework.data.domain.Pageable.class)
+        )).willReturn(List.of(55L));
 
         // when
         companyAiService.generateReportAsync(requestId, companyId, year, quarter);
@@ -437,19 +385,14 @@ class CompanyAiServiceTest {
         CompanyReportVersionsEntity existingVersion = CompanyReportVersionsEntity.create(report, 1, java.time.LocalDateTime.now(), true, null);
 
         given(aiServerClient.getAnalysisReportPdf(companyCode)).willReturn(pdfContent);
-        given(fileStorageService.store(any(MultipartFile.class), eq("reports/005930/2026/1"))).willReturn(storedFile);
-        given(filesRepository.save(any(FilesEntity.class))).willReturn(savedEntity);
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
-        given(quartersRepository.findByYearAndQuarter(year.shortValue(), quarter.byteValue())).willReturn(Optional.of(quarterEntity));
-        given(companyReportsRepository.findByCompanyIdAndQuarterId(any(), any())).willReturn(Optional.of(report));
-        given(companyReportVersionIssueService.issueNextVersion(report, true, savedEntity))
-            .willReturn(existingVersion);
+        given(companyAiReportStoreService.storeAndLinkReport(companyId, year, quarter, pdfContent)).willReturn(savedEntity);
 
         // when
         FilesEntity result = companyAiService.generateAndSaveReport(companyId, year, quarter);
 
         // then
         assertThat(result).isNotNull();
-        verify(companyReportVersionIssueService).issueNextVersion(report, true, savedEntity);
+        verify(companyAiReportStoreService).storeAndLinkReport(companyId, year, quarter, pdfContent);
     }
 }

@@ -163,8 +163,12 @@ public class CompanyReportMetricImportService {
 					));
 				}
 
-				companyReportMetricValuesRepository.saveAll(values);
-				savedValues += values.size();
+				try {
+					companyReportMetricValuesRepository.saveAllAndFlush(values);
+					savedValues += values.size();
+				} catch (org.springframework.dao.DataIntegrityViolationException e) {
+					log.warn("지표 적재 중복 또는 무결성 충돌 발생 (stockCode={}): {}", stockCode, e.getMessage());
+				}
 				if (duplicates > 0) {
 					log.info("지표 적재 중복 요약: stockCode={}, quarterKey={}, duplicates={}", stockCode, quarter.getQuarterKey(), duplicates);
 				}

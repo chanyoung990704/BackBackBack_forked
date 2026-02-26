@@ -62,10 +62,23 @@ public class AiReportRequestStatusService {
 		}
 	}
 
+	private static final String UPDATE_STATUS_LUA =
+		"local current = redis.call('get', KEYS[1])\n" +
+		"if current then\n" +
+		"    if string.find(current, '\"COMPLETED\"') or string.find(current, '\"FAILED\"') then\n" +
+		"        if ARGV[2] == 'PENDING' or ARGV[2] == 'PROCESSING' then\n" +
+		"            return 0\n" +
+		"        end\n" +
+		"    end\n" +
+		"end\n" +
+		"redis.call('setex', KEYS[1], ARGV[3], ARGV[1])\n" +
+		"return 1";
+
 	private void saveStatus(String requestId, AiReportStatusResponse status) {
 		try {
 			String json = objectMapper.writeValueAsString(status);
-			redisTemplate.opsForValue().set(KEY_PREFIX + requestId, json, TTL);
+			org.springframework.data.redis.core.script.DefaultRedisScript<Long> redisScript = new org.springframework.data.redis.core.script.DefaultRedisScript<>(UPDATE_STATUS_LUA, Long.class);
+			redisTemplate.execute(redisScript, java.util.Collections.singletonList(KEY_PREFIX + requestId), json, status.status(), String.valueOf(TTL.getSeconds()));
 		} catch (JsonProcessingException e) {
 			log.error("Failed to save status for request: {}", requestId, e);
 		}

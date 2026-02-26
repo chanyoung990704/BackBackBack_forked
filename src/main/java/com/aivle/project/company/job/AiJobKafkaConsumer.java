@@ -3,11 +3,8 @@ package com.aivle.project.company.job;
 import com.aivle.project.company.service.CompanyAiCommentService;
 import com.aivle.project.company.service.CompanyAiService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -22,8 +19,6 @@ public class AiJobKafkaConsumer {
 	private final ObjectMapper objectMapper;
 	private final CompanyAiService companyAiService;
 	private final CompanyAiCommentService companyAiCommentService;
-	@Qualifier("insightExecutor")
-	private final Executor insightExecutor;
 
 	@KafkaListener(
 		topics = "${app.ai.job.request-topic:ai-job-request}",
@@ -32,14 +27,10 @@ public class AiJobKafkaConsumer {
 	public void consume(String payload) {
 		try {
 			AiJobMessage message = objectMapper.readValue(payload, AiJobMessage.class);
-			CompletableFuture.runAsync(() -> process(message), insightExecutor)
-				.exceptionally(throwable -> {
-					log.error("AI job async execution failed: requestId={}, type={}",
-						message.requestId(), message.type(), throwable);
-					return null;
-				});
+			process(message);
 		} catch (Exception e) {
 			log.error("Failed to consume AI job payload: {}", payload, e);
+			throw new RuntimeException("Failed to process AI job", e);
 		}
 	}
 

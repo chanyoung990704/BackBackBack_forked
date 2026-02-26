@@ -156,8 +156,7 @@ class RefreshTokenServiceTest {
 		when(valueOperations.get("refresh:" + oldTokenHash)).thenReturn(json);
 		when(jwtTokenService.getRefreshTokenExpirationSeconds()).thenReturn(600L);
 
-		RefreshTokenEntity entity = RefreshTokenEntity.hashed(USER_ID, oldTokenHash, "ios", "127.0.0.1", LocalDateTime.now().plusDays(1));
-		when(refreshTokenRepository.findByTokenHash(oldTokenHash)).thenReturn(Optional.of(entity));
+		when(refreshTokenRepository.revokeTokenIfValid(oldTokenHash)).thenReturn(1);
 
 		// when: 리프레시 토큰을 회전
 		refreshTokenService.rotateToken("rt-old", "rt-new");

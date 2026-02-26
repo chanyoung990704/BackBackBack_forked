@@ -74,9 +74,14 @@ public class RefreshTokenService {
 	@Transactional
 	public RefreshTokenCache rotateToken(String oldToken, String newToken) {
 		RefreshTokenCache current = loadValidToken(oldToken);
+		
+		int updated = refreshTokenRepository.revokeTokenIfValid(current.token());
+		if (updated == 0) {
+			throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+		}
+		
 		revokeRedis(oldToken, current.userId());
-		revokeEntity(oldToken);
-
+		
 		long now = Instant.now(clock).toEpochMilli();
 		long expiresAt = now + (jwtTokenService.getRefreshTokenExpirationSeconds() * 1000);
 		String newTokenHash = tokenHashService.hash(newToken);

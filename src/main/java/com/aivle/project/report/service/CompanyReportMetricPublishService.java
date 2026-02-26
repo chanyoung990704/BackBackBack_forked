@@ -111,7 +111,12 @@ public class CompanyReportMetricPublishService {
 			));
 		}
 
-		companyReportMetricValuesRepository.saveAll(values);
+		try {
+			companyReportMetricValuesRepository.saveAllAndFlush(values);
+		} catch (org.springframework.dao.DataIntegrityViolationException e) {
+			log.warn("보고서 지표 중복 등록 감지 (stockCode={}, quarterKey={})", normalizedStockCode, quarterKey);
+			// 중복 등록 시에는 무시하거나 덮어쓰지 않고 부분 실패를 인정함
+		}
 
 		log.info(
 			"보고서 지표 저장 완료: stockCode={}, quarterKey={}, valueType={}, total={}, saved={}, skippedMetrics={}, versionNo={}",
