@@ -130,7 +130,8 @@ class AdminCompanyQueryControllerTest {
 				.url("https://example.com")
 				.build()
 		);
-		given(companyInsightService.getInsights(eq(100L), anyInt(), anyInt(), anyInt(), anyInt(), eq(false)))
+		given(companyInsightService.ensureInsightData(eq(100L), eq(false))).willReturn(null);
+		given(companyInsightService.loadInsights(eq(100L), anyInt(), anyInt(), anyInt(), anyInt(), org.mockito.ArgumentMatchers.isNull()))
 			.willReturn(new CompanyInsightService.InsightResult(items, BigDecimal.valueOf(12.34), false));
 
 		// when & then
@@ -149,7 +150,8 @@ class AdminCompanyQueryControllerTest {
 	@DisplayName("관리자 기업 인사이트가 처리 중이면 202를 반환한다")
 	void getInsights_shouldReturnAcceptedWhenProcessing() throws Exception {
 		// given
-		given(companyInsightService.getInsights(eq(100L), anyInt(), anyInt(), anyInt(), anyInt(), eq(false)))
+		given(companyInsightService.ensureInsightData(eq(100L), eq(false))).willReturn(null);
+		given(companyInsightService.loadInsights(eq(100L), anyInt(), anyInt(), anyInt(), anyInt(), org.mockito.ArgumentMatchers.isNull()))
 			.willReturn(new CompanyInsightService.InsightResult(List.of(), null, true));
 
 		// when & then

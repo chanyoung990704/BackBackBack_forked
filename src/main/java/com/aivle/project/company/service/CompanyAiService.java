@@ -209,14 +209,11 @@ public class CompanyAiService {
 
     /**
      * AI 서버에서 분석 리포트(PDF)를 생성하고 파일 서버에 저장합니다.
-     * 항상 특정 분기의 보고서 버전으로 등록하며, 연도와 분기가 제공되지 않으면 현재 날짜 기준의 최신 분기를 사용합니다.
-     * 해당 분기가 DB에 없으면 새로 생성합니다.
      * @param companyId 기업 ID
      * @param year       연도 (선택)
      * @param quarter    분기 (선택)
      * @return 저장된 파일 엔티티
      */
-    @Transactional
     public FilesEntity generateAndSaveReport(Long companyId, Integer year, Integer quarter) {
         log.info("Generating and saving AI report for companyId: {}, year: {}, quarter: {}", companyId, year, quarter);
 
@@ -228,46 +225,11 @@ public class CompanyAiService {
         int targetYear = (year != null) ? year : LocalDate.now().getYear();
         int targetQuarter = (quarter != null) ? quarter : ((LocalDate.now().getMonthValue() - 1) / 3 + 1);
 
-        // 3. AI 서버에서 PDF 다운로드
+        // 3. AI 서버에서 PDF 다운로드 (트랜잭션 밖에서 수행)
         byte[] pdfContent = aiServerClient.getAnalysisReportPdf(company.getStockCode());
 
-        // 4. MultipartFile 생성
-        String filename = String.format("report_%s_%d_%d_%s.pdf", company.getStockCode(), targetYear, targetQuarter, LocalDate.now());
-        MultipartFile multipartFile = new SimpleMultipartFile(
-            "file",
-            filename,
-            "application/pdf",
-            pdfContent
-        );
-
-        // 5. 파일 저장 (로컬 또는 S3)
-        // 경로 구조: reports/{stockCode}/{year}/{quarter}
-        String subDir = String.format("reports/%s/%d/%d", company.getStockCode(), targetYear, targetQuarter);
-        StoredFile storedFile = fileStorageService.store(multipartFile, subDir);
-
-        // 6. DB에 파일 메타데이터 저장
-        FilesEntity filesEntity = FilesEntity.create(
-            FileUsageType.REPORT_PDF,
-            storedFile.storageUrl(),
-            storedFile.storageKey(),
-            storedFile.originalFilename(),
-            storedFile.fileSize(),
-            storedFile.contentType()
-        );
-        FilesEntity savedFileEntity = filesRepository.save(filesEntity);
-
-        // 7. 분기 조회 또는 생성
-        QuartersEntity quarterEntity = getOrCreateQuarter(targetYear, targetQuarter);
-
-        // 8. 기업-분기 보고서 조회 또는 생성
-        CompanyReportsEntity report = getOrCreateReport(company, quarterEntity);
-
-        // 9. 새 버전 등록 (report row 잠금으로 version_no 충돌 방지)
-        CompanyReportVersionsEntity version = companyReportVersionIssueService.issueNextVersion(report, true, savedFileEntity);
-        log.info("Linked AI report to company_report_versions (ID: {}, Year: {}, Quarter: {}, Version: {})",
-            report.getId(), targetYear, targetQuarter, version.getVersionNo());
-
-        return savedFileEntity;
+        // 4. 저장 및 링크 (트랜잭션 내에서 수행)
+        return storeAndLinkReport(companyId, targetYear, targetQuarter, pdfContent);
     }
 
     /**
@@ -391,7 +353,6 @@ public class CompanyAiService {
     /**
      * AI 리포트 생성 요청을 동기적으로 처리합니다.
      */
-    @Transactional
     public void processReportGeneration(String requestId, Long companyId, Integer year, Integer quarter) {
         log.info("Starting async report generation for requestId: {}, companyId: {}", requestId, companyId);
 
@@ -428,12 +389,12 @@ public class CompanyAiService {
             log.info("Target quarter for report: year={}, quarter={}", targetYear, targetQuarter);
 
             String downloadUrl = "/api/companies/" + companyId + "/ai-report/download?year=" + targetYear + "&quarter=" + targetQuarter;
+            
             // 해당 기업+분기의 PDF 리포트가 이미 존재하면 바로 COMPLETED 처리
             try {
                 FilesEntity existingFile = getReportFileById(companyId, targetYear, targetQuarter);
                 log.info("Report already exists for companyId: {}, year: {}, quarter: {}", companyId, targetYear, targetQuarter);
                 aiReportRequestStatusService.updateCompleted(requestId, String.valueOf(existingFile.getId()), downloadUrl);
-                log.info("Completed async report generation for requestId: {} (existing file)", requestId);
                 return;
             } catch (IllegalArgumentException e) {
                 log.info("Report not found. Generating new report for companyId: {}, year: {}, quarter: {}", companyId, targetYear, targetQuarter);
@@ -441,7 +402,13 @@ public class CompanyAiService {
 
             // 보고서가 없을 때만 PROCESSING -> 생성 -> COMPLETED 순서로 처리
             aiReportRequestStatusService.updateProcessing(requestId);
-            FilesEntity file = generateAndSaveReport(companyId, targetYear, targetQuarter);
+            
+            // 1. AI 서버에서 PDF 다운로드 (트랜잭션 밖에서 수행)
+            byte[] pdfContent = aiServerClient.getAnalysisReportPdf(company.getStockCode());
+
+            // 2. 파일 스토리지 및 DB 저장 (짧은 트랜잭션으로 수행)
+            FilesEntity file = storeAndLinkReport(companyId, targetYear, targetQuarter, pdfContent);
+            
             aiReportRequestStatusService.updateCompleted(requestId, String.valueOf(file.getId()), downloadUrl);
 
             log.info("Completed async report generation for requestId: {}", requestId);
@@ -450,6 +417,52 @@ public class CompanyAiService {
             log.error("Failed async report generation for requestId: {}", requestId, e);
             aiReportRequestStatusService.updateFailed(requestId, e.getMessage());
         }
+    }
+
+    /**
+     * 다운로드된 PDF 내용을 스토리지와 DB에 저장하고 보고서 버전에 연결합니다.
+     */
+    @Transactional
+    public FilesEntity storeAndLinkReport(Long companyId, int targetYear, int targetQuarter, byte[] pdfContent) {
+        CompaniesEntity company = companiesRepository.findById(companyId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 ID입니다: " + companyId));
+
+        // 4. MultipartFile 생성
+        String filename = String.format("report_%s_%d_%d_%s.pdf", company.getStockCode(), targetYear, targetQuarter, LocalDate.now());
+        MultipartFile multipartFile = new SimpleMultipartFile(
+            "file",
+            filename,
+            "application/pdf",
+            pdfContent
+        );
+
+        // 5. 파일 저장 (로컬 또는 S3)
+        String subDir = String.format("reports/%s/%d/%d", company.getStockCode(), targetYear, targetQuarter);
+        StoredFile storedFile = fileStorageService.store(multipartFile, subDir);
+
+        // 6. DB에 파일 메타데이터 저장
+        FilesEntity filesEntity = FilesEntity.create(
+            FileUsageType.REPORT_PDF,
+            storedFile.storageUrl(),
+            storedFile.storageKey(),
+            storedFile.originalFilename(),
+            storedFile.fileSize(),
+            storedFile.contentType()
+        );
+        FilesEntity savedFileEntity = filesRepository.save(filesEntity);
+
+        // 7. 분기 조회 또는 생성
+        QuartersEntity quarterEntity = getOrCreateQuarter(targetYear, targetQuarter);
+
+        // 8. 기업-분기 보고서 조회 또는 생성
+        CompanyReportsEntity report = getOrCreateReport(company, quarterEntity);
+
+        // 9. 새 버전 등록
+        CompanyReportVersionsEntity version = companyReportVersionIssueService.issueNextVersion(report, true, savedFileEntity);
+        log.info("Linked AI report to company_report_versions (ID: {}, Year: {}, Quarter: {}, Version: {})",
+            report.getId(), targetYear, targetQuarter, version.getVersionNo());
+        
+        return savedFileEntity;
     }
 
     /**

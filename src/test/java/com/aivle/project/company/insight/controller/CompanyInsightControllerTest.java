@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -68,12 +69,13 @@ class ㅋCompanyInsightControllerTest {
 				.build()
 		);
 
-			when(companyInsightService.getInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt(), eq(false)))
-				.thenReturn(new com.aivle.project.company.insight.service.CompanyInsightService.InsightResult(
-					items,
-					BigDecimal.valueOf(12.34),
-					false
-				));
+		when(companyInsightService.ensureInsightData(eq(companyId), eq(false))).thenReturn(null);
+		when(companyInsightService.loadInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt(), isNull()))
+			.thenReturn(new com.aivle.project.company.insight.service.CompanyInsightService.InsightResult(
+				items,
+				BigDecimal.valueOf(12.34),
+				false
+			));
 
 		// when
 			ResponseEntity<ApiResponse<CompanyInsightResponseDto>> result = companyInsightController
@@ -86,7 +88,8 @@ class ㅋCompanyInsightControllerTest {
 		assertEquals(2, result.getBody().data().getItems().size());
 		assertEquals(0, BigDecimal.valueOf(12.34).compareTo(result.getBody().data().getAverageScore()));
 
-			verify(companyInsightService, times(1)).getInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt(), eq(false));
+		verify(companyInsightService, times(1)).ensureInsightData(eq(companyId), eq(false));
+		verify(companyInsightService, times(1)).loadInsights(eq(companyId), anyInt(), anyInt(), anyInt(), anyInt(), isNull());
 	}
 
 	@Override

@@ -105,13 +105,15 @@ public class AdminCompanyQueryController {
 		int resolvedReportPage = normalizePage(reportPage, DEFAULT_REPORT_PAGE);
 		int resolvedReportSize = normalizeSize(reportSize, DEFAULT_REPORT_SIZE);
 
-		CompanyInsightService.InsightResult result = companyInsightService.getInsights(
+		com.aivle.project.common.error.ExternalAiUnavailableException externalFailure =
+			companyInsightService.ensureInsightData(companyId, refresh);
+		CompanyInsightService.InsightResult result = companyInsightService.loadInsights(
 			companyId,
 			resolvedNewsPage,
 			resolvedNewsSize,
 			resolvedReportPage,
 			resolvedReportSize,
-			refresh
+			externalFailure
 		);
 		if (result.processing()) {
 			return ResponseEntity.accepted().body(ApiResponse.fail(

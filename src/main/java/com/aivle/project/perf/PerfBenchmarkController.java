@@ -62,7 +62,9 @@ public class PerfBenchmarkController {
 	@GetMapping("/insight-refresh/{companyId}")
 	public ResponseEntity<ApiResponse<Map<String, Object>>> insightRefresh(@PathVariable Long companyId) {
 		long startedAt = System.nanoTime();
-		companyInsightService.getInsights(companyId, 0, 10, 0, 1, true);
+		com.aivle.project.common.error.ExternalAiUnavailableException externalFailure =
+			companyInsightService.ensureInsightData(companyId, true);
+		companyInsightService.loadInsights(companyId, 0, 10, 0, 1, externalFailure);
 		return ResponseEntity.ok(ApiResponse.ok(createResult("insight-refresh", startedAt)));
 	}
 

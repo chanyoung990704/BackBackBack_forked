@@ -92,10 +92,25 @@ public class AiServerClient {
         }
 
         try {
-            return getWithTimeout(
-                builder -> builder.path("/api/v1/analysis/{companyCode}/report").build(companyCode),
-                byte[].class
-            );
+            org.springframework.http.ResponseEntity<byte[]> response = webClient.get()
+                .uri(builder -> builder.path("/api/v1/analysis/{companyCode}/report").build(companyCode))
+                .retrieve()
+                .toEntity(byte[].class)
+                .timeout(callTimeout)
+                .block();
+
+            if (response == null || response.getBody() == null) {
+                throw new RuntimeException("AI Server returned empty response");
+            }
+
+            org.springframework.http.MediaType contentType = response.getHeaders().getContentType();
+            if (contentType == null || !contentType.equals(org.springframework.http.MediaType.APPLICATION_PDF)) {
+                String bodyPreview = new String(response.getBody(), StandardCharsets.UTF_8);
+                log.error("AI Server returned non-PDF response. Content-Type: {}, Body: {}", contentType, bodyPreview);
+                throw new RuntimeException("AI Server returned invalid content type: " + contentType);
+            }
+
+            return response.getBody();
         } catch (Exception e) {
             log.error("Failed to download report for company {}: {}", companyCode, e.getMessage());
             throw new RuntimeException("AI Server report download failed", e);

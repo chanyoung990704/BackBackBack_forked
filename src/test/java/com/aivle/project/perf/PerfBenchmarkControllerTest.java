@@ -74,7 +74,8 @@ class PerfBenchmarkControllerTest {
 	@DisplayName("insight-refresh 호출 시 인사이트 서비스가 refresh=true로 실행된다")
 	void insightRefresh_shouldDelegateToInsightService() {
 		// given
-		when(companyInsightService.getInsights(1L, 0, 10, 0, 1, true))
+		when(companyInsightService.ensureInsightData(1L, true)).thenReturn(null);
+		when(companyInsightService.loadInsights(1L, 0, 10, 0, 1, null))
 			.thenReturn(new CompanyInsightService.InsightResult(List.of(), null, false));
 
 		// when
@@ -83,7 +84,8 @@ class PerfBenchmarkControllerTest {
 		// then
 		assertThat(response.getBody()).isNotNull();
 		assertThat(response.getBody().success()).isTrue();
-		verify(companyInsightService).getInsights(1L, 0, 10, 0, 1, true);
+		verify(companyInsightService).ensureInsightData(1L, true);
+		verify(companyInsightService).loadInsights(1L, 0, 10, 0, 1, null);
 	}
 
 	@Test
