@@ -23,6 +23,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -115,8 +116,14 @@ public class CompanyAiController {
         @Parameter(description = "분기", example = "1")
         @RequestParam("quarter") Integer quarter
     ) {
-        FilesEntity file = companyAiService.getReportFileById(companyId, year, quarter);
-        return serveFile(file);
+        try {
+            FilesEntity file = companyAiService.getReportFileById(companyId, year, quarter);
+            return serveFile(file);
+        } catch (IllegalArgumentException e) {
+            // 다운로드 엔드포인트는 Accept: application/pdf 요청이 많아 JSON 예외 응답 시
+            // content negotiation 충돌(HttpMediaTypeNotAcceptableException)이 발생할 수 있어 404로 직접 반환한다.
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
 //    @GetMapping("/id/{id}/ai-report/download")

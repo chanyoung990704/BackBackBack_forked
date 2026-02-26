@@ -259,6 +259,19 @@ class CompanyAiControllerTest {
             .andExpect(header().string("Cache-Control", "private, no-store"));
     }
 
+    @Test
+    @DisplayName("기업 AI 리포트 PDF가 없으면 404를 반환한다")
+    void downloadAiReport_whenPdfNotFound_returnsNotFound() throws Exception {
+        given(companyAiService.getReportFileById(5930L, 2026, 1))
+            .willThrow(new IllegalArgumentException("해당 분기의 PDF 리포트가 존재하지 않습니다."));
+
+        mockMvc.perform(get("/api/companies/5930/ai-reports/file")
+                .param("year", "2026")
+                .param("quarter", "1")
+                .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_USER"))))
+            .andExpect(status().isNotFound());
+    }
+
     @org.junit.jupiter.api.Disabled
     @Test
     @DisplayName("기업 AI 리포트 PDF를 ID 기준으로 스트리밍 다운로드한다")

@@ -339,3 +339,5 @@
 - YYYY-MM-DD | 작업: ... | 결과: ... | 이슈: ...
 - 2026-02-06 | 작업: 보고서 PDF 단독 업로드 서비스 추가 | 결과: CompanyReportPdfPublishService 및 테스트 추가(기업 미존재 스킵), PDF만 업로드해 버전 발행 처리 | 이슈: 없음
 - 2026-02-06 | 작업: 보고서 PDF 단독 업로드 API 추가 | 결과: /api/admin/reports/pdf 컨트롤러 및 테스트 추가, PDF 단일 업로드 지원 | 이슈: 없음
+
+- 2026-02-26 | 작업: AI 리포트 다운로드 예외 처리 보강 | 결과: CompanyAiController에서 PDF 미존재(IllegalArgumentException) 시 404 응답 처리 및 Controller 테스트 추가, ./gradlew test 전체 통과 | 이슈: 없음
