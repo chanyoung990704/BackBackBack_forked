@@ -12,6 +12,44 @@ phases:
   pre_build:
     commands:
       - chmod +x gradlew
+      - |
+        python3 - <<'PY'
+        import yaml
+        from pathlib import Path
+
+        class UniqueKeyLoader(yaml.SafeLoader):
+          pass
+
+        def construct_mapping(loader, node, deep=False):
+          mapping = {}
+          for key_node, value_node in node.value:
+            key = loader.construct_object(key_node, deep=deep)
+            if key in mapping:
+              line = key_node.start_mark.line + 1
+              raise ValueError(f"Duplicate YAML key '{key}' at line {line}")
+            mapping[key] = loader.construct_object(value_node, deep=deep)
+          return mapping
+
+        UniqueKeyLoader.add_constructor(
+          yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG,
+          construct_mapping,
+        )
+
+        targets = [
+          Path("src/main/resources/application.yaml"),
+          Path("src/main/resources/application-dev.yaml"),
+          Path("src/main/resources/application-prod.yaml"),
+          Path("src/main/resources/application-perf.yaml"),
+          Path("src/test/resources/application-test.yaml"),
+        ]
+
+        for target in targets:
+          if not target.exists():
+            continue
+          with target.open("r", encoding="utf-8") as f:
+            yaml.load(f, Loader=UniqueKeyLoader)
+          print(f"[YAML CHECK] OK: {target}")
+        PY
       - ./gradlew --version
       - chmod +x scripts/*.sh
       - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
