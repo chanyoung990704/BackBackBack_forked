@@ -4,6 +4,8 @@ spring:
     username: sa
     password:
     driver-class-name: org.h2.Driver
+    hikari:
+      connection-timeout: 30000 # CI 환경 등에서 CPU 부하로 인한 일시적 지연에 대비해 테스트 환경에서는 타임아웃을 30초로 넉넉하게 유지
   jpa:
     hibernate:
       ddl-auto: validate
