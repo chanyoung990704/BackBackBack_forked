@@ -1,6 +1,10 @@
 spring:
   application:
     name: project
+server:
+  tomcat:
+    accept-count: 50
+    connection-timeout: 5000ms
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   threads:
@@ -14,6 +18,9 @@ spring:
       hibernate:
   flyway:
     enabled: true
+  datasource:
+    hikari:
+      connection-timeout: 3000 # 커넥션 풀 대기 시간을 3초로 단축 (기본 30초)하여 즉각적인 에러 반환 (Fail-fast)
   data:
     redis:
       host: ${REDIS_HOST:localhost}
