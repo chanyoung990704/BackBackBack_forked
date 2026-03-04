@@ -1,10 +1,6 @@
 spring:
   application:
     name: project
-server:
-  tomcat:
-    accept-count: 50
-    connection-timeout: 5000ms
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   threads:
@@ -52,6 +48,11 @@ server:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest
       group-id: ${APP_AI_JOB_KAFKA_GROUP_ID:ai-job-consumer}
+
+server:
+  tomcat:
+    accept-count: 50
+    connection-timeout: 5000ms
 
 springdoc:
   api-docs:
