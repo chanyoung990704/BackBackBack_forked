@@ -53,6 +53,11 @@ server:
       auto-offset-reset: earliest
       group-id: ${APP_AI_JOB_KAFKA_GROUP_ID:ai-job-consumer}
 
+server:
+  tomcat:
+    accept-count: 50
+    connection-timeout: 5000ms
+
 springdoc:
   api-docs:
     enabled: true
