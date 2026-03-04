@@ -22,20 +22,38 @@ phases:
     commands:
       - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
       - rm -rf build/test-results/test build/reports/tests/test
-      - SPRING_PROFILES_ACTIVE=test JWT_PRIVATE_KEY_PATH=src/test/resources/jwt/private.pem JWT_PUBLIC_KEY_PATH=src/test/resources/jwt/public.pem JWT_CURRENT_KID=test-key ./gradlew test --stacktrace --warn -PexcludeTags=integration -PexcludeIntegrationByName=true --tests "com.aivle.project.auth.*" --tests "com.aivle.project.company.*"
+      - |
+        set +e
+        SPRING_PROFILES_ACTIVE=test JWT_PRIVATE_KEY_PATH=src/test/resources/jwt/private.pem JWT_PUBLIC_KEY_PATH=src/test/resources/jwt/public.pem JWT_CURRENT_KID=test-key ./gradlew test --stacktrace --warn -PexcludeTags=integration -PexcludeIntegrationByName=true --tests "com.aivle.project.auth.*" --tests "com.aivle.project.company.*"
+        TEST_EXIT=$?
+        if [ "$TEST_EXIT" -ne 0 ]; then
+          echo "[ERROR] test task failed. Dumping failing test cases from XML reports..."
+          if [ -d build/test-results/test ]; then
+            grep -R -n "<testcase .*<failure\\|<testcase .*<error\\|<failure\\|<error" build/test-results/test/TEST-*.xml || true
+          else
+            echo "[WARN] build/test-results/test directory not found"
+          fi
+        fi
+        exit "$TEST_EXIT"
       - ./gradlew bootJar -x test
       - APP_BOOT_JAR="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-plain.jar' | head -n 1)"
       - 'test -n "$APP_BOOT_JAR" || (echo "[ERROR] bootJar 산출물을 찾지 못했습니다: build/libs" && exit 1)'
       - cp "$APP_BOOT_JAR" build/libs/app.jar
       - ls -lh build/libs
       - docker build --cache-from "$ECR_REPO_URI:latest" -t "$ECR_REPO_URI:$IMAGE_TAG" -t "$ECR_REPO_URI:latest" .
+      - touch .image_built
   post_build:
     commands:
       - IMAGE_TAG="${CODEBUILD_RESOLVED_SOURCE_VERSION:-manual}"
-      - docker image inspect "$ECR_REPO_URI:$IMAGE_TAG" >/dev/null
-      - docker push "$ECR_REPO_URI:$IMAGE_TAG"
-      - docker push "$ECR_REPO_URI:latest"
-      - echo "APP_IMAGE=$ECR_REPO_URI:$IMAGE_TAG" > image-uri.env
+      - |
+        if [ ! -f .image_built ]; then
+          echo "[INFO] image build was not completed in BUILD phase. Skip docker push."
+          exit 0
+        fi
+        docker image inspect "$ECR_REPO_URI:$IMAGE_TAG" >/dev/null
+        docker push "$ECR_REPO_URI:$IMAGE_TAG"
+        docker push "$ECR_REPO_URI:latest"
+        echo "APP_IMAGE=$ECR_REPO_URI:$IMAGE_TAG" > image-uri.env
 
 artifacts:
   files:

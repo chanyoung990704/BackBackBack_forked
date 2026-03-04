@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-03-04 | 작업: CodeBuild 실패 원인 추적성 개선 및 POST_BUILD 연쇄 오류 노이즈 제거 | 결과: `buildspec.yml`에서 Gradle 테스트 실패 시 XML 리포트의 failure/error를 로그로 출력하도록 보강하고, 이미지 미생성 시 POST_BUILD docker push를 조건부 스킵하도록 정리 | 이슈: 없음
 - 2026-03-04 | 작업: CodeBuild auth/company 테스트 실패 원인 분석 및 CI 프로파일 고정 | 결과: `buildspec.yml` 테스트 명령에 `SPRING_PROFILES_ACTIVE=test`를 추가해 CI에서 `application-test.yaml`이 일관 적용되도록 수정 | 이슈: 샌드박스 네트워크 제한으로 로컬 Gradle 재실행 검증은 미실행
 - 2026-02-26 | 작업: AI 리포트 비동기 기존 보고서 조회 경로 LazyInitializationException 수정 및 동시성/트랜잭션 보강 반영 점검 | 결과: `CompanyAiService.processReportGeneration`에서 self-invocation으로 트랜잭션 프록시가 적용되지 않던 기존 파일 조회 경로를 ID 직접 조회 쿼리(`findLatestPdfFileIdsByCompanyIdAndYearAndQuarter`)로 교체해 no session 오류를 제거. auth/ai/report/watchlist 관련 타깃 테스트 10종 묶음 통과 및 `CompanyAiReportStoreServiceTest`, `AiJobKafkaConsumerTest` 추가 | 이슈: 없음
 - 2026-02-26 | 작업: AI 리포트 PDF 다운로드 검증 강화 및 저장 트랜잭션 분리 | 결과: `AiServerClient`에서 리포트 다운로드 시 `ResponseEntity<byte[]>` 기반으로 `Content-Type=application/pdf`를 검증하고 비정상 응답 본문을 로깅하도록 보강. `CompanyAiService`는 AI 다운로드(트랜잭션 외부)와 파일/버전 저장(`storeAndLinkReport`, `@Transactional`)을 분리해 DB 트랜잭션 점유 구간을 축소 | 이슈: 없음
