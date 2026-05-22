@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.9'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'jacoco'
 }
 
 group = 'com.aivle'
@@ -119,4 +120,14 @@ tasks.named('test') {
 	}
 	jvmArgs "-javaagent:${configurations.mockitoAgent.singleFile}"
 	systemProperty "spring.profiles.active", "test"
+	finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+	dependsOn test
+	reports {
+		html.required = true
+		xml.required = true
+		csv.required = false
+	}
 }

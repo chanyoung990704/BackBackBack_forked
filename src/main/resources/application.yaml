@@ -54,6 +54,18 @@ server:
     accept-count: 50
     connection-timeout: 5000ms
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 springdoc:
   api-docs:
     enabled: true
