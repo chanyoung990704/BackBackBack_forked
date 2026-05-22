@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-05-22 | 작업: README.md 인프라 보안 및 SWOT/VRIO 비즈니스 가치 분석 반영 완료 | 결과: /grill-me 사용자 선택안에 따라 AWS 클라우드/듀얼 클라우드 설계 및 다중 보안 방어 체계(RS256, RTR, Jackson 마스킹 등)를 '## 🏗️ 시스템 아키텍처' 하단에 유기적으로 통합하고, SWOT 분석 및 VRIO 프레임워크 기반 경쟁 우위 분석 결과를 '## 📐 ERD' 바로 뒤에 단독 대섹션으로 신설하여 비즈니스 가치와 엔지니어링 역량의 설득력을 조화시킴 | 이슈: 없음
 - 2026-05-22 | 작업: README.md 면접관 최적화 리오더링 및 기여도 격상 완결 | 결과: /grill-me 사용자 합의안(A안)에 맞추어 `🔑 Backend Leader 기여도 및 핵심 역할`을 독립 섹션으로 격상하여 Executive Summary 바로 아래에 올림. 이어서 3대 시스템 아키텍처 다이어그램 및 4대 핵심 트러블슈팅 사례를 전면 배치하여 실무 면접관 관점의 시인성과 설득력을 극대화함. task, walkthrough 및 .context.md까지 완벽하게 통합 갱신 완료 | 이슈: 없음
 - 2026-05-21 | 작업: 포트폴리오 비즈니스 최적화 README.md 개편 완료 | 결과: /grill-me 인터뷰 결과 및 사용자 승인을 거쳐 Spring Batch 90% 단축, Redis 프리워밍, Kafka AI 연산 완전 격리, Resilience4j 서킷브레이커, 7대 보안 벡터 및 무중단 마이그레이션(Dual-Read/Write-Back) 성과를 비즈니스 임팩트 관점으로 전면 리라이팅한 README.md 반영 및 task.md, walkthrough.md 작성 완료 | 이슈: 없음
 - 2026-05-21 | 작업: Transactional Outbox & Custom Saga Orchestration 포트폴리오 고도화 2차 융합 | 결과: README.md 내에 RDBMS `SKIP LOCKED` 기반 2ms API 즉시 응답성(Transactional Outbox) 및 상태 머신 기반 역순 보상 트랜잭션(`rollbackFinancialAnalysis`, `rollbackNewsAnalysis`)을 통한 최종 정합성 100% 사수(Custom Saga) 성과를 Mermaid 시퀀스 흐름도 및 상세 문제 해결 사례(Troubleshooting)로 녹여내어 비즈니스 임팩트를 극대화함. ADR-004 및 테크 블로그 6편 링크도 완벽히 통합 바인딩 완료 | 이슈: 없음
