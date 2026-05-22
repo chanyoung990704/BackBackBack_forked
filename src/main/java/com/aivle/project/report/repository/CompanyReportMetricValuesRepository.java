@@ -5,6 +5,7 @@ import com.aivle.project.report.entity.CompanyReportMetricValuesEntity;
 import com.aivle.project.report.entity.CompanyReportVersionsEntity;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -40,4 +41,17 @@ public interface CompanyReportMetricValuesRepository extends JpaRepository<Compa
 		  and v.valueType = com.aivle.project.metric.entity.MetricValueType.ACTUAL
 		""")
 	Optional<Integer> findMaxActualQuarterKeyByCompanyId(@Param("companyId") Long companyId);
+
+	@Modifying
+	@Query("""
+		delete from CompanyReportMetricValuesEntity v
+		where v.valueType = :valueType
+		  and v.quarter.quarterKey = :quarterKey
+		  and v.reportVersion.companyReport.company.id = :companyId
+		""")
+	void deleteByCompanyIdAndQuarterKeyAndValueType(
+		@Param("companyId") Long companyId,
+		@Param("quarterKey") Integer quarterKey,
+		@Param("valueType") MetricValueType valueType
+	);
 }

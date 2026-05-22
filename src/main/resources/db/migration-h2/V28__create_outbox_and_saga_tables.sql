@@ -1,0 +1,24 @@
+-- Outbox 및 Saga 테이블 생성 마이그레이션 (H2 호환)
+
+CREATE TABLE outbox_event (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_type VARCHAR(100) NOT NULL,
+    aggregate_type VARCHAR(100) NOT NULL,
+    aggregate_id VARCHAR(100) NOT NULL,
+    topic VARCHAR(100) NOT NULL,
+    payload TEXT NOT NULL,
+    status VARCHAR(20) DEFAULT 'PENDING' NOT NULL,
+    retry_count INT DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE saga_instance (
+    id VARCHAR(100) PRIMARY KEY,
+    saga_type VARCHAR(100) NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    current_step VARCHAR(100) NOT NULL,
+    payload TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

@@ -23,6 +23,10 @@ import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
 import com.aivle.project.report.repository.CompanyReportVersionsRepository;
 import com.aivle.project.report.repository.CompanyReportsRepository;
 import com.aivle.project.report.service.CompanyReportVersionIssueService;
+import com.aivle.project.company.news.repository.NewsAnalysisRepository;
+import com.aivle.project.company.keymetric.repository.CompanyKeyMetricRepository;
+import com.aivle.project.company.news.entity.NewsAnalysisEntity;
+import com.aivle.project.company.keymetric.entity.CompanyKeyMetricEntity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -58,6 +62,8 @@ public class CompanyAiService {
     private final CompanyReportVersionIssueService companyReportVersionIssueService;
     private final CompanyAiReportStoreService companyAiReportStoreService;
     private final StringRedisTemplate redisTemplate;
+    private final NewsAnalysisRepository newsAnalysisRepository;
+    private final CompanyKeyMetricRepository companyKeyMetricRepository;
 
     /**
      * 특정 기업의 AI 재무 분석 예측 결과를 조회하고 저장합니다.
@@ -507,5 +513,57 @@ public class CompanyAiService {
 
         // 그렇지 않으면 stock_code로 간주
         return companyCode;
+    }
+
+    @Transactional
+    public void rollbackFinancialAnalysis(Long companyId, Integer year, Integer quarter) {
+        log.info("Rolling back Financial Analysis for companyId: {}, year: {}, quarter: {}", companyId, year, quarter);
+
+        if (year == null || quarter == null) {
+            log.warn("Year and Quarter must not be null for financial rollback. companyId: {}", companyId);
+            return;
+        }
+
+        int targetQuarterKey = year * 10 + quarter;
+
+        log.info("Deleting PREDICTED metrics for companyId: {}, quarterKey: {}", companyId, targetQuarterKey);
+        companyReportMetricValuesRepository.deleteByCompanyIdAndQuarterKeyAndValueType(
+            companyId, targetQuarterKey, MetricValueType.PREDICTED
+        );
+        log.info("Completed rollbackFinancialAnalysis for companyId: {}", companyId);
+    }
+
+    @Transactional
+    public void rollbackNewsAnalysis(Long companyId) {
+        log.info("Rolling back News Analysis for companyId: {}", companyId);
+
+        // 1. 최신 뉴스 분석 엔티티 조회
+        Optional<NewsAnalysisEntity> latestAnalysisOpt = newsAnalysisRepository.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId);
+
+        if (latestAnalysisOpt.isPresent()) {
+            NewsAnalysisEntity latestAnalysis = latestAnalysisOpt.get();
+            log.info("Deleting latest NewsAnalysisEntity with id: {}", latestAnalysis.getId());
+            newsAnalysisRepository.delete(latestAnalysis);
+
+            // 2. 삭제 후 새로운 최신 뉴스 분석 엔티티 조회 (이전 상태 복구를 위함)
+            Optional<NewsAnalysisEntity> prevAnalysisOpt = newsAnalysisRepository.findTopByCompanyIdOrderByAnalyzedAtDesc(companyId);
+            BigDecimal prevScore = prevAnalysisOpt.map(NewsAnalysisEntity::getAverageScore).orElse(null);
+
+            // 3. 최신 실제(ACTUAL) 분기 조회하여 Key Metric 찾기
+            Optional<Integer> latestActualQuarterKeyOpt = companyReportMetricValuesRepository.findMaxActualQuarterKeyByCompanyId(companyId);
+            if (latestActualQuarterKeyOpt.isPresent()) {
+                int quarterKey = latestActualQuarterKeyOpt.get();
+                quartersRepository.findByQuarterKey(quarterKey).ifPresent(quarter -> {
+                    companyKeyMetricRepository.findByCompanyIdAndQuarterId(companyId, quarter.getId()).ifPresent(keyMetric -> {
+                        log.info("Rolling back external health score of companyKeyMetric (companyId: {}, quarterId: {}) to: {}", companyId, quarter.getId(), prevScore);
+                        keyMetric.applyExternalHealthScore(prevScore);
+                        companyKeyMetricRepository.save(keyMetric);
+                    });
+                });
+            }
+        } else {
+            log.info("No NewsAnalysisEntity found to rollback for companyId: {}", companyId);
+        }
+        log.info("Completed rollbackNewsAnalysis for companyId: {}", companyId);
     }
 }
