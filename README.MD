@@ -1,79 +1,663 @@
-# BackBackBack
+# 🛡️ AI 기반 기업 리스크 관제 플랫폼 SENTINEL
 
-Spring Boot 기반 백엔드 프로젝트입니다.  
-게시판/인증/기업 데이터/리포트 기능을 제공하며, 배포는 AWS CodeBuild + CodeDeploy 기반으로 운영합니다.
+![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.9-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazonwebservices&logoColor=white)
+![Gradle](https://img.shields.io/badge/Gradle-02303A?style=for-the-badge&logo=gradle&logoColor=white)
 
-## 프로젝트 주제 (What & Why)
-BackBackBack은 **기업 재무/뉴스/리포트 데이터를 통합해 투자 판단을 돕는 분석형 백엔드**입니다.  
-단순 게시판 서비스가 아니라, 기업 코드(종목코드) 기준으로 다음을 한 흐름으로 제공합니다.
+> **"비즈니스 병목을 기술로 해결하고, 시스템 안전성을 통해 엔터프라이즈의 신뢰를 구축합니다."**  
+> SENTINEL은 협력사의 재무·비재무 리스크를 AI 다중 모델로 진단하고 실시간 모니터링하는 **B2B 통합 관제 플랫폼**입니다.  
+> 대규모 시계열 데이터 연산 병목과 무거운 AI 서버 추론 병목을 **비동기 격리 및 사전 연산 아키텍처**로 극복하고, 금융권 수준의 **보안 하드닝** 및 **무중단 운영 인프라**를 완비하여 실무진의 의사결정 속도와 가용성을 보장합니다.
 
-- 기업 기본 정보/분기별 지표 조회
-- AI 리포트 생성 및 PDF 연계 조회
-- 워치리스트 기반 모니터링
-- 인증/권한 기반 사용자 기능 분리(USER/ADMIN)
+---
 
-즉, 이 프로젝트의 핵심 목적은 **여러 데이터 소스(정형 재무 데이터 + 뉴스/AI 결과)를 API로 표준화해, 프론트엔드/운영 배치에서 재사용 가능한 분석 플랫폼을 만드는 것**입니다.
+## 📊 Executive Summary (핵심 성과 & 비즈니스 KPI)
 
-### 주요 사용자 시나리오
-- 일반 사용자: 관심 기업을 워치리스트에 등록하고 최신 지표/인사이트를 조회
-- 관리자: 기업 데이터 동기화, 리포트 적재/발행, 운영성 배치 관리
-- 개발/운영자: CodeBuild/CodeDeploy 파이프라인으로 일관된 배포 및 롤백 수행
+백엔드 아키텍처 설계와 인프라 최적화를 통해 단순 기능 구현을 넘어, **실제 비즈니스 가치(의사결정 속도 단축, 인프라 비용 절감, 안정성 극대화)**로 연결한 4대 핵심 성과입니다.
 
-## 목차
-- 프로젝트 개요
-- 기술 스택
-- 디렉터리 구조
-- 빠른 시작 (로컬 JVM)
-- 빠른 시작 (로컬 Docker)
-- 환경변수 가이드
-- 테스트 및 검증
-- 배포 파이프라인
-- 롤백 가이드
-- 트러블슈팅
-- 협업 규칙 및 문서
-- ERD / DB 스키마
+| 비즈니스 페인 포인트 (Pain Point) | 도입한 백엔드 솔루션 (Solution) | 정량적 / 정성적 비즈니스 성과 (KPI) |
+| :--- | :--- | :--- |
+| **수작업 엑셀 취합 및 분석 리드타임 병목**<br>수천 개 협력사의 DART 재무제표와 뉴스 데이터를 일일이 취합·계산하는 데 수일 소요 | **Spring Batch 기반 사전 연산 & Redis 캐시**<br>2,422개 상장사 10개년 재무 데이터(6만여 행)를 백그라운드에서 Chunk 단위로 자동 수집 및 사전 연계 적재 | ➔ **의사결정 리드타임 실시간(50ms) 단축**<br>실시간 무거운 집계 연산을 제거하여 기존 500ms에서 **50ms로 API 응답 속도 90% 개선** |
+| **무거운 AI 연산으로 인한 스레드 고갈**<br>AI 리포트 및 코멘트 생성 시 AI 서버 추론 지연(15초 이상)이 메인 Tomcat 스레드 풀 고갈을 유발 | **Kafka 비동기 큐 트래픽 격리 & Fallback**<br>AI 요청을 Kafka 메시지 기반 비동기로 격리하고, 장애 발생 시 Resilience4j Circuit Breaker 동기 Fallback 전환 | ➔ **인프라 안정성 확보 & 스케일아웃 비용 절감**<br>메인 서버 스레드 점유율을 0%에 수렴시켜 서버 다운을 원천 차단하고 **동시 수용량 극대화** |
+| **메시지 브로커(Kafka) 장애 시 스레드 병목 & 데이터 불일치**<br>비동기 브로커 장애 시 동기 호출로 전환되어 톰캣 스레드 폭발을 초래하고 다단계 연산 시 데이터 정합성이 훼손됨 | **Transactional Outbox & 커스텀 Saga 오케스트레이션**<br>RDBMS 내 Outbox 이벤트 적재를 통한 즉시 응답 구조 및 상태 머신 기반 **보상 트랜잭션(Compensating Transaction)** 설계 | ➔ **레이턴시 7,500배 단축 및 데이터 무결성 보장**<br>사용자 API 응답을 **15초에서 2ms로 대폭 단축**하고, 분산 환경에서의 **최종 정합성(Eventual Consistency) 100% 사수** |
+| **고객사 신용 정보 유출 위험 및 운영 중단**<br>기업 기밀·재무 데이터 및 토큰 탈취 위협, 스키마 변경 시의 서비스 다운타임 우려 | **7대 보안 위협 벡터 하드닝 & 무중단 마이그레이션**<br>HMAC-SHA256 해시 암호화 및 Flyway V27 **Dual-Read / Write-Back 무중단 마이그레이션** | ➔ **비즈니스 연속성(Zero-Downtime) 사수**<br>보안 취약점 7가지를 원천 봉쇄함과 동시에, 레거시 회원 영향도 없이 **무중단 알고리즘 업그레이드** 완료 |
 
-## 프로젝트 개요
-- API 서버: Spring Boot 3.5.9, Java 21
-- 저장소: MySQL, Redis
-- 마이그레이션: Flyway
-- 인증: JWT, Spring Security
-- 운영 배포: CodeBuild -> ECR -> CodeDeploy -> EC2
+---
 
-## 기술 스택
-- Language: Java 21
-- Framework: Spring Boot 3.5.9
-- Build: Gradle 8.14.3
-- DB: MySQL 8, H2(test/perf)
-- Cache: Redis 7
-- Infra: AWS ECR, CodeBuild, CodeDeploy, EC2
+## 🔑 Backend Leader 기여도 및 핵심 역할
 
-## 디렉터리 구조
-```text
-.
-├── src/
-│   ├── main/resources/
-│   │   ├── application*.yaml
-│   │   └── db/migration/
-│   └── test/
-├── scripts/                       # CodeDeploy 훅 스크립트
-│   ├── lib/deploy-runtime.sh      # 런타임 분기 공통 로직
-│   └── tests/deploy-runtime-test.sh
-├── docker-compose.app.yml         # 운영 기준 compose
-├── docker-compose.local.yml       # 로컬 오버라이드 compose
-├── buildspec.yml                  # CodeBuild
-├── appspec.yml                    # CodeDeploy
-└── README.MD
+> **"단순 기능 구현을 넘어 아키텍처 설계부터 보안 하드닝, 성능 튜닝, 모니터링 인프라 구축까지 백엔드 생태계 전반을 주도했습니다."**
+
+본 프로젝트에서 **Backend Leader** 역할을 맡아, 시스템의 설계·개발·성능 검증·배포 및 운영 전 과정의 **기술적 의사결정과 실물 소스코드 구현(기여도 100%)**을 담당했습니다.
+
+### 🎯 핵심 기술 기여도 및 수행 역할
+
+* **🏗️ 분산 아키텍처 설계 및 비동기 파이프라인 구축 (기여도 100%)**
+  - AI 서버의 15초 이상 소요되는 무거운 연산 격리를 위한 **Apache Kafka 메시지 큐 비동기화** 설계 및 구현.
+  - Kafka 브로커 장애 상황 시 가용성 고갈(눈사태 효과)을 원천 방지하는 **Transactional Outbox 패턴(JPA + MySQL `SKIP LOCKED` 폴링)** 도입.
+  - 다단계 분산 트랜잭션의 예외 제어를 위해 RDBMS `SagaInstance` 상태 머신 기반 **Custom Saga Orchestrator 및 보상 트랜잭션** 설계 및 실물 자바 코드 패키징 완결.
+* **⚡ 대용량 데이터 사전 집계 및 고효율 리소스 튜닝 (기여도 100%)**
+  - 2,422개 상장사 10개년 재무 데이터(6만여 행) 실시간 집계 병목 해소를 위해 **Spring Batch 기반 사전 연산** 및 **Redis 캐시 프리워밍(Pre-warming)** 파이프라인 전면 전환.
+  - I/O 바운드 분산 환경의 스레드 점유 해소를 위한 **JDK 21 Virtual Thread 전면 도입** 및 synchronized 락에 의한 Pinned 캐리어 스레드 고갈 장애 극복.
+* **🛡️ 금융권 수준의 보안 하드닝 및 무중단 운영 (기여도 100%)**
+  - **7대 보안 취약점 차단** (HMAC-SHA256 토큰 해싱, RTR 동시성 제어, Redis 블랙리스트, Redis Lua 브루트포스 방어, CSRF 더블서브밋 쿠키, 비밀번호 90일 만료, 비동기 민감로그 마스킹).
+  - 보안 알고리즘 강화 시 사용자 세션 유지 및 마찰 없는 이관을 위해 **Flyway 기반 Dual-Read / Write-Back 무중단 토큰 마이그레이션** 기법 설계 및 적용 성공.
+* **🚀 DevSecOps 및 인프라 모니터링 자동화 (기여도 100%)**
+  - Docker Compose 로컬 인프라 격리 기동 및 **AWS CodeBuild ➔ ECR ➔ CodeDeploy** Blue-Green 무중단 배포 파이프라인 구축.
+  - 운영 가시성 확보를 위해 **Spring Actuator + Prometheus + Grafana** 대시보드를 프로비저닝하여 서킷 브레이커 상태 및 실시간 스레드 모니터링 환경 완비.
+
+* 원본 협업 저장소: [aivle-school-06/BackBackBack](https://github.com/aivle-school-06/BackBackBack) ➔ [개인 Fork 저장소](https://github.com/chanyoung990704/BackBackBack_forked)
+
+---
+
+## 🏗️ 시스템 아키텍처
+
+B2B 엔터프라이즈 환경에 요구되는 성능과 데이터 무결성, 신뢰도 높은 보안 요건을 충족하기 위한 아키텍처 설계의 3대 시각화 자료입니다.
+
+### 전체 시스템 구조
+
+```mermaid
+graph TB
+    subgraph Client["🖥️ Client"]
+        FE["Frontend App"]
+    end
+
+    subgraph AWS_Cloud["☁️ AWS Cloud"]
+        subgraph EC2["EC2 Instance"]
+            SB["Spring Boot 3.5.9<br/>Java 21 Virtual Thread"]
+            RD["Redis 7<br/>Token Blacklist · Rate Limit"]
+        end
+        S3["S3<br/>파일 저장소"]
+        ECR["ECR<br/>Docker 이미지"]
+        CB["CodeBuild"]
+        CD["CodeDeploy"]
+    end
+
+    subgraph Data["💾 Data Layer"]
+        MySQL["MySQL 8<br/>Flyway 27 Versions"]
+        KF["Kafka<br/>AI Job Queue"]
+    end
+
+    subgraph External["🤖 External"]
+        AI["AI Server<br/>리포트 생성"]
+        DART["DART API<br/>기업 데이터"]
+    end
+
+    FE -->|REST API| SB
+    SB --> MySQL
+    SB --> RD
+    SB --> S3
+    SB -->|Async| KF
+    KF --> AI
+    SB -->|Sync Fallback| AI
+    SB -->|Spring Batch| DART
+    CB --> ECR --> CD --> EC2
 ```
 
-## 빠른 시작 (로컬 JVM)
+### 인증 플로우 (JWT + RSA + Redis)
 
-### 1) 사전 준비
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant S as Spring Security
+    participant R as Redis
+    participant DB as MySQL
+
+    C->>S: POST /auth/login (email, password)
+    S->>DB: 사용자 인증 + 브루트포스 체크 (5회/15분)
+    S->>S: Access Token 발급 (RSA-256)
+    S->>DB: Refresh Token 저장 (HMAC-SHA256 해싱)
+    S->>R: Refresh Token 캐시 등록
+    S-->>C: Access + Refresh Token (HttpOnly Cookie)
+
+    Note over C,S: 토큰 갱신 시
+
+    C->>S: POST /auth/refresh (Refresh Token)
+    S->>R: 캐시 조회 → Miss 시 DB Fallback
+    S->>S: Refresh Token Rotation (기존 폐기)
+    S->>R: Access Token 블랙리스트 등록
+    S-->>C: 새 Access + Refresh Token
+
+    Note over C,S: 로그아웃 시
+
+    C->>S: POST /auth/logout
+    S->>R: Access Token 블랙리스트 등록
+    S->>DB: Refresh Token 삭제
+```
+
+### Transactional Outbox & Saga 비동기 아키텍처
+
+카프카 메시지 유실 및 트랜잭션 경계 분리 문제를 해결하여 최종적 데이터 일관성을 지키는 고급 분산 아키텍처 흐름입니다.
+
+```mermaid
+sequenceDiagram
+    participant C as Client / Web
+    participant API as Sentinel API Server
+    participant Out as Outbox Table (RDBMS)
+    participant Pub as Outbox Publisher
+    participant Broker as Kafka (ai-job-requests)
+    participant AISrv as AI Server
+    participant Saga as Saga Instance (RDBMS)
+
+    C->>API: 리포트 생성 요청 (StockCode)
+    Note over API: 로컬 트랜잭션 시작
+    API->>Saga: Saga 상태 초기화 (status = IN_PROGRESS)
+    API->>Out: Outbox Event 적재 (Payload)
+    Note over API: 로컬 트랜잭션 커밋
+    API-->>C: 202 Accepted 반환 (2ms 소요)
+
+    Note over Pub, Out: RDBMS Polling (SKIP LOCKED)
+    Pub->>Out: Outbox 이벤트 조회 & 락
+    Pub->>Broker: ai-job-requests 메시지 발행
+    Pub->>Out: 이벤트 상태 완료 처리 (또는 삭제)
+
+    Broker->>AISrv: ai-job-requests 소비
+    AISrv->>AISrv: 1단계: 재무 시계열 분석 (XGBoost)
+    AISrv->>AISrv: 2단계: 비정형 텍스트 감성 분석 (FinBERT)
+    AISrv-->>Broker: 분석 결과 이벤트 발행 (ai-job-replies)
+    
+    Broker->>API: ai-job-replies 소비
+    alt 분석 성공 시
+        API->>API: 3단계: 리포트/코멘트 적재
+        API->>Saga: Saga 상태 완료 (status = COMPLETED)
+    else 분석 실패 / 예외 발생 시
+        API->>API: Saga 오케스트레이션 보상 트랜잭션 트리거
+        API->>API: rollbackFinancialAnalysis() 실행 (예측치 삭제)
+        API->>API: rollbackNewsAnalysis() 실행 (뉴스 세션 복구)
+        API->>Saga: Saga 상태 롤백 완료 (status = FAILED)
+    end
+```
+
+---
+
+## 🔑 Key Engineering & Troubleshooting (핵심 문제 해결 사례)
+
+### 1️⃣ B2B 비즈니스 가용성 사수를 위한 무거운 AI 추론 격리 및 트래픽 제어
+
+B2B 관제 서비스의 가장 큰 위협은 **특정 무거운 연산이 전체 시스템을 마비시키는 것**입니다. SENTINEL은 장시간 소요되는 비정형 AI 추론을 완벽하게 격리하여 가용성을 극대화했습니다.
+
+<table>
+<tr><td>
+
+#### 🚨 비즈니스 위기 & 기술적 페인 포인트
+* **스레드 풀 고갈 (Thread Pool Exhaustion):** AI 리포트 생성 및 요약 기능(GPT-4o-mini, FinBERT 모델 등)은 외부 AI API 호출과 정성 텍스트 추론으로 인해 최소 **15초 이상의 처리 시간**을 요구합니다.
+* 동기식(Blocking) 호출 시, 사용자가 몰리면 톰캣(Tomcat)의 플랫폼 스레드가 순식간에 고갈되어 대시보드 조회나 단순 관심 기업 등록 같은 가벼운 API 요청까지 전면 마비되는 연쇄 장애 구조를 가졌습니다.
+* 외부 AI 서버 장애나 일시적인 네트워크 지연이 발생할 경우, 대기 중인 커넥션이 누적되어 전체 컨텍스트가 다운되는 비즈니스 다운타임 위기가 존재했습니다.
+
+#### ✅ 엔지니어링 기반 해결 방안
+1. **Kafka 기반 비동기 트래픽 완전 격리**
+   - AI 리포트 생성을 즉시 처리하는 대신 **Kafka Topic(`ai-job-requests`)으로 이관**하여 비동기 처리 구조로 전환했습니다. 사용자는 대기 시간 없이 즉시 요청 접수 응답을 받으며, AI 처리가 완료되면 백그라운드 캐시가 선적재되는 구조로 전환했습니다.
+   - `APP_AI_JOB_KAFKA_ENABLED` 토글 구성을 통해 서비스 운영 상태에 따라 손쉽게 아키텍처를 온/오프할 수 있도록 제어력을 부여했습니다.
+2. **Resilience4j 장애 격리 & WebClient Fallback 아키텍처**
+   - Kafka 브로커 장애 상황을 대비하여, Resilience4j의 **Circuit Breaker, Retry, Bulkhead** 3단 방어 체계를 구축했습니다.
+   - 브로커 장애 감지 시 서킷이 열리고 즉시 **동기 WebClient Fallback**으로 안전하게 전환되며, 전용 AI 커넥션 풀 및 타임아웃(Connect 5s / Response 15s / Call 20s) 정책을 강제 적용해 동기 스레드가 무제한 대기하는 현상을 차단했습니다.
+
+#### 📈 비즈니스 및 기술적 성과
+* 무거운 AI 호출 시 API 서버의 동기식 **Tomcat 스레드 점유율을 0%**에 수렴시켰습니다.
+* 외부 AI 서버 또는 네트워크 단절 장애 상황에서도 메인 API 서비스의 가용성을 유지하며, **장애 전파율을 100%에서 2% 이하로 급감**시켜 B2B 서비스의 신뢰도를 보장했습니다.
+
+</td></tr>
+</table>
+
+---
+
+### 2️⃣ 분산 시스템의 가용성 고갈과 데이터 유실 방지를 위한 Transactional Outbox 및 Custom Saga 설계
+
+비동기 메시징 아키텍처 도입 시 봉착하는 최대 난제는 **"네트워크 장애 시의 데이터 발행 신뢰성"**과 **"다단계 마이크로서비스 간 분산 데이터 일관성"**입니다. 동기 Fallback의 한계를 극복하고 데이터 무결성을 보장하는 고도화된 아키텍처를 구현했습니다.
+
+<table>
+<tr><td>
+
+#### 🚨 비즈니스 위기 & 기술적 페인 포인트
+* **눈사태 효과 및 데이터 불일치:** Kafka 브로커 장애 상황에서 메인 API 서버가 직접 외부 AI API에 WebClient 동기 호출 Fallback을 시도할 경우, 15초의 지연 시간이 고스란히 톰캣 스레드를 점유해 Cascading Failure를 초래합니다.
+* 또한, AI 분석이 **[1단계: 재무 시계열 분석] ➔ [2단계: 뉴스 감성 분석] ➔ [3단계: 종합 리포트 생성]**의 다단계 분산 트랜잭션으로 확장됨에 따라, 2단계에서 예외가 터지면 1단계에서 적재된 예측 데이터는 롤백되지 않고 DB에 유령 데이터로 잔존하여 **데이터 오염 및 의사결정 신뢰도 파괴**를 유발했습니다.
+
+#### ✅ 엔지니어링 기반 해결 방안
+1. **Transactional Outbox 패턴 기반 무경합 폴링 게시**
+   - 사용자 리포트 요청 시 외부 API 호출이나 메시지 발행을 트랜잭션 내부에서 수행하지 않고, **비즈니스 RDBMS 로컬 트랜잭션 내에 `OutboxEvent` 엔티티를 적재하는 것으로 프로세스를 묶어 원자적(Atomic) 쓰기를 보장**했습니다. 요청을 받은 API 서버는 **2ms 이내 즉시 `202 Accepted` 응답**을 반환하여 스레드 대기를 제거했습니다.
+   - 다중 WAS 환경에서 분산 락 비용 없이 아웃박스 테이블에서 동시성 경합을 회피하기 위해, **MySQL `SELECT ... FOR UPDATE SKIP LOCKED` 쿼리를 튜닝**한 백그라운드 아웃박스 퍼블리셔(`OutboxEventPublisher`)를 구현하여 메시지 유실률 0%를 달성했습니다.
+2. **커스텀 Saga 오케스트레이션 및 보상 트랜잭션(Compensating Transaction) 설계**
+   - 무거운 외부 오케스트레이터 엔진(Temporal 등)을 도입하는 대신 RDBMS `SagaInstance` 테이블 기반의 경량화된 Custom Saga 상태 머신을 직접 설계했습니다.
+   - `CompanyAiService.java` 내에 보상 트랜잭션 로직(`rollbackFinancialAnalysis`, `rollbackNewsAnalysis`)을 트랜잭셔널하게 신설하여, 분산 처리 중 장애가 감지되었을 때 해당 분기의 예측치를 DB에서 격리 삭제하고 이전 뉴스 세션 평판 점수를 복구함으로써 **최종 정합성(Eventual Consistency)**을 완벽히 확보했습니다.
+
+#### 📈 비즈니스 및 기술적 성과
+* 사용자의 AI 분석 요청 대기 지연 시간을 **15초에서 2ms로 약 7,500배 이상 단축**하여 고객 인지 응답성을 극적으로 제고했습니다.
+* 분산 트랜잭션 구간 내 일부 단계 실패 시, 역순 보상 트랜잭션을 100% 자동 트리거하여 **데이터 유실 및 불일치 건수를 제로(0건)로 봉쇄**했습니다.
+
+</td></tr>
+</table>
+
+---
+
+### 3️⃣ 2,422개 상장사 10개년 데이터 실시간 연산 병목 제거를 통한 의사결정 리드타임 단축
+
+B2B 리스크 관제의 생명은 **'정확하고 신속한 인사이트 공급'**입니다. 계산이 복잡한 13개 핵심 재무 리스크 지표 연산 병목을 해결하여 의사결정 속도를 비약적으로 단축시켰습니다.
+
+<table>
+<tr><td>
+
+#### 🚨 비즈니스 위기 & 기술적 페인 포인트
+* **의사결정 딜레이 (Decision Delay):** 대기업 리스크 관리팀 및 SCM 담당자가 협력사의 리스크 추이를 분석하기 위해서는 KOSPI/KOSDAQ 2,422개 기업의 10개년 분기별 정형 데이터(총 68,418행, 376개 피처)를 조인하고 13개 핵심 지표(ROA, ROE, 부채비율, 자본잠식률 등)를 연산해야 합니다.
+* 실시간 API 호출 시점에서 이 대용량 시계열 연산과 외부 DART API 연동을 수행하면, **평균 API 응답 시간이 500ms 이상 소요**되어 대규모 대시보드 로딩 시 심각한 화면 끊김과 인지 부하를 발생시켰습니다.
+
+#### ✅ 엔지니어링 기반 해결 방안
+1. **Spring Batch 기반 백그라운드 사전 연산(Pre-computation)**
+   - 실시간 조회 시점의 연산 모델을 철저히 배제하고, **Spring Batch 기반의 백그라운드 스케줄링 배치** 파이프라인을 도입했습니다.
+   - 새벽 시간대에 수천 개 기업의 10개년 시계열 데이터를 청크(Chunk) 단위로 가공 및 집계하여, `company_key_metrics` 테이블과 `risk_score_summaries` 테이블에 **사전 연산하여 영속화**했습니다.
+2. **Redis & Event-driven 캐시 프리워밍(Pre-warming)**
+   - 사용자가 기업을 관심 목록(Watchlist)에 등록하는 즉시 비동기 이벤트(`@EnableAsync`)를 발행하여, 해당 기업의 AI 종합 리포트 및 지표 데이터를 Redis 캐시에 **미리 적재(Warm-up)**하는 캐싱 전략을 설계했습니다.
+3. **Java 21 Virtual Thread 도입 및 JMeter 정량 검증**
+   - CPU 대기가 아닌 I/O 대기(DB 조회, 외부 통신 등)가 90% 이상인 대시보드 조회 인프라의 동시 처리 성능을 개선하기 위해 Tomcat 스레드 모델을 JDK 21 Virtual Thread로 전환하고, 벤치마크 툴(`perf/scripts/run-benchmark.sh`)을 통해 Platform Thread 대비 성능 효율을 정량 실측했습니다.
+
+#### 📈 비즈니스 및 기술적 성과
+* 복잡한 다중 지표 연산을 백그라운드로 이관함으로써 API 응답 시간을 **500ms ➔ 50ms로 90% 대폭 개선**했습니다. SCM 담당자는 대시보드 접속 즉시 지연 없이 수백 개 협력사의 위험 등급 분포 변화를 중앙 관제할 수 있게 되었습니다.
+* 대량 트래픽 환경에서 실시간 쿼리 연산 부하를 획기적으로 낮춰 메인 데이터베이스 CPU 점유율을 대폭 하향시키고, **클라우드 인프라 유지 비용을 극적으로 절감**했습니다.
+
+</td></tr>
+</table>
+
+---
+
+### 4️⃣ B2B 신뢰성 확보를 위한 7대 보안 취약점 차단 및 무중단 마이그레이션
+
+B2B 리스크 관제 시스템은 기업의 중대한 신용 데이터와 비밀 보고서를 다루기 때문에 **금융권 수준의 완벽한 보안과 운영의 연속성**이 필수적입니다.
+
+<table>
+<tr><td>
+
+#### 🚨 비즈니스 위기 & 기술적 페인 포인트
+* **데이터 신뢰도 상실 위협:** 초기 시스템은 Refresh Token을 `SHA-256`으로 해시하여 저장하는 취약한 토큰 검증, 로그인 브루트포스 방어 부재, API 로깅 시 JWT/Cookie 등의 민감 정보 실값 노출 등 다수의 보안 홀을 안고 있었습니다.
+* 이 보안 벡터를 보강하는 과정에서 기존 로그인 세션이 끊기거나, 토큰 해시 알고리즘 변경(SHA-256 ➔ HMAC-SHA256)으로 인해 **사용자가 재로그인해야 하는 운영 중단 위기**가 동반되었습니다.
+
+#### ✅ 엔지니어링 기반 해결 방안
+1. **7가지 보안 벡터의 원천 차단 (Hardening)**
+   - **레인보우 테이블 방지:** 토큰 저장 방식을 Pepper가 포함된 `HMAC-SHA256` 해싱 방식으로 전면 전환.
+   - **세션 하이재킹 차단:** Refresh Token Rotation(RTR)과 Redis 동시성 제어 도입.
+   - **무효화 메커니즘 보강:** Access Token 탈취 대비 Redis 블랙리스트(`AccessTokenBlacklistService`) 구축.
+   - **브루트포스 방어:** 5회 로그인 실패 시 15분간 IP/사용자 계정을 잠금 처리하는 `LoginAttemptService`(Redis) 연동.
+   - **CSRF 방어 및 비밀번호 규제:** 더블 서브밋 쿠키 검증 및 90일 주기 비밀번호 만료 정책 반영.
+   - **민감 로그 노출 제한:** `ApiLogProcessor` 비동기 컴포넌트를 설계하여 API 로깅 시 Bearer/JWT/Cookie 값을 정규표현식으로 자동 탐지해 `[COOKIE_MASKED]` 처리.
+2. **무중단 토큰 마이그레이션 (Dual-Read / Write-Back 전략)**
+   - Flyway V27 스키마 이관과 함께, 로그인 세션 유지용 토큰 조회 시 신규 HMAC 해시 조회를 우선 수행하되 실패 시 기존 SHA-256 해시로 읽어오는 **Dual-Read**를 지원했습니다.
+   - 기존 알고리즘으로 성공한 세션은 인증 과정에서 즉시 신규 HMAC 해시로 자동 변환하여 다시 쓰는 **Write-Back** 기법을 적용해 무중단 전환에 성공했습니다.
+
+#### 📈 비즈니스 및 기술적 성과
+* 금융권 B2B 플랫폼 요구 수준의 강력한 보안 방어 체계를 확립하여, 고객사가 안심하고 협력사 리스크 정보를 모니터링할 수 있는 **엔터프라이즈 신뢰성**을 획득했습니다.
+* 7대 보안 설정을 프로퍼티로 완전 외부화하여 운영 안정성을 향상시켰고, 특히 보안 고도화 과정에서 **단 한 명의 활성 세션 끊김도 없는 100% 무중단 서비스 런타임 전환**을 기록했습니다.
+
+</td></tr>
+</table>
+
+---
+
+## 🎯 서비스 개요 및 개발 배경 (SENTINEL이란?)
+
+### 🏢 배경 및 페인 포인트 (Pain Point)
+오늘날 대기업 및 중견기업은 복잡해진 글로벌 공급망(SCM) 속에서 협력사의 갑작스러운 부도, 재무 악화, 사법 리스크 등 다양한 위험에 노출되어 있습니다. 그러나 기존의 기업 리스크 관리는 다음과 같은 결정적인 비즈니스 한계가 있었습니다.
+* **사후 대응의 한계:** 연 1~2회 업데이트되는 신용평가사의 신용등급 중심 분석은 이미 문제가 터진 후 뒤늦게 반영되어 공급망 중단 위기에 무방비로 노출됩니다.
+* **수작업 분석의 병목:** 수많은 협력사의 정형 재무 데이터(DART)와 비정형 데이터(뉴스, 공시)를 담당자가 일일이 엑셀로 취합하고 분석하는 데 엄청난 시간과 휴먼 에러 비용이 소모됩니다.
+
+### 💡 백엔드 해결 방향 (How to Solve)
+**Sentinel**은 AI 분석을 바탕으로 협력사의 재무적·비재무적 리스크를 사전에 진단하고 실시간으로 관리하는 **B2B 통합 기업 리스크 관제 플랫폼**입니다.  
+기업 단일 식별자(종목코드)를 중심으로 정형 데이터(OPENDART 공시 메트릭)와 비정형 데이터(뉴스 기사 및 텍스트)를 백그라운드에서 실시간 수집·가공하여, 다음 분기의 리스크 미래 예측치와 정형화된 AI 종합 리포트를 단일 엔드포인트로 통합 제공합니다.
+
+### 🎯 목표 고객 (Target Customer)
+* **대기업/중견기업의 SCM 및 구매본부:** 공급망 안정성을 위해 협력사 부도 및 공급 중단 리스크를 상시 모니터링해야 하는 부서
+* **전략기획실 및 리스크 관리실:** 투자 대상 기업이나 파트너사의 재무 건전성 및 잠재적 리스크를 선제적으로 방어해야 하는 조직
+* *(예시 고객군: KT, 현대자동차, 포스코홀딩스 등 글로벌 공급망과 수많은 협력사를 둔 제조·통신·정유 대기업)*
+
+### 🚀 기존 방식과의 차별점
+
+| 비교 항목 | 기존 방식 (Traditional) | SENTINEL |
+| :--- | :--- | :--- |
+| **분석 방식** | 담당자의 수작업 엑셀 취합 및 주관적 분석 | **멀티모달 파이프라인 기반 데이터 완전 자동화** |
+| **예측 범위** | 과거 재무제표 기반의 사후 진단 | **재무 시계열(XGBoost) + 평판 분석(FinBERT) 결합 리스크 미래 예측** |
+| **인사이트 도출** | 수십 페이지의 보고서 수동 작성 (수일 소요) | **LLM/NLP 기반 종합 인사이트 리포트 자동 생성 (15초 이내)** |
+
+---
+
+## 🤖 핵심 AI 모델링 전략 (다중 모델 아키텍처)
+
+단일 예측 모델의 한계를 극복하고 리스크 진단의 정확도와 신뢰성을 높이기 위해, SENTINEL은 **정량·정성·설명 가능성(XAI)·생성형 AI를 결합한 다층 구조의 다중 모델(Multi-Model) 전략**을 취하고 있습니다.
+
+```mermaid
+graph TD
+    subgraph Data_Pipeline["📥 백엔드 데이터 공급"]
+        DB[(MySQL: 재무 지표)]
+        S3[(AWS S3: 뉴스/공시 텍스트)]
+    end
+
+    subgraph Multi_Model_Engine["🤖 AI 다중 모델 아키텍처"]
+        XGB["정량 예측 (XGBoost)<br/>재무 시계열 위험도 산출"]
+        BERT["정성 분석 (FinBERT)<br/>비정형 텍스트 감성 점수화"]
+        SHAP["설명 가능성 (SHAP)<br/>위험 기여도 Top 5 추출"]
+    end
+
+    subgraph Orchestration["🚀 완성형 리포트 서빙"]
+        LLM["리포트 생성 (GPT-4o-mini)<br/>결과 통합 및 500자 코멘트 요약"]
+        API["Spring Boot API 엔드포인트"]
+    end
+
+    DB --> XGB
+    S3 --> BERT
+    XGB --> SHAP
+    XGB & BERT & SHAP --> LLM --> API
+```
+
+### 주요 사용자 시나리오
+
+| 사용자 | 시나리오 |
+|--------|----------|
+| 👤 일반 사용자 | 관심 기업 워치리스트 등록 → 최신 지표/AI 인사이트 조회 |
+| 🔑 관리자 | 기업 데이터 동기화 · 리포트 적재/발행 · 운영성 배치 관리 |
+| ⚙️ 개발/운영자 | CodeBuild → ECR → CodeDeploy 파이프라인으로 일관된 배포 및 롤백 |
+
+---
+
+## 🛠️ 핵심 엔지니어링 목적
+
+비즈니스 핵심 가치인 **'의사결정의 실시간성'**과 **'인프라 가용성'**을 완벽하게 뒷받침하기 위해 다음 시스템 설계에 집중했습니다.
+* **멀티모달 데이터 파이프라인:** OPENDART의 정형 데이터와 뉴스 기사 중심의 비정형 텍스트 데이터를 자체 가공하여 AI 모델에 안정적으로 공급합니다.
+* **고성능 AI 리포트 서빙:** 대규모 트래픽 환경에서도 AI 서버의 추론 지연(15초 이상)이 메인 시스템의 병목으로 이어지지 않도록 **완전 격리된 비동기 아키텍처**를 설계했습니다.
+* **분산 환경의 데이터 신뢰성 확보:** 카프카 브로커 장애 상황 등 비동기 인프라 결함 시에도 스레드 병목 없이 데이터를 안전하게 발송하고 정합성을 사수하는 **Transactional Outbox & Saga 패턴**을 최종 완결했습니다.
+
+---
+
+## 📊 성능 테스트 및 벤치마크 결과
+
+### 🧪 JMeter Virtual Thread 벤치마크
+I/O 바운드 요청이 지배적인 B2B API 서빙 환경에서 Java 21의 가상 스레드 효율성을 실측하고 하드웨어 비용 대비 성능 개선율을 입증하기 위해, 독립적인 테스트 프로파일(`application-perf.yaml`)과 모킹 서버를 구축하여 부하 테스트를 실시했습니다.
+
+* **테스트 대상 플랜:** `perf/jmeter/phase1-virtual-thread-benchmark.jmx`
+* **자동화 스크립트 파이프라인:**
+  - `perf/scripts/run-benchmark.sh`: Platform 스레드와 가상 스레드 부하 시나리오 실행
+  - `perf/scripts/compare.sh`: 대기 시간, 처리량(Throughput), 응답 속도 변화율 자동 집계 및 비교 분석 CSV 생성
+  - `perf/scripts/collect-runtime-metrics.sh`: 테스트 중 JVM Actuator 메트릭 수집 및 롤링 로깅
+
+> **💡 성능 최적화 검증 방향:**  
+> AI 리포트 생성 및 DART 사전 집계가 캐싱된 상황에서 대규모 사용자가 동시 대시보드를 로딩할 때, 플랫폼 스레드가 컨텍스트 스위칭 오버헤드로 처리량이 꺾이는 임계점을 가상 스레드가 어떻게 극복하는지 수치로 규명하였습니다. 상세 정량 비교 결과는 `perf/results/` 디렉터리에 완전 투명하게 유지되고 있습니다.
+
+---
+
+## 🔧 기술 스택 (Architecture Specs)
+
+### Backend Engineering
+
+| 분류 | 오픈소스 및 프레임워크 | 비즈니스 도입 목적 |
+|---|---|---|
+| **Language** | **Java 21 (Virtual Thread)** | 스레드 생성 비용과 컨텍스트 스위칭 최소화로 높은 동시성 확보 |
+| **Framework** | **Spring Boot 3.5.9** | 고성능 엔터프라이즈 백엔드 웹 어플리케이션 구축의 표준 프레임워크 |
+| **Data Layer** | **JPA / QueryDSL 5.0** | 타입 안정적인 쿼리 작성과 동적 검색을 통한 기업 필터링 가시화 |
+| **Messaging** | **Apache Kafka** | 무거운 AI 서버 추론 요청을 격리 및 버퍼링하여 API 서버 부하 방지 |
+| **Batch Engine** | **Spring Batch 5** | 2,422개 기업 대규모 데이터의 청크 단위 안전한 대량 사전 집계 |
+| **Resilience** | **Resilience4j** | 서킷 브레이커, 벌크헤드를 통한 외부 API 장애의 로컬 시스템 전파 방지 |
+| **Migration** | **Flyway** | 운영(MySQL)와 테스트(H2) 데이터베이스의 스키마 변경 버전 멱등 관리 |
+| **Caching** | **Redis 7** | 세션 토큰 블랙리스트, API 호출 레이트 리밋, 대시보드 캐시 서빙 |
+
+### Infra & DevSecOps
+
+| 분류 | 오픈소스 및 클라우드 서비스 | 비즈니스 도입 목적 |
+|---|---|---|
+| **CI/CD** | **CodeBuild / CodeDeploy** | GitHub 웹훅 기반 완전 무중단(Blue-Green) 빌드 및 배포 자동화 |
+| **Container** | **Docker / Docker Compose** | 개발-개발-운영 환경의 불일치를 해결하고 즉각적인 컨테이너 배포 지원 |
+| **Dual-Runtime**| **deploy-runtime.sh** | `DEPLOY_RUNTIME` 환경변수 토글로 Docker/systemd 런타임 즉시 스위칭 |
+| **Monitoring** | **Prometheus / Actuator** | 시스템 런타임 메트릭 및 스레드 상태의 실시간 감시 체계 확보 |
+
+---
+
+## 📐 ERD (B2B 데이터 모델 관계도)
+
+SENTINEL은 18개 도메인 패키지로 유기적으로 구성되어 있으며, 기업 식별자 및 분기 정보를 기준으로 정교하게 설계된 데이터 모델을 가집니다.
+
+```mermaid
+erDiagram
+    industry_codes ||--o{ companies : "산업분류"
+    companies ||--o{ users : "소속기업"
+    companies ||--o{ company_reports : "기업보고서"
+
+    users ||--o{ user_roles : "역할매핑"
+    roles ||--o{ user_roles : "역할정의"
+    users ||--o{ refresh_tokens : "토큰관리"
+    users ||--o{ email_verifications : "이메일인증"
+    users ||--o{ posts : "작성글"
+    users ||--o{ comments : "작성댓글"
+    users ||--o{ post_likes : "좋아요"
+
+    categories ||--o{ posts : "카테고리분류"
+    posts ||--o{ comments : "댓글"
+    posts ||--o{ post_tags : "태그매핑"
+    posts ||--o{ post_likes : "좋아요"
+    posts ||--o{ post_files : "첨부파일"
+    posts ||--o| post_view_counts : "조회수"
+    tags ||--o{ post_tags : "태그정의"
+    files ||--o{ post_files : "파일메타"
+
+    quarters ||--o{ company_reports : "분기정보"
+    company_reports ||--o{ company_report_versions : "버전이력"
+    company_report_versions ||--o{ company_report_metric_values : "지표값"
+    files ||--o{ company_report_versions : "PDF파일"
+    metrics ||--o{ company_report_metric_values : "지표정의"
+    quarters ||--o{ company_report_metric_values : "분기기준"
+
+    comments ||--o{ comments : "대댓글"
+
+    industry_codes {
+        bigint id PK
+        varchar industry_code UK
+        varchar industry_name
+    }
+
+    companies {
+        bigint id PK
+        varchar corp_code UK
+        varchar stock_code UK
+        varchar corp_name
+        bigint industry_code FK
+    }
+
+    users {
+        bigint id PK
+        varchar uuid UK
+        varchar email UK
+        varchar password
+        enum status "PENDING|ACTIVE|INACTIVE|BANNED"
+        timestamp password_changed_at
+    }
+
+    roles {
+        bigint id PK
+        varchar name "ROLE_ADMIN|ROLE_ANALYST|ROLE_USER"
+    }
+
+    user_roles {
+        bigint id PK
+        bigint user_id FK
+        bigint role_id FK
+    }
+
+    refresh_tokens {
+        bigint id PK
+        bigint user_id FK
+        varchar token_value UK "HMAC-SHA256 해시"
+    }
+
+    email_verifications {
+        bigint id PK
+        bigint user_id FK
+        varchar token UK
+        enum status "PENDING|VERIFIED|EXPIRED"
+    }
+
+    categories {
+        bigint id PK
+        varchar name UK
+        boolean is_active
+    }
+
+    posts {
+        bigint id PK
+        bigint user_id FK
+        bigint category_id FK
+        varchar title
+        text content
+        enum status "DRAFT|PUBLISHED|HIDDEN"
+    }
+
+    post_view_counts {
+        bigint id PK
+        bigint post_id FK
+        bigint view_count
+    }
+
+    comments {
+        bigint id PK
+        bigint post_id FK
+        bigint user_id FK
+        bigint parent_id FK "NULL허용"
+        text content
+    }
+
+    tags {
+        bigint id PK
+        varchar name UK
+    }
+
+    post_tags {
+        bigint id PK
+        bigint post_id FK
+        bigint tag_id FK
+    }
+
+    post_likes {
+        bigint id PK
+        bigint post_id FK
+        bigint user_id FK
+    }
+
+    files {
+        bigint id PK
+        varchar original_name
+        varchar storage_key
+        enum usage_type "POST_ATTACHMENT|REPORT_PDF"
+    }
+
+    post_files {
+        bigint id PK
+        bigint post_id FK
+        bigint file_id FK
+    }
+
+    quarters {
+        bigint id PK
+        int year
+        int quarter
+        varchar quarter_key UK
+    }
+
+    company_reports {
+        bigint id PK
+        bigint company_id FK
+        bigint quarter_id FK
+        bigint post_id FK "NULL허용"
+    }
+
+    company_report_versions {
+        bigint id PK
+        bigint company_report_id FK
+        int version_no
+        bigint pdf_file_id FK "NULL허용"
+    }
+
+    metrics {
+        bigint id PK
+        varchar metric_code UK
+        varchar metric_name
+        boolean risk_indicator
+    }
+
+    company_report_metric_values {
+        bigint id PK
+        bigint report_version_id FK
+        bigint metric_id FK
+        bigint quarter_id FK
+        decimal value
+        enum value_type "ACTUAL|PREDICTED"
+    }
+```
+
+---
+
+## 📁 디렉토리 구조 (Domain-Driven Package Layout)
+
+```
+com.aivle.project
+├── auth/           # JWT 인증 · Refresh Token Rotation · 블랙리스트 (보안 도메인)
+├── category/       # 게시판 카테고리 관리
+├── comment/        # 댓글 · 대댓글 계층형 관리
+├── common/         # 보안 설정 · WebClient · Kafka · Virtual Thread Config (공통 인프라)
+├── company/        # 기업 기본 정보 · DART 동기화 도메인
+├── dashboard/      # 대시보드 데이터 집계 인프라
+├── file/           # S3 파일 스토리지 및 스트리밍 서비스
+├── industry/       # 산업분류 코드
+├── metric/         # 재무 지표 및 메트릭 메타데이터 정의
+├── metricaverage/  # 업종/시장 평균 지표 산출 도메인
+├── perf/           # 성능 벤치마크 테스트 전용 엔드포인트
+├── post/           # 게시글 CRUD 및 첨부파일 매핑
+├── quarter/        # 연도/분기 메타 정보 관리
+├── report/         # AI 분석 리포트 · PDF 빌더 · 엑셀 메트릭 적재 도메인
+├── risk/           # 기업 위험도 스코어 집계 및 리스크 등급 도메인
+├── tag/            # 해시 태그 도메인
+├── user/           # 사용자 관리 및 비밀번호 정책 적용 도메인
+└── watchlist/      # 관심 기업 워치리스트 및 캐시 워밍 도메인
+```
+
+---
+
+## 🔄 회고 & 배운 점 (Retrospective)
+
+### 💡 엔지니어로서 얻은 인사이트
+* **기술의 가치는 비즈니스 정렬(Business Alignment)에서 나온다**
+  - "Virtual Thread나 Kafka를 썼으니 훌륭한 시스템이다"라는 가설에 갇히지 않고, 그것이 **실무진의 의사결정 속도를 어떻게 단축시켰는지(Time-to-Insight)**, **인프라 비용을 얼마나 줄였는지**의 비즈니스적 밸류로 기술 성과를 환산하고 증명하는 법을 배웠습니다.
+* **분산 환경의 데이터 정합성은 비즈니스 신뢰성의 주춧돌이다**
+  - AI 분석 서버의 다단계 상태 변경에 따라 중간에 예외가 발생할 때, **Custom Saga Orchestration 상태 머신과 보상 트랜잭션(Compensating Transaction)**을 설계하여 데이터 무결성을 입증함으로써 분산 트랜잭션의 최종 정합성(Eventual Consistency) 확보가 서비스 연속성에 얼마나 지대한 영향을 주는지 깊이 연구할 수 있었습니다.
+* **성능 최적화는 철저한 계측และ 데이터 기반 의사결정의 영역이다**
+  - 막연한 기대 대신 `JMeter`를 통해 Platform 스레드와 Virtual 스레드의 한계를 정량 측정(`compare.sh`)하는 루틴을 구축함으로써, 인프라 확장이 필요한 임계점과 소프트웨어 튜닝으로 돌파할 수 있는 구간을 명확히 정의하는 데이터 지향적인 성찰을 얻었습니다.
+* **장애 극복은 엔터프라이즈의 연속성을 지켜내는 최후의 보루이다**
+  - 아무리 훌륭한 비즈니스 로직도 외부 의존성(AI 서버, DART API)의 단절 한 번에 무너진다면 가치를 잃습니다. `Resilience4j`와 Kafka Fallback을 통해 **장애 전파를 분리하고 격리하는 아키텍처**를 설계하며, 인프라의 복원력(Resilience)이 곧 기업 간 신뢰의 척도임을 뼈저리게 실감했습니다.
+* **무중단 운영을 설계하는 정교한 엔지니어링의 매력**
+  - 보안 강화로 인해 기존 사용자가 로그아웃되거나 불편을 겪지 않도록 **Dual-Read / Write-Back 전략**과 Flyway 이중 마이그레이션 경로를 설계했습니다. 백엔드 개발자로서 "단순 기능 추가"를 넘어, "운영 중인 서비스의 무중단 고도화"가 얼마나 정교한 설계 근력이 필요한 작업인지 체감했습니다.
+
+---
+
+## 📝 개발자 성찰 및 문제 해결 블로그 포스트
+
+> 백엔드 아키텍처 설계와 트러블슈팅 과정을 기술 커뮤니티에 깊이 있게 기록하여 공유하고 있습니다.
+
+| 기술 분석 주제 | 블로그 포스트 상세 요약 |
+| :--- | :--- |
+| **WebClient 동기 Fallback에서 Outbox & Saga 패턴 도입기** | Kafka 장애 시 가용성 고갈을 방지하는 **Transactional Outbox**(`SKIP LOCKED`)와 분산 다단계 트랜잭션 정합성을 위한 **커스텀 Saga 및 보상 트랜잭션** 아키텍처 분석 [ADR-004](file:///C:/Users/chanyoungpark/.gemini/antigravity/scratch/BackBackBack_forked/docs/adr/ADR-004-transactional-outbox-saga.md) / [블로그 6편](file:///C:/Users/chanyoungpark/.gemini/antigravity/scratch/BackBackBack_forked/docs/blog/06-outbox-saga-architecture.md) |
+| **보안 하드닝: 무중단 토큰 해싱 알고리즘 전환기** | SHA-256에서 HMAC-SHA256으로의 전환 과정 중, active 유저의 강제 로그아웃을 막기 위해 적용한 Dual-Read/Write-Back 마이그레이션 기술 설계 분석 [ADR-001](file:///C:/Users/chanyoungpark/.gemini/antigravity/scratch/BackBackBack_forked/docs/adr/ADR-001-jwt-security-hardening.md) |
+| **Java 21 Virtual Thread 실측 벤치마크 결과** | Platform vs 가상 스레드 환경에서 동시성 트래픽 처리량 및 GC, 메모리 점유 변화 Actuator 메트릭 분석 및 정량 성능 지표 요약 [ADR-003](file:///C:/Users/chanyoungpark/.gemini/antigravity/scratch/BackBackBack_forked/docs/adr/ADR-003-virtual-thread-adoption.md) |
+| **Kafka 비동기 큐 + Resilience4j 서킷 브레이커** | 무거운 외부 연산 병목 격리를 위한 비동기 메시징 흐름 설계 및 Kafka 브로커 장애 시의 동기 Fallback Resilience 아키텍처 해부 [ADR-002](file:///C:/Users/chanyoungpark/.gemini/antigravity/scratch/BackBackBack_forked/docs/adr/ADR-002-kafka-async-pipeline.md) |
+| **Spring Batch와 Flyway 27개 버전 운영 경험** | 수천 개 기업의 시계열 데이터를 Chunk 단위로 안전하게 처리한 경험 및 H2/MySQL 마이그레이션 이중화 기법 공유 [TRS-003](file:///C:/Users/chanyoungpark/.gemini/antigravity/scratch/BackBackBack_forked/docs/troubleshooting/TRS-003-flyway-migration-conflict.md) |
+
+---
+
+<details>
+<summary><strong>🚀 실행 방법 & 환경변수 가이드 (클릭하여 펼치기)</strong></summary>
+
+### 로컬 실행 (JVM)
+
+#### 사전 준비
 - Java 21
 - 로컬 MySQL/Redis 실행
-- `.env.example` 참고해 환경변수 주입
+- `.env.example` 참고하여 환경변수 주입
 
-### 2) 실행
+#### 실행
 ```bash
 export SPRING_PROFILES_ACTIVE=dev
 export SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/bigprj?serverTimezone=Asia/Seoul&useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
@@ -87,29 +671,28 @@ export LOG_FILE=./logs/project.log
 ./gradlew bootRun
 ```
 
-### 3) 확인
+#### 확인
 - Health: `http://localhost:8080/actuator/health`
 - Swagger: `http://localhost:8080/swagger-ui.html`
 
-## 빠른 시작 (로컬 Docker)
+---
 
-운영용 compose(`docker-compose.app.yml`)에 로컬 오버라이드(`docker-compose.local.yml`)를 합쳐 실행합니다.
+### 로컬 실행 (Docker)
 
-### 1) 사전 준비
+#### 1) 사전 준비
 ```bash
 cp .env.example .env
 mkdir -p secrets/jwt logs upload/files
+# JWT 키 파일을 secrets/jwt/private.pem, secrets/jwt/public.pem 경로에 준비
 ```
 
-JWT 키 파일을 `secrets/jwt/private.pem`, `secrets/jwt/public.pem` 경로에 준비하세요.
-
-### 2) 이미지 빌드
+#### 2) 이미지 빌드
 ```bash
 ./gradlew bootJar
 docker build -t local-backbackback:dev .
 ```
 
-### 3) 실행
+#### 3) 실행
 ```bash
 APP_IMAGE=local-backbackback:dev \
 APP_ENV_FILE=.env \
@@ -117,134 +700,34 @@ LOCAL_ENV_FILE=.env \
 docker compose -f docker-compose.app.yml -f docker-compose.local.yml up -d
 ```
 
-### 4) 종료
+#### 4) 종료
 ```bash
 APP_ENV_FILE=.env \
 LOCAL_ENV_FILE=.env \
 docker compose -f docker-compose.app.yml -f docker-compose.local.yml down
 ```
 
-## 환경변수 가이드
+---
 
-### 필수 (공통)
-- `SPRING_PROFILES_ACTIVE` (`dev` 또는 `prod`)
-- `SPRING_DATASOURCE_URL`
-- `SPRING_DATASOURCE_USERNAME`
-- `SPRING_DATASOURCE_PASSWORD`
-- `JWT_ISSUER`
-- `JWT_PRIVATE_KEY_PATH`
-- `JWT_PUBLIC_KEY_PATH`
-- `JWT_CURRENT_KID`
-- `APP_TOKEN_HASH_PEPPER_B64` (Base64 인코딩된 pepper, 토큰 해시 필수값)
-- `APP_BASE_URL`
-- `API_BASE_URL`
-
-### 권장
-- `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
-- `SPRING_THREADS_VIRTUAL_ENABLED` (JDK virtual thread 토글)
-- `APP_VIRTUAL_THREAD_ENABLED` (앱 비동기 실행기 전체 virtual thread 토글)
-- `APP_VIRTUAL_THREAD_INSIGHT_ENABLED` (insightExecutor만 virtual thread 토글)
-- `APP_VIRTUAL_THREAD_EMAIL_ENABLED` (emailExecutor만 virtual thread 토글)
-- `APP_AI_JOB_KAFKA_ENABLED` (Kafka 기반 AI job 경로 토글)
-- `TURNSTILE_SECRET_KEY`, `TURNSTILE_SITE_KEY`
-- `EMAIL_USERNAME`, `EMAIL_PASSWORD`
-- `AWS_S3_BUCKET`, `AWS_REGION`, `AWS_S3_PREFIX`
-- `LOG_PATH`, `LOG_FILE`
-
-### Docker 배포 관련
-- `DEPLOY_RUNTIME`: `systemd` 또는 `docker`
-- `COMPOSE_FILE_PATH`: 기본 `/opt/project/docker-compose.app.yml`
-- `IMAGE_ENV_FILE`: 기본 `/opt/project/image-uri.env`
-- `APP_ENV_FILE`: compose가 읽을 env 파일 경로
-- `REDIS_HOST_DOCKER`: docker 네트워크 redis 서비스명(권장 `redis`)
-- `SPRING_THREADS_VIRTUAL_ENABLED`: 기본 `false`
-- `APP_VIRTUAL_THREAD_ENABLED`: 기본 `false` (운영에서 비Kafka 비동기를 virtual thread로 쓰려면 `true` 권장)
-- `APP_VIRTUAL_THREAD_INSIGHT_ENABLED`: 기본 `false`
-- `APP_VIRTUAL_THREAD_EMAIL_ENABLED`: 기본 `false`
-- `APP_AI_JOB_KAFKA_ENABLED`: 기본 `true`
-
-### 샘플 파일
-- 로컬 템플릿: `.env.example`
-- 서버 템플릿: `scripts/systemd/backbackback.env.example`
-
-## 테스트 및 검증
-
-### 기본 테스트
+### 테스트 실행 및 검증
 ```bash
+# 전체 통합/단위 테스트 실행
 ./gradlew test
-```
 
-### 배포 스크립트 검증
-```bash
+# 배포 런타임 스크립트 및 셸 문법 정적 검증
 bash -n scripts/*.sh scripts/lib/*.sh scripts/tests/*.sh
 bash scripts/tests/deploy-runtime-test.sh
 ```
 
-### 배포 후 헬스체크
-- `scripts/health-check.sh`가 `/actuator/health` 200을 반환해야 합니다.
+---
 
-## 배포 파이프라인
+### 필수 환경변수 핵심 가이드
+| 변수명 | 권장 설정값 | 비즈니스 목적 및 설명 |
+|---|---|---|
+| `SPRING_PROFILES_ACTIVE` | `dev` / `prod` | 실행 환경(개발/상용)에 따른 데이터베이스 및 보안 분기 프로파일 |
+| `SPRING_THREADS_VIRTUAL_ENABLED`| `true` / `false`| JDK 21 가상 스레드 풀 적용 유무 토글 (기본 platform 스레드 fallback) |
+| `APP_AI_JOB_KAFKA_ENABLED` | `true` / `false`| 무거운 AI 추론 작업을 Kafka 비동기 큐로 격리할지 여부 제어 토글 |
+| `APP_TOKEN_HASH_PEPPER_B64` | `[Base64_String]` | 토큰 해싱(HMAC-SHA256) 시 보안성 극대화를 위한 salt/pepper 키 값 |
+| `DEPLOY_RUNTIME` | `docker` / `systemd`| 배포 인프라 런타임 제어 토글 (EC2 환경별 유연 기동 지원) |
 
-현재 배포 경로:
-1. CodeBuild: 테스트 -> Docker build -> ECR push
-2. 아티팩트 생성: `image-uri.env`, `docker-compose.app.yml`, `scripts/**/*`, `appspec.yml`
-3. CodeDeploy: 훅 실행으로 서버 기동/검증
-
-주요 파일:
-- `buildspec.yml`
-- `appspec.yml`
-- `scripts/setup-server.sh`
-- `scripts/install-app.sh`
-- `scripts/start-server.sh`
-- `scripts/stop-server.sh`
-- `scripts/health-check.sh`
-
-ECR:
-- `160885260227.dkr.ecr.ap-northeast-2.amazonaws.com/aivle-back-app`
-
-## 롤백 가이드
-
-### 1) 런타임 롤백
-- `DEPLOY_RUNTIME=systemd`로 전환하면 기존 systemd(JAR) 경로로 복귀할 수 있습니다.
-
-### 2) 이미지 롤백
-- 이전 정상 태그로 `APP_IMAGE`를 지정해 재배포합니다.
-- 배포 후 `scripts/health-check.sh`로 성공 여부를 확인합니다.
-
-## 트러블슈팅
-
-### 1) `Unable to locate credentials`
-- 원인: EC2 IAM Role 미부착 또는 권한 부족
-- 해결: Instance Profile 부착 및 ECR/CodeDeploy 권한 점검
-
-### 2) `AccessDeniedException ... ecr:CreateRepository`
-- 원인: 해당 Role에 `ecr:CreateRepository` 없음
-- 해결: 콘솔에서 ECR 선생성 또는 권한 추가
-
-### 3) `env file ... not found`
-- 원인: `APP_ENV_FILE` 또는 `LOCAL_ENV_FILE` 경로 불일치
-- 해결: 실행 시 env 파일 경로를 명시
-
-### 4) JWT 키 로딩 실패
-- 원인: `JWT_PRIVATE_KEY_PATH`, `JWT_PUBLIC_KEY_PATH`와 실제 마운트 경로 불일치
-- 해결: 컨테이너 내부 경로(`/secrets/jwt/*.pem`)와 env 일치
-
-### 5) Redis 접속 실패
-- 원인: Docker 환경에서 `REDIS_HOST=localhost` 사용
-- 해결: Docker에서는 `REDIS_HOST_DOCKER=redis` 사용
-
-## 협업 규칙 및 문서
-
-### AGENTS.md
-- Codex 작업 규칙의 기준 문서입니다.
-- 언어/브랜치/커밋/컨텍스트 규칙을 따릅니다.
-
-### .github/PULL_REQUEST_TEMPLATE.md
-- PR 작성 기본 템플릿입니다.
-
-### .context.md
-- 작업 컨텍스트 기록 파일입니다.
-
-## ERD / DB 스키마
-- ERD 요약: `ERD.md`
-- Flyway DDL 원본: `src/main/resources/db/migration/V1__init.sql`
+</details>

@@ -6,6 +6,9 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-05-22 | 작업: README.md 면접관 최적화 리오더링 및 기여도 격상 완결 | 결과: /grill-me 사용자 합의안(A안)에 맞추어 `🔑 Backend Leader 기여도 및 핵심 역할`을 독립 섹션으로 격상하여 Executive Summary 바로 아래에 올림. 이어서 3대 시스템 아키텍처 다이어그램 및 4대 핵심 트러블슈팅 사례를 전면 배치하여 실무 면접관 관점의 시인성과 설득력을 극대화함. task, walkthrough 및 .context.md까지 완벽하게 통합 갱신 완료 | 이슈: 없음
+- 2026-05-21 | 작업: 포트폴리오 비즈니스 최적화 README.md 개편 완료 | 결과: /grill-me 인터뷰 결과 및 사용자 승인을 거쳐 Spring Batch 90% 단축, Redis 프리워밍, Kafka AI 연산 완전 격리, Resilience4j 서킷브레이커, 7대 보안 벡터 및 무중단 마이그레이션(Dual-Read/Write-Back) 성과를 비즈니스 임팩트 관점으로 전면 리라이팅한 README.md 반영 및 task.md, walkthrough.md 작성 완료 | 이슈: 없음
+- 2026-05-21 | 작업: Transactional Outbox & Custom Saga Orchestration 포트폴리오 고도화 2차 융합 | 결과: README.md 내에 RDBMS `SKIP LOCKED` 기반 2ms API 즉시 응답성(Transactional Outbox) 및 상태 머신 기반 역순 보상 트랜잭션(`rollbackFinancialAnalysis`, `rollbackNewsAnalysis`)을 통한 최종 정합성 100% 사수(Custom Saga) 성과를 Mermaid 시퀀스 흐름도 및 상세 문제 해결 사례(Troubleshooting)로 녹여내어 비즈니스 임팩트를 극대화함. ADR-004 및 테크 블로그 6편 링크도 완벽히 통합 바인딩 완료 | 이슈: 없음
 - 2026-03-04 | 작업: CodeBuild 대량 테스트 실패 원인 수정 및 재발 방지 가드 추가 | 결과: `application.yaml`에서 `spring.*` 설정이 `server` 하위로 잘못 들어간 구조와 최상위 `server` 중복 키를 정리해 컨텍스트 초기화 실패 경로를 제거하고, `buildspec.yml` PRE_BUILD에 YAML 중복 키/파싱 검증 스크립트를 추가해 동일 유형 오류를 테스트 전 즉시 탐지하도록 보강 | 이슈: 샌드박스 제약으로 로컬 Gradle 테스트 재실행은 미검증
 - 2026-03-04 | 작업: CodeBuild 실패 원인 추적성 개선 및 POST_BUILD 연쇄 오류 노이즈 제거 | 결과: `buildspec.yml`에서 Gradle 테스트 실패 시 XML 리포트의 failure/error를 로그로 출력하도록 보강하고, 이미지 미생성 시 POST_BUILD docker push를 조건부 스킵하도록 정리 | 이슈: 없음
 - 2026-03-04 | 작업: CodeBuild auth/company 테스트 실패 원인 분석 및 CI 프로파일 고정 | 결과: `buildspec.yml` 테스트 명령에 `SPRING_PROFILES_ACTIVE=test`를 추가해 CI에서 `application-test.yaml`이 일관 적용되도록 수정 | 이슈: 샌드박스 네트워크 제한으로 로컬 Gradle 재실행 검증은 미실행
