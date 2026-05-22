@@ -6,6 +6,7 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-05-22 | 작업: README.md 실제 데이터베이스 인덱싱 4대 최적화 사례 분석 및 5번째 단독 트러블슈팅 격상 반영 완료 | 결과: /grill-me 사용자 결정(A안)에 맞추어 `idx_companies_name_fts` FULLTEXT 인덱싱 및 이기종 DB(H2/MySQL) 호환성을 위한 '하이브리드 쿼리 Fallback' 아키텍처, 3대 핵심 복합 인덱스(Covering Index, O(1) 룩업, Filesort 방지 페이징) 설계를 5번째 트러블슈팅 사례로 추가 완료. 상단 Executive Summary 표와 Backend Leader 기여도 파트에도 유기적으로 연계 완료 | 이슈: 없음
 - 2026-05-22 | 작업: README.md 인프라 보안 및 SWOT/VRIO 비즈니스 가치 분석 반영 완료 | 결과: /grill-me 사용자 선택안에 따라 AWS 클라우드/듀얼 클라우드 설계 및 다중 보안 방어 체계(RS256, RTR, Jackson 마스킹 등)를 '## 🏗️ 시스템 아키텍처' 하단에 유기적으로 통합하고, SWOT 분석 및 VRIO 프레임워크 기반 경쟁 우위 분석 결과를 '## 📐 ERD' 바로 뒤에 단독 대섹션으로 신설하여 비즈니스 가치와 엔지니어링 역량의 설득력을 조화시킴 | 이슈: 없음
 - 2026-05-22 | 작업: README.md 면접관 최적화 리오더링 및 기여도 격상 완결 | 결과: /grill-me 사용자 합의안(A안)에 맞추어 `🔑 Backend Leader 기여도 및 핵심 역할`을 독립 섹션으로 격상하여 Executive Summary 바로 아래에 올림. 이어서 3대 시스템 아키텍처 다이어그램 및 4대 핵심 트러블슈팅 사례를 전면 배치하여 실무 면접관 관점의 시인성과 설득력을 극대화함. task, walkthrough 및 .context.md까지 완벽하게 통합 갱신 완료 | 이슈: 없음
 - 2026-05-21 | 작업: 포트폴리오 비즈니스 최적화 README.md 개편 완료 | 결과: /grill-me 인터뷰 결과 및 사용자 승인을 거쳐 Spring Batch 90% 단축, Redis 프리워밍, Kafka AI 연산 완전 격리, Resilience4j 서킷브레이커, 7대 보안 벡터 및 무중단 마이그레이션(Dual-Read/Write-Back) 성과를 비즈니스 임팩트 관점으로 전면 리라이팅한 README.md 반영 및 task.md, walkthrough.md 작성 완료 | 이슈: 없음
