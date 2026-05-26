@@ -1,0 +1,5 @@
+﻿fastapi>=0.110.0
+uvicorn>=0.28.0
+confluent-kafka>=2.3.0
+fpdf2>=2.7.8
+pydantic>=2.6.0
