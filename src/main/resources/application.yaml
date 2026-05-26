@@ -102,6 +102,7 @@ app:
     job:
       kafka-enabled: ${APP_AI_JOB_KAFKA_ENABLED:false}
       request-topic: ${APP_AI_JOB_REQUEST_TOPIC:ai-job-request}
+      response-topic: ${APP_AI_JOB_RESPONSE_TOPIC:ai-job-response}
   file:
     upload:
       max-size: 10485760

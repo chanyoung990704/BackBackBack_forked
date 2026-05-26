@@ -19,4 +19,12 @@ public class KafkaTopicConfig {
 			.replicas(1)
 			.build();
 	}
+
+	@Bean
+	public NewTopic aiJobResponseTopic(@Value("${app.ai.job.response-topic:ai-job-response}") String responseTopic) {
+		return TopicBuilder.name(responseTopic)
+			.partitions(3)
+			.replicas(1)
+			.build();
+	}
 }

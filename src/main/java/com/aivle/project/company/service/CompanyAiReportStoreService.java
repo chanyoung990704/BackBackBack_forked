@@ -84,6 +84,39 @@ public class CompanyAiReportStoreService {
         return savedFileEntity;
     }
 
+    /**
+     * Python AI Worker 등이 이미 파일 스토리지에 저장한 PDF 보고서를 DB에 메타데이터로 기록하고 버전에 연결합니다.
+     */
+    @Transactional
+    public FilesEntity linkSavedReport(Long companyId, int targetYear, int targetQuarter, String storageKey, String originalFilename) {
+        CompaniesEntity company = companiesRepository.findById(companyId)
+            .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 기업 ID입니다: " + companyId));
+
+        // FilesEntity를 이미 저장된 storageKey를 사용하여 직접 생성
+        FilesEntity filesEntity = FilesEntity.create(
+            FileUsageType.REPORT_PDF,
+            storageKey, // storageUrl
+            storageKey, // storageKey
+            originalFilename != null ? originalFilename : ("report_" + company.getStockCode() + "_" + targetYear + "_" + targetQuarter + ".pdf"),
+            0L, // 파일 사이즈를 모르는 경우 0L fallback
+            "application/pdf"
+        );
+        FilesEntity savedFileEntity = filesRepository.save(filesEntity);
+
+        // 분기 조회 또는 생성
+        QuartersEntity quarterEntity = getOrCreateQuarter(targetYear, targetQuarter);
+
+        // 기업-분기 보고서 조회 또는 생성
+        CompanyReportsEntity report = getOrCreateReport(company, quarterEntity);
+
+        // 새 버전 등록
+        CompanyReportVersionsEntity version = companyReportVersionIssueService.issueNextVersion(report, true, savedFileEntity);
+        log.info("Linked pre-saved AI report from Python worker to company_report_versions (ID: {}, Year: {}, Quarter: {}, Version: {})",
+            report.getId(), targetYear, targetQuarter, version.getVersionNo());
+        
+        return savedFileEntity;
+    }
+
     private QuartersEntity createNewQuarter(int year, int quarter) {
         log.info("Creating new quarter: {} year {} quarter", year, quarter);
         int quarterKey = year * 10 + quarter;

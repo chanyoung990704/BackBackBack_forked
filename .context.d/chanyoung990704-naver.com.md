@@ -6,6 +6,10 @@
 - email: chanyoung990704@naver.com
 
 ## 2. Recent Notes (최근 메모)
+- 2026-05-26 | 작업: /grill-me 4차 선택 완료(Saga 연동 100% 유지 선택) 및 PDF 생성 완성도(실제 PDF vs 더미 PDF)에 대한 5차 질문 진행 | 결과: Python Worker에서 생성할 PDF 파일의 구체적 빌드 방식을 확정하기 위한 인터뷰 진행 | 이슈: 없음
+- 2026-05-26 | 작업: /grill-me 3차 선택 완료(공유 파일 스토리지 선택) 및 기존 Saga Orchestrator 연동 범위에 대한 4차 질문 진행 | 결과: Saga Orchestrator를 유지하며 이종 워커와 분산 트랜잭션을 구현할지 여부를 확정하기 위한 인터뷰 진행 | 이슈: 없음
+- 2026-05-26 | 작업: /grill-me 2차 선택 완료(Python FastAPI 선택) 및 파일 스토리지 공유 전략(Payload vs Shared Storage)에 대한 3차 질문 진행 | 결과: Java Web App - Python Worker 간의 대용량 파일 데이터 공유 방식 확정을 위한 인터뷰 진행 | 이슈: 없음
+- 2026-05-26 | 작업: /grill-me 1차 선택 완료(A안 선택) 및 Mock AI Worker 구현 스택(Java vs Python)에 대한 2차 질문 진행 | 결과: 독립 Mock AI Worker MSA 분리 방안(A안)으로 합의 및 구체적 기술 스택 결정을 위한 인터뷰 진행 | 이슈: 없음
 - 2026-05-22 | 작업: README.md 실제 데이터베이스 인덱싱 4대 최적화 사례 분석 및 5번째 단독 트러블슈팅 격상 반영 완료 | 결과: /grill-me 사용자 결정(A안)에 맞추어 `idx_companies_name_fts` FULLTEXT 인덱싱 및 이기종 DB(H2/MySQL) 호환성을 위한 '하이브리드 쿼리 Fallback' 아키텍처, 3대 핵심 복합 인덱스(Covering Index, O(1) 룩업, Filesort 방지 페이징) 설계를 5번째 트러블슈팅 사례로 추가 완료. 상단 Executive Summary 표와 Backend Leader 기여도 파트에도 유기적으로 연계 완료 | 이슈: 없음
 - 2026-05-22 | 작업: README.md 인프라 보안 및 SWOT/VRIO 비즈니스 가치 분석 반영 완료 | 결과: /grill-me 사용자 선택안에 따라 AWS 클라우드/듀얼 클라우드 설계 및 다중 보안 방어 체계(RS256, RTR, Jackson 마스킹 등)를 '## 🏗️ 시스템 아키텍처' 하단에 유기적으로 통합하고, SWOT 분석 및 VRIO 프레임워크 기반 경쟁 우위 분석 결과를 '## 📐 ERD' 바로 뒤에 단독 대섹션으로 신설하여 비즈니스 가치와 엔지니어링 역량의 설득력을 조화시킴 | 이슈: 없음
 - 2026-05-22 | 작업: README.md 면접관 최적화 리오더링 및 기여도 격상 완결 | 결과: /grill-me 사용자 합의안(A안)에 맞추어 `🔑 Backend Leader 기여도 및 핵심 역할`을 독립 섹션으로 격상하여 Executive Summary 바로 아래에 올림. 이어서 3대 시스템 아키텍처 다이어그램 및 4대 핵심 트러블슈팅 사례를 전면 배치하여 실무 면접관 관점의 시인성과 설득력을 극대화함. task, walkthrough 및 .context.md까지 완벽하게 통합 갱신 완료 | 이슈: 없음

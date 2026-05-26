@@ -150,6 +150,33 @@ public class CompanyAiService {
     }
 
     /**
+     * Python AI Worker 등에서 전달한 예측 수치 결과들을 DB에 PREDICTED 타입으로 저장합니다.
+     */
+    @Transactional
+    public void savePythonPredictions(Long companyId, Integer year, Integer quarter, Map<String, Double> predictions) {
+        if (predictions == null || predictions.isEmpty()) {
+            return;
+        }
+        String basePeriod;
+        if (year != null && quarter != null) {
+            int bYear = year;
+            int bQuarter = quarter - 1;
+            if (bQuarter == 0) {
+                bYear -= 1;
+                bQuarter = 4;
+            }
+            basePeriod = String.valueOf(bYear * 10 + bQuarter);
+        } else {
+            LocalDate now = LocalDate.now();
+            int q = ((now.getMonthValue() - 1) / 3) + 1;
+            basePeriod = now.getYear() + String.valueOf(q);
+        }
+        
+        AiAnalysisResponse response = new AiAnalysisResponse(null, null, basePeriod, predictions);
+        saveAiPredictions(companyId, response);
+    }
+
+    /**
      * AI 예측 결과를 DB에 저장합니다.
      * base_period의 다음 분기를 타겟으로 하여 PREDICTED 타입으로 저장합니다.
      */
