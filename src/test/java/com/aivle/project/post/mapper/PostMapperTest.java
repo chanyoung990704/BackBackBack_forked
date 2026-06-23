@@ -4,13 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-import com.aivle.project.category.entity.CategoriesEntity;
+import com.aivle.project.post.category.entity.CategoriesEntity;
 import com.aivle.project.common.util.NameMaskingUtil;
 import com.aivle.project.post.dto.PostResponse;
 import com.aivle.project.post.entity.PostStatus;
 import com.aivle.project.post.entity.PostsEntity;
-import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.entity.UserStatus;
+import com.aivle.project.auth.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;

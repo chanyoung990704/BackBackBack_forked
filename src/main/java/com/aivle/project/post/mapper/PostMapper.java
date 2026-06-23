@@ -1,6 +1,6 @@
 package com.aivle.project.post.mapper;
 
-import com.aivle.project.comment.entity.CommentsEntity;
+import com.aivle.project.post.comment.entity.CommentsEntity;
 import com.aivle.project.common.util.NameMaskingUtil;
 import com.aivle.project.post.dto.PostResponse;
 import com.aivle.project.post.dto.QaReplyResponse;

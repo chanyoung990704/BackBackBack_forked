@@ -2,8 +2,8 @@ package com.aivle.project.company.keymetric.entity;
 
 import com.aivle.project.common.entity.BaseEntity;
 import com.aivle.project.company.entity.CompaniesEntity;
-import com.aivle.project.quarter.entity.QuartersEntity;
-import com.aivle.project.report.entity.CompanyReportVersionsEntity;
+import com.aivle.project.company.report.quarter.entity.QuartersEntity;
+import com.aivle.project.company.report.entity.CompanyReportVersionsEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

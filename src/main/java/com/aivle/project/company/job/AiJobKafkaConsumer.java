@@ -4,6 +4,7 @@ import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
 import com.aivle.project.company.saga.AiReportSagaOrchestrator;
 import com.aivle.project.company.service.CompanyAiCommentService;
+import com.aivle.project.company.service.CompanyAiReportStoreService;
 import com.aivle.project.company.service.CompanyAiService;
 import com.aivle.project.company.service.CompanyReputationScoreService;
 import com.aivle.project.file.entity.FilesEntity;

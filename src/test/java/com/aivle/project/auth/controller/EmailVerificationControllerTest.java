@@ -9,8 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
-import com.aivle.project.user.repository.UserRepository;
-import com.aivle.project.user.service.EmailVerificationService;
+import com.aivle.project.auth.user.repository.UserRepository;
+import com.aivle.project.auth.user.service.EmailVerificationService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

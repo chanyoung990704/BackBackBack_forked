@@ -1,4 +1,4 @@
-package com.aivle.project.common.controller;
+package com.aivle.project.dev;
 
 import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.context.annotation.Profile;

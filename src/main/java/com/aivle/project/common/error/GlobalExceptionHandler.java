@@ -1,8 +1,6 @@
 package com.aivle.project.common.error;
 
-import com.aivle.project.auth.exception.AuthException;
 import com.aivle.project.common.dto.ApiResponse;
-import com.aivle.project.file.exception.FileException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.time.Clock;
@@ -29,11 +27,6 @@ public class GlobalExceptionHandler {
 
 	private final Clock clock = Clock.systemUTC();
 
-	@ExceptionHandler(AuthException.class)
-	public ResponseEntity<ApiResponse<Void>> handleAuthException(AuthException ex, HttpServletRequest request) {
-		return buildResponse(ex.getErrorCode(), request.getRequestURI());
-	}
-
 	@ExceptionHandler(CommonException.class)
 	public ResponseEntity<ApiResponse<Void>> handleCommonException(CommonException ex, HttpServletRequest request) {
 		return buildResponse(ex.getErrorCode(), request.getRequestURI());
@@ -45,11 +38,6 @@ public class GlobalExceptionHandler {
 		HttpServletRequest request
 	) {
 		log.warn("External AI unavailable: reasonCode={}, path={}", ex.getReasonCode(), request.getRequestURI());
-		return buildResponse(ex.getErrorCode(), request.getRequestURI());
-	}
-
-	@ExceptionHandler(FileException.class)
-	public ResponseEntity<ApiResponse<Void>> handleFileException(FileException ex, HttpServletRequest request) {
 		return buildResponse(ex.getErrorCode(), request.getRequestURI());
 	}
 

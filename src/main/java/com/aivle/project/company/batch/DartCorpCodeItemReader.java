@@ -19,6 +19,7 @@ import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.ItemStreamReader;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -42,7 +43,7 @@ private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.BASIC_
 	private boolean statusChecked;
 
 	@Override
-	public void open(ExecutionContext executionContext) throws ItemStreamException {
+	public void open(@NonNull ExecutionContext executionContext) throws ItemStreamException {
 		String apiKey = dartProperties.getApiKey();
 		if (!StringUtils.hasText(apiKey)) {
 			throw new ItemStreamException("DART_API_KEY가 설정되지 않았습니다.");
@@ -119,7 +120,7 @@ private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.BASIC_
 	}
 
 	@Override
-	public void update(ExecutionContext executionContext) {
+	public void update(@NonNull ExecutionContext executionContext) {
 		// 현재는 체크포인트 저장이 필요하지 않습니다.
 	}
 

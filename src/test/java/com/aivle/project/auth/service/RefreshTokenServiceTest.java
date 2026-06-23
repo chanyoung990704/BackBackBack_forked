@@ -16,7 +16,7 @@ import com.aivle.project.auth.token.JwtTokenService;
 import com.aivle.project.auth.token.RefreshTokenCache;
 import com.aivle.project.common.security.TokenHashProperties;
 import com.aivle.project.common.security.TokenHashService;
-import com.aivle.project.user.security.CustomUserDetails;
+import com.aivle.project.auth.user.security.CustomUserDetails;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.time.LocalDateTime;

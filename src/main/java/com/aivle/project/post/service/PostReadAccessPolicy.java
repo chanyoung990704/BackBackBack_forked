@@ -3,7 +3,7 @@ package com.aivle.project.post.service;
 import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.post.entity.PostsEntity;
-import com.aivle.project.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserEntity;
 import org.springframework.stereotype.Component;
 
 /**

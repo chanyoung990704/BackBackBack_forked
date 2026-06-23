@@ -9,12 +9,12 @@ import com.aivle.project.auth.exception.AuthErrorCode;
 import com.aivle.project.auth.exception.AuthException;
 import com.aivle.project.auth.token.JwtTokenService;
 import com.aivle.project.auth.token.RefreshTokenCache;
-import com.aivle.project.user.dto.UserSummaryDto;
-import com.aivle.project.user.entity.RoleName;
-import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.security.CustomUserDetails;
-import com.aivle.project.user.security.CustomUserDetailsService;
-import com.aivle.project.user.service.UserDomainService;
+import com.aivle.project.auth.user.dto.UserSummaryDto;
+import com.aivle.project.auth.user.entity.RoleName;
+import com.aivle.project.auth.user.entity.UserEntity;
+import com.aivle.project.auth.user.security.CustomUserDetails;
+import com.aivle.project.auth.user.security.CustomUserDetailsService;
+import com.aivle.project.auth.user.service.UserDomainService;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -43,7 +43,7 @@ public class AuthService {
 	private final CustomUserDetailsService userDetailsService;
 	private final UserDomainService userDomainService;
 	private final PasswordEncoder passwordEncoder;
-	private final com.aivle.project.user.mapper.UserMapper userMapper;
+	private final com.aivle.project.auth.user.mapper.UserMapper userMapper;
 
 	public AuthLoginResponse login(LoginRequest request, String ipAddress) {
 		String email = normalizeEmail(request.getEmail());

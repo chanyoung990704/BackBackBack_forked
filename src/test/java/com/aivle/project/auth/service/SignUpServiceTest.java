@@ -9,14 +9,14 @@ import com.aivle.project.auth.dto.SignupRequest;
 import com.aivle.project.auth.dto.SignupResponse;
 import com.aivle.project.auth.exception.AuthErrorCode;
 import com.aivle.project.auth.exception.AuthException;
-import com.aivle.project.user.entity.RoleEntity;
-import com.aivle.project.user.entity.RoleName;
-import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.entity.UserRoleEntity;
-import com.aivle.project.user.entity.UserStatus;
-import com.aivle.project.user.repository.RoleRepository;
-import com.aivle.project.user.repository.UserRepository;
-import com.aivle.project.user.repository.UserRoleRepository;
+import com.aivle.project.auth.user.entity.RoleEntity;
+import com.aivle.project.auth.user.entity.RoleName;
+import com.aivle.project.auth.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserRoleEntity;
+import com.aivle.project.auth.user.entity.UserStatus;
+import com.aivle.project.auth.user.repository.RoleRepository;
+import com.aivle.project.auth.user.repository.UserRepository;
+import com.aivle.project.auth.user.repository.UserRoleRepository;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,8 +30,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.aivle.project.auth.mapper.AuthMapper;
-import com.aivle.project.user.service.EmailVerificationService;
-import com.aivle.project.user.service.UserDomainService;
+import com.aivle.project.auth.user.service.EmailVerificationService;
+import com.aivle.project.auth.user.service.UserDomainService;
 
 @ExtendWith(MockitoExtension.class)
 class SignUpServiceTest {

@@ -1,6 +1,5 @@
 package com.aivle.project.common.config;
 
-import com.aivle.project.common.security.CurrentUserArgumentResolver;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -19,12 +18,6 @@ import reactor.netty.http.client.HttpClient;
 @RequiredArgsConstructor
 public class WebConfig implements WebMvcConfigurer {
 
-	private final CurrentUserArgumentResolver currentUserArgumentResolver;
-
-	@Override
-	public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-		resolvers.add(currentUserArgumentResolver);
-	}
 
 	/**
 	 * WebClient 빈 설정 (Turnstile API 호출용)

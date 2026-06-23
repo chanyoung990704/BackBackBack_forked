@@ -1,8 +1,8 @@
 package com.aivle.project.auth.dto;
 
-import com.aivle.project.user.entity.RoleName;
-import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.entity.UserStatus;
+import com.aivle.project.auth.user.entity.RoleName;
+import com.aivle.project.auth.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.UUID;
 

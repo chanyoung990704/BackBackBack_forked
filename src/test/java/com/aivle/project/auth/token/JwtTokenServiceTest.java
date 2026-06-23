@@ -5,7 +5,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.aivle.project.user.security.CustomUserDetails;
+import com.aivle.project.auth.user.security.CustomUserDetails;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;

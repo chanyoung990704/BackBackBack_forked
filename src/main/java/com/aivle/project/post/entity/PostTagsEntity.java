@@ -1,6 +1,6 @@
 package com.aivle.project.post.entity;
 
-import com.aivle.project.tag.entity.TagsEntity;
+import com.aivle.project.post.tag.entity.TagsEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

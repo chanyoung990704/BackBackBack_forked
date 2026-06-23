@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.aivle.project.category.entity.CategoriesEntity;
+import com.aivle.project.post.category.entity.CategoriesEntity;
 import com.aivle.project.common.config.TestSecurityConfig;
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.dto.PageResponse;
@@ -19,11 +19,11 @@ import com.aivle.project.post.dto.QaReplyInput;
 import com.aivle.project.post.dto.QaReplyResponse;
 import com.aivle.project.post.entity.PostStatus;
 import com.aivle.project.post.entity.PostsEntity;
-import com.aivle.project.user.entity.RoleEntity;
-import com.aivle.project.user.entity.RoleName;
-import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.entity.UserRoleEntity;
-import com.aivle.project.user.entity.UserStatus;
+import com.aivle.project.auth.user.entity.RoleEntity;
+import com.aivle.project.auth.user.entity.RoleName;
+import com.aivle.project.auth.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserRoleEntity;
+import com.aivle.project.auth.user.entity.UserStatus;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;

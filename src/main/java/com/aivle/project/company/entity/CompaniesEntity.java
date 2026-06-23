@@ -1,7 +1,7 @@
 package com.aivle.project.company.entity;
 
 import com.aivle.project.common.entity.BaseEntity;
-import com.aivle.project.industry.entity.IndustryEntity;
+import com.aivle.project.company.industry.entity.IndustryEntity;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;

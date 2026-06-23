@@ -14,14 +14,14 @@ import com.aivle.project.company.keymetric.entity.CompanyKeyMetricEntity;
 import com.aivle.project.company.keymetric.repository.CompanyKeyMetricRepository;
 import com.aivle.project.company.keymetric.repository.KeyMetricDescriptionRepository;
 import com.aivle.project.company.repository.CompaniesRepository;
-import com.aivle.project.metric.entity.MetricValueType;
-import com.aivle.project.quarter.entity.QuartersEntity;
-import com.aivle.project.quarter.repository.QuartersRepository;
-import com.aivle.project.quarter.support.QuarterCalculator;
-import com.aivle.project.quarter.support.YearQuarter;
-import com.aivle.project.report.dto.CompanyOverviewMetricRowProjection;
-import com.aivle.project.report.entity.SignalColor;
-import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
+import com.aivle.project.company.metric.entity.MetricValueType;
+import com.aivle.project.company.report.quarter.entity.QuartersEntity;
+import com.aivle.project.company.report.quarter.repository.QuartersRepository;
+import com.aivle.project.company.report.quarter.support.QuarterCalculator;
+import com.aivle.project.company.report.quarter.support.YearQuarter;
+import com.aivle.project.company.report.dto.CompanyOverviewMetricRowProjection;
+import com.aivle.project.company.report.entity.SignalColor;
+import com.aivle.project.company.report.repository.CompanyReportMetricValuesRepository;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -214,7 +214,7 @@ private Map<String, SignalColor> loadLatestActualSignals(Long companyId, int qua
 			.filter(value -> value.getSignalColor() != null)
 			.collect(java.util.stream.Collectors.toMap(
 				value -> value.getMetric().getMetricCode(),
-				com.aivle.project.report.entity.CompanyReportMetricValuesEntity::getSignalColor,
+				com.aivle.project.company.report.entity.CompanyReportMetricValuesEntity::getSignalColor,
 				(existing, replacement) -> existing,
 				java.util.LinkedHashMap::new
 			));

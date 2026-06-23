@@ -40,7 +40,7 @@ class CompanySearchControllerTest {
 	private CompaniesRepository companiesRepository;
 
 	@MockBean
-	private com.aivle.project.watchlist.service.CompanyWatchlistService companyWatchlistService;
+	private com.aivle.project.company.watchlist.service.CompanyWatchlistService companyWatchlistService;
 
 	@Test
 	@DisplayName("ROLE_USER로 워치리스트 기업 목록을 조회한다")

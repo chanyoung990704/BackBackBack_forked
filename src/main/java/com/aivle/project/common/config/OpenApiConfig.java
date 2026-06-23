@@ -49,8 +49,8 @@ public class OpenApiConfig {
 			.group("admin")
 			.packagesToScan(
 				"com.aivle.project.company.controller",
-				"com.aivle.project.report.controller",
-				"com.aivle.project.metricaverage.controller"
+				"com.aivle.project.company.report.controller",
+				"com.aivle.project.company.metric.metricaverage.controller"
 			)
 			.build();
 	}
@@ -75,7 +75,7 @@ public class OpenApiConfig {
 	public GroupedOpenApi commentApi() {
 		return GroupedOpenApi.builder()
 			.group("comment")
-			.packagesToScan("com.aivle.project.comment.controller")
+			.packagesToScan("com.aivle.project.post.comment.controller")
 			.build();
 	}
 
@@ -92,7 +92,7 @@ public class OpenApiConfig {
 		return GroupedOpenApi.builder()
 			.group("dev")
 			.packagesToScan(
-				"com.aivle.project.category.controller",
+				"com.aivle.project.post.category.controller",
 				"com.aivle.project.common.controller"
 			)
 			.build();

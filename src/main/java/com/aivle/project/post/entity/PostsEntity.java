@@ -1,8 +1,8 @@
 package com.aivle.project.post.entity;
 
-import com.aivle.project.category.entity.CategoriesEntity;
+import com.aivle.project.post.category.entity.CategoriesEntity;
 import com.aivle.project.common.entity.BaseEntity;
-import com.aivle.project.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -53,7 +53,7 @@ public class PostsEntity extends BaseEntity {
 	private PostViewCountsEntity viewCountEntity;
 
 	@jakarta.persistence.OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
-	private java.util.List<com.aivle.project.comment.entity.CommentsEntity> replies = new java.util.ArrayList<>();
+	private java.util.List<com.aivle.project.post.comment.entity.CommentsEntity> replies = new java.util.ArrayList<>();
 
 	@Column(name = "is_pinned", nullable = false)
 	private boolean isPinned = false;

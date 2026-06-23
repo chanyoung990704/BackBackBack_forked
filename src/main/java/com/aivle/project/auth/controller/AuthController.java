@@ -14,7 +14,7 @@ import com.aivle.project.auth.service.AuthService;
 import com.aivle.project.auth.service.SignUpService;
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.security.CurrentUser;
-import com.aivle.project.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;

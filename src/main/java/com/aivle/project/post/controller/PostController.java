@@ -10,7 +10,7 @@ import com.aivle.project.post.dto.PostUserCreateWithCategoryRequest;
 import com.aivle.project.post.dto.PostUserCreateRequest;
 import com.aivle.project.post.dto.PostUserUpdateRequest;
 import com.aivle.project.post.service.PostService;
-import com.aivle.project.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserEntity;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;

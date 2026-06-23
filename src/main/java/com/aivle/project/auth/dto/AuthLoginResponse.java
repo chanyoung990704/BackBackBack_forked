@@ -1,6 +1,6 @@
 package com.aivle.project.auth.dto;
 
-import com.aivle.project.user.dto.UserSummaryDto;
+import com.aivle.project.auth.user.dto.UserSummaryDto;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 

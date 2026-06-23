@@ -7,7 +7,7 @@ import com.aivle.project.company.dto.CompanyInfoDto;
 import com.aivle.project.company.dto.CompanySearchResponse;
 import com.aivle.project.company.service.CompanySearchService;
 import com.aivle.project.common.security.CurrentUser;
-import com.aivle.project.watchlist.service.CompanyWatchlistService;
+import com.aivle.project.company.watchlist.service.CompanyWatchlistService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

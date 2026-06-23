@@ -9,16 +9,16 @@ import com.aivle.project.file.entity.FilesEntity;
 import com.aivle.project.file.repository.FilesRepository;
 import com.aivle.project.file.storage.FileStorageService;
 import com.aivle.project.file.storage.StoredFile;
-import com.aivle.project.metric.entity.MetricsEntity;
-import com.aivle.project.metric.repository.MetricsRepository;
-import com.aivle.project.quarter.entity.QuartersEntity;
-import com.aivle.project.quarter.repository.QuartersRepository;
-import com.aivle.project.report.entity.CompanyReportVersionsEntity;
-import com.aivle.project.report.entity.CompanyReportsEntity;
-import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
-import com.aivle.project.report.repository.CompanyReportVersionsRepository;
-import com.aivle.project.report.repository.CompanyReportsRepository;
-import com.aivle.project.report.service.CompanyReportVersionIssueService;
+import com.aivle.project.company.metric.entity.MetricsEntity;
+import com.aivle.project.company.metric.repository.MetricsRepository;
+import com.aivle.project.company.report.quarter.entity.QuartersEntity;
+import com.aivle.project.company.report.quarter.repository.QuartersRepository;
+import com.aivle.project.company.report.entity.CompanyReportVersionsEntity;
+import com.aivle.project.company.report.entity.CompanyReportsEntity;
+import com.aivle.project.company.report.repository.CompanyReportMetricValuesRepository;
+import com.aivle.project.company.report.repository.CompanyReportVersionsRepository;
+import com.aivle.project.company.report.repository.CompanyReportsRepository;
+import com.aivle.project.company.report.service.CompanyReportVersionIssueService;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
@@ -106,7 +106,7 @@ class CompanyAiServiceTest {
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
         given(companyReportMetricValuesRepository.findMaxActualQuarterKeyByCompanyId(companyId)).willReturn(Optional.of(20253));
         given(companyReportMetricValuesRepository.findLatestMetricsByCompanyIdAndQuarterKeyAndType(
-            eq(companyId), eq(20254), eq(com.aivle.project.metric.entity.MetricValueType.PREDICTED)))
+            eq(companyId), eq(20254), eq(com.aivle.project.company.metric.entity.MetricValueType.PREDICTED)))
             .willReturn(Collections.emptyList());
 
         given(aiServerClient.getPrediction(companyCode)).willReturn(response);
@@ -129,14 +129,14 @@ class CompanyAiServiceTest {
         CompaniesEntity company = CompaniesEntity.create("00000001", "삼성전자", null, companyCode, LocalDate.now());
 
         // Mock DB projection
-        com.aivle.project.report.dto.ReportPredictMetricRowProjection mockProj = org.mockito.Mockito.mock(com.aivle.project.report.dto.ReportPredictMetricRowProjection.class);
+        com.aivle.project.company.report.dto.ReportPredictMetricRowProjection mockProj = org.mockito.Mockito.mock(com.aivle.project.company.report.dto.ReportPredictMetricRowProjection.class);
         given(mockProj.getMetricCode()).willReturn("ROA");
         given(mockProj.getMetricValue()).willReturn(java.math.BigDecimal.valueOf(5.5));
 
         given(companiesRepository.findById(companyId)).willReturn(Optional.of(company));
         given(companyReportMetricValuesRepository.findMaxActualQuarterKeyByCompanyId(companyId)).willReturn(Optional.of(20253));
         given(companyReportMetricValuesRepository.findLatestMetricsByCompanyIdAndQuarterKeyAndType(
-            eq(companyId), eq(20254), eq(com.aivle.project.metric.entity.MetricValueType.PREDICTED)))
+            eq(companyId), eq(20254), eq(com.aivle.project.company.metric.entity.MetricValueType.PREDICTED)))
             .willReturn(List.of(mockProj));
 
         // when

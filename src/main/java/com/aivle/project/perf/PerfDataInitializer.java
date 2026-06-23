@@ -2,10 +2,10 @@ package com.aivle.project.perf;
 
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
-import com.aivle.project.quarter.entity.QuartersEntity;
-import com.aivle.project.quarter.repository.QuartersRepository;
-import com.aivle.project.report.entity.CompanyReportsEntity;
-import com.aivle.project.report.repository.CompanyReportsRepository;
+import com.aivle.project.company.report.quarter.entity.QuartersEntity;
+import com.aivle.project.company.report.quarter.repository.QuartersRepository;
+import com.aivle.project.company.report.entity.CompanyReportsEntity;
+import com.aivle.project.company.report.repository.CompanyReportsRepository;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

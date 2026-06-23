@@ -20,10 +20,10 @@ import com.aivle.project.auth.exception.AuthErrorCode;
 import com.aivle.project.auth.exception.AuthException;
 import com.aivle.project.auth.token.JwtTokenService;
 import com.aivle.project.auth.token.RefreshTokenCache;
-import com.aivle.project.user.entity.UserEntity;
-import com.aivle.project.user.security.CustomUserDetails;
-import com.aivle.project.user.security.CustomUserDetailsService;
-import com.aivle.project.user.service.UserDomainService;
+import com.aivle.project.auth.user.entity.UserEntity;
+import com.aivle.project.auth.user.security.CustomUserDetails;
+import com.aivle.project.auth.user.security.CustomUserDetailsService;
+import com.aivle.project.auth.user.service.UserDomainService;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -68,7 +68,7 @@ class AuthServiceTest {
 	private PasswordEncoder passwordEncoder;
 
 	@Mock
-	private com.aivle.project.user.mapper.UserMapper userMapper;
+	private com.aivle.project.auth.user.mapper.UserMapper userMapper;
 
 	private AuthService newAuthService() {
 		return new AuthService(
@@ -106,11 +106,11 @@ class AuthServiceTest {
 		when(jwtTokenService.getAccessTokenExpirationSeconds()).thenReturn(1800L);
 		when(jwtTokenService.getRefreshTokenExpirationSeconds()).thenReturn(604800L);
 
-		com.aivle.project.user.dto.UserSummaryDto userSummaryDto = new com.aivle.project.user.dto.UserSummaryDto(
+		com.aivle.project.auth.user.dto.UserSummaryDto userSummaryDto = new com.aivle.project.auth.user.dto.UserSummaryDto(
 			UUID.randomUUID().toString(),
 			"user@example.com",
 			"홍길동",
-			com.aivle.project.user.entity.RoleName.ROLE_USER
+			com.aivle.project.auth.user.entity.RoleName.ROLE_USER
 		);
 		when(userMapper.toSummaryDto(eq(userDetails), any())).thenReturn(userSummaryDto);
 

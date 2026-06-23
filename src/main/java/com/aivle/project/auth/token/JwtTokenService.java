@@ -1,6 +1,6 @@
 package com.aivle.project.auth.token;
 
-import com.aivle.project.user.security.CustomUserDetails;
+import com.aivle.project.auth.user.security.CustomUserDetails;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Base64;

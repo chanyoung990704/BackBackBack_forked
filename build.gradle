@@ -101,6 +101,17 @@ dependencies {
 		transitive = false
 	}
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Spring Modulith
+	implementation 'org.springframework.modulith:spring-modulith-starter-core'
+	implementation 'org.springframework.modulith:spring-modulith-starter-jpa'
+	testImplementation 'org.springframework.modulith:spring-modulith-starter-test'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.modulith:spring-modulith-bom:1.4.11"
+	}
 }
 
 tasks.named('test') {
@@ -118,7 +129,7 @@ tasks.named('test') {
 		// CI 속도 개선용: 명시적으로 IntegrationTest 네이밍을 제외
 		exclude '**/*IntegrationTest.class'
 	}
-	jvmArgs "-javaagent:${configurations.mockitoAgent.singleFile}"
+	jvmArgs "-javaagent:${configurations.mockitoAgent.singleFile}", "-Xms1024m", "-Xmx2048m", "-XX:+UseG1GC"
 	systemProperty "spring.profiles.active", "test"
 	finalizedBy jacocoTestReport
 }

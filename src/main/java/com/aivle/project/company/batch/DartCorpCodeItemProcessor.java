@@ -1,6 +1,7 @@
 package com.aivle.project.company.batch;
 
 import org.springframework.batch.item.ItemProcessor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -11,7 +12,7 @@ import org.springframework.util.StringUtils;
 public class DartCorpCodeItemProcessor implements ItemProcessor<DartCorpCodeItem, DartCorpCodeItem> {
 
 	@Override
-	public DartCorpCodeItem process(DartCorpCodeItem item) {
+	public DartCorpCodeItem process(@NonNull DartCorpCodeItem item) {
 		if (item == null || !StringUtils.hasText(item.corpCode())) {
 			return null;
 		}

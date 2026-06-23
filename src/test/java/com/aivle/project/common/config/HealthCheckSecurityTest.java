@@ -15,9 +15,10 @@ import org.springframework.context.annotation.Import;
 import com.aivle.project.auth.service.AccessTokenBlacklistService;
 import com.aivle.project.common.security.RestAccessDeniedHandler;
 import com.aivle.project.common.security.RestAuthenticationEntryPoint;
-import com.aivle.project.user.repository.UserRepository;
+import com.aivle.project.auth.user.repository.UserRepository;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import com.aivle.project.auth.config.SecurityConfig;
 
 @WebMvcTest(controllers = TestHealthController.class)
 @AutoConfigureMockMvc

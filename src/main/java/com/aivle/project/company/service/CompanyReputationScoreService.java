@@ -5,9 +5,9 @@ import com.aivle.project.company.keymetric.repository.CompanyKeyMetricRepository
 import com.aivle.project.company.news.entity.NewsAnalysisEntity;
 import com.aivle.project.company.news.repository.NewsAnalysisRepository;
 import com.aivle.project.company.news.service.NewsService;
-import com.aivle.project.quarter.entity.QuartersEntity;
-import com.aivle.project.quarter.repository.QuartersRepository;
-import com.aivle.project.report.repository.CompanyReportMetricValuesRepository;
+import com.aivle.project.company.report.quarter.entity.QuartersEntity;
+import com.aivle.project.company.report.quarter.repository.QuartersRepository;
+import com.aivle.project.company.report.repository.CompanyReportMetricValuesRepository;
 import java.math.BigDecimal;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;

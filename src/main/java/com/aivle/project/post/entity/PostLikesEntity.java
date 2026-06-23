@@ -1,6 +1,6 @@
 package com.aivle.project.post.entity;
 
-import com.aivle.project.user.entity.UserEntity;
+import com.aivle.project.auth.user.entity.UserEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

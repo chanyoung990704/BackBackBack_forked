@@ -5,7 +5,7 @@ import com.aivle.project.common.error.CommonErrorCode;
 import com.aivle.project.common.error.CommonException;
 import com.aivle.project.common.dto.ApiResponse;
 import com.aivle.project.common.error.ErrorResponse;
-import com.aivle.project.user.service.EmailVerificationService;
+import com.aivle.project.auth.user.service.EmailVerificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

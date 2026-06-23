@@ -3,7 +3,7 @@ package com.aivle.project.company.service;
 import com.aivle.project.company.dto.CompanySectorDto;
 import com.aivle.project.company.entity.CompaniesEntity;
 import com.aivle.project.company.repository.CompaniesRepository;
-import com.aivle.project.industry.entity.IndustryEntity;
+import com.aivle.project.company.industry.entity.IndustryEntity;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

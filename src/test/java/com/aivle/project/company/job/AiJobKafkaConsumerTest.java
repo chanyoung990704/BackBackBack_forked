@@ -31,8 +31,8 @@ class AiJobKafkaConsumerTest {
 	private ObjectMapper objectMapper;
 
 	@Test
-	@DisplayName("AI_REPORT 메시지는 report generation 서비스로 위임한다")
-	void consume_aiReport_shouldDelegateToCompanyAiService() throws Exception {
+	@DisplayName("AI_REPORT 메시지는 Java 웹서버 동기 실행을 스킵하고 성공적으로 종료된다")
+	void consume_aiReport_shouldSkipJavaSynchronousPath() throws Exception {
 		AiJobMessage message = new AiJobMessage(
 			"req-1",
 			AiJobType.AI_REPORT,
@@ -46,7 +46,7 @@ class AiJobKafkaConsumerTest {
 		doReturn(message).when(objectMapper).readValue("payload", AiJobMessage.class);
 		consumer.consume("payload");
 
-		verify(companyAiService).processReportGeneration("req-1", 1L, 2026, 1);
+		org.mockito.Mockito.verifyNoInteractions(companyAiService);
 	}
 
 	@Test

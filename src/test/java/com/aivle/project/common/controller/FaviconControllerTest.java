@@ -1,9 +1,9 @@
-package com.aivle.project.common.controller;
+package com.aivle.project.dev;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.aivle.project.user.repository.UserRepository;
+import com.aivle.project.auth.user.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

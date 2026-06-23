@@ -1,0 +1,326 @@
+package com.aivle.project.auth.config;
+
+import com.aivle.project.auth.service.AccessTokenBlacklistService;
+import com.aivle.project.auth.token.AccessTokenValidator;
+import com.aivle.project.auth.token.JwtKeyProvider;
+import com.aivle.project.auth.token.JwtProperties;
+import com.aivle.project.common.security.RestAccessDeniedHandler;
+import com.aivle.project.common.security.RestAuthenticationEntryPoint;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.RSAPublicKey;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+/**
+ * 공통 보안 설정.
+ */
+@Configuration
+@EnableWebSecurity
+@EnableConfigurationProperties(JwtProperties.class)
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+	private static final String[] PUBLIC_RESOURCE_ENDPOINTS = {
+		"/favicon.ico",
+		"/css/**",
+		"/js/**",
+		"/images/**",
+		"/webjars/**",
+		"/assets/**",
+		"/api-docs",
+		"/api-docs/**",
+		"/swagger-ui.html",
+		"/swagger-ui/**",
+		"/openapi/**",
+		"/actuator/health",
+		"/actuator/health/**",
+		"/actuator/prometheus",
+		"/error"
+	};
+
+	private static final String[] PUBLIC_AUTH_ENDPOINTS = {
+		"/api/auth/login",
+		"/api/auth/refresh",
+		"/api/auth/signup",
+		"/api/auth/verify-email"
+	};
+
+	private static final String[] PUBLIC_GET_ENDPOINTS = {
+		"/api/posts/**",
+		"/api/categories",
+		"/api/companies/search"
+	};
+
+	private static final String[] AUTHENTICATED_POST_ENDPOINTS = {
+		"/api/posts/**"
+	};
+
+	private static final String[] AUTHENTICATED_PATCH_ENDPOINTS = {
+		"/api/posts/**"
+	};
+
+	private static final String[] AUTHENTICATED_DELETE_ENDPOINTS = {
+		"/api/posts/**"
+	};
+
+	private static final String[] USER_GET_ENDPOINTS = {
+		"/api/companies",
+		"/api/companies/*/insights",
+		"/api/companies/*/overview",
+		"/api/dashboard/summary",
+		"/api/dashboard/risk-records",
+		"/api/watchlists/dashboard",
+		"/api/watchlists/metric-averages",
+		"/api/watchlists/metric-values",
+		"/api/companies/*/ai-analysis",
+		"/api/companies/*/ai-report/download",
+		"/api/reports/metrics/grouped",
+		"/api/reports/metrics/predict-latest",
+		"/api/reports/files/*",
+		"/api/reports/files/*/url"
+	};
+
+	private static final String[] USER_POST_ENDPOINTS = {
+		"/api/companies/*/news/refresh-latest",
+		"/api/watchlists",
+		"/api/companies/*/ai-report",
+		"/api/auth/resend-verification"
+	};
+
+	private static final String[] USER_DELETE_ENDPOINTS = {
+		"/api/watchlists/*"
+	};
+
+	private final JwtKeyProvider jwtKeyProvider;
+	private final JwtProperties jwtProperties;
+	private final RestAuthenticationEntryPoint authenticationEntryPoint;
+	private final RestAccessDeniedHandler accessDeniedHandler;
+	private final AccessTokenBlacklistService accessTokenBlacklistService;
+	private final Environment environment;
+
+	@Value("${app.cors.allowed-origins:http://localhost:3000}")
+	private String allowedOrigins;
+
+	@Bean
+	public RoleHierarchy roleHierarchy() {
+		return RoleHierarchyImpl.fromHierarchy("""
+			ROLE_ADMIN > ROLE_ANALYST
+			ROLE_ANALYST > ROLE_USER
+			""");
+	}
+
+	@Bean
+	public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, JwtAuthenticationConverter jwtAuthenticationConverter)
+		throws Exception {
+		http
+			.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+			.csrf(AbstractHttpConfigurer::disable)
+			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+			.authorizeHttpRequests(authorize -> {
+				// 정적 리소스/문서/헬스체크 공개
+				authorize.requestMatchers(PUBLIC_RESOURCE_ENDPOINTS).permitAll();
+				authorize.requestMatchers(PUBLIC_AUTH_ENDPOINTS).permitAll();
+				authorize.requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll();
+
+				// 게시글 작성/수정/삭제는 로그인 필요
+				authorize.requestMatchers(HttpMethod.POST, AUTHENTICATED_POST_ENDPOINTS).authenticated();
+				authorize.requestMatchers(HttpMethod.PATCH, AUTHENTICATED_PATCH_ENDPOINTS).authenticated();
+				authorize.requestMatchers(HttpMethod.DELETE, AUTHENTICATED_DELETE_ENDPOINTS).authenticated();
+
+				// 사용자 권한 API
+				authorize.requestMatchers(HttpMethod.GET, USER_GET_ENDPOINTS).hasRole("USER");
+				authorize.requestMatchers(HttpMethod.POST, USER_POST_ENDPOINTS).hasRole("USER");
+				authorize.requestMatchers(HttpMethod.DELETE, USER_DELETE_ENDPOINTS).hasRole("USER");
+
+				if (isDevProfile()) {
+					authorize.requestMatchers("/dev/**").permitAll();
+				}
+				if (isPerfProfile()) {
+					authorize.requestMatchers("/api/perf/**").permitAll();
+					authorize.requestMatchers("/actuator/metrics", "/actuator/metrics/**").permitAll();
+				}
+				authorize.requestMatchers("/api/admin/**").hasRole("ADMIN");
+				authorize.anyRequest().authenticated();
+			})
+			.headers(headers -> headers.contentSecurityPolicy(csp -> csp
+				.policyDirectives(
+					"script-src 'self' https://challenges.cloudflare.com; "
+						+ "script-src-elem 'self' https://challenges.cloudflare.com; "
+						+ "script-src-attr 'self'; "
+						+ "frame-src https://challenges.cloudflare.com; "
+						+ "connect-src 'self' https://challenges.cloudflare.com; "
+						+ "object-src 'none'; "
+						+ "base-uri 'self'"
+				)
+				.reportOnly()
+			))
+			.oauth2ResourceServer(oauth2 -> oauth2
+				.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
+				.authenticationEntryPoint(authenticationEntryPoint)
+				.accessDeniedHandler(accessDeniedHandler)
+			)
+			.httpBasic(AbstractHttpConfigurer::disable)
+			.formLogin(AbstractHttpConfigurer::disable);
+
+		return http.build();
+	}
+
+	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		List<String> origins = Arrays.stream(allowedOrigins.split(","))
+			.map(String::trim)
+			.filter(origin -> !origin.isBlank())
+			.toList();
+		if (origins.isEmpty()) {
+			origins = List.of("http://localhost:3000");
+		}
+		configuration.setAllowedOrigins(origins);
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-CSRF-Token"));
+		configuration.setAllowCredentials(true);
+		configuration.setMaxAge(3600L);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
+	}
+
+	@Bean
+	public AuthenticationManager authenticationManager(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder) {
+		DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+		provider.setUserDetailsService(userDetailsService);
+		provider.setPasswordEncoder(passwordEncoder);
+		return new ProviderManager(provider);
+	}
+
+	@Bean
+	public PasswordEncoder passwordEncoder() {
+		return new BCryptPasswordEncoder();
+	}
+
+	@Bean
+	public JwtDecoder jwtDecoder() {
+		RSAPublicKey publicKey = jwtKeyProvider.loadPublicKey();
+		NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(publicKey).build();
+		OAuth2TokenValidator<Jwt> validator = JwtValidators.createDefaultWithIssuer(jwtProperties.getIssuer());
+		OAuth2TokenValidator<Jwt> accessTokenValidator = new AccessTokenValidator(accessTokenBlacklistService);
+		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(validator, accessTokenValidator));
+		return decoder;
+	}
+
+	@Bean
+	public JwtEncoder jwtEncoder() {
+		RSAPublicKey publicKey = jwtKeyProvider.loadPublicKey();
+		RSAPrivateKey privateKey = jwtKeyProvider.loadPrivateKey();
+		RSAKey rsaKey = new RSAKey.Builder(publicKey)
+			.privateKey(privateKey)
+			.keyID(jwtProperties.getKeys().getCurrentKid())
+			.build();
+		return new NimbusJwtEncoder(new ImmutableJWKSet<>(new JWKSet(rsaKey)));
+	}
+
+	@Bean
+	public JwtAuthenticationConverter jwtAuthenticationConverter() {
+		JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+		converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+			List<String> roles = jwt.getClaimAsStringList("roles");
+			if (roles == null || roles.isEmpty()) {
+				return List.of();
+			}
+
+			boolean allowLegacyPrefix = isLegacyRolePrefixAllowed();
+			if (!allowLegacyPrefix && containsLegacyPrefix(roles)) {
+				throw new IllegalArgumentException("ROLE_ 접두사가 없는 레거시 토큰은 더 이상 허용되지 않습니다.");
+			}
+
+			List<GrantedAuthority> authorities = new ArrayList<>();
+			for (String role : roles) {
+				String normalized = normalizeRole(role, allowLegacyPrefix);
+				if (normalized != null) {
+					authorities.add(new SimpleGrantedAuthority(normalized));
+				}
+			}
+			return authorities;
+		});
+		return converter;
+	}
+
+	private boolean isLegacyRolePrefixAllowed() {
+		if (!jwtProperties.getLegacy().isRolePrefixSupportEnabled()) {
+			return false;
+		}
+		long cutoffEpoch = jwtProperties.getLegacy().getRolePrefixAcceptUntilEpoch();
+		if (cutoffEpoch <= 0) {
+			return true;
+		}
+		return Instant.now().getEpochSecond() <= cutoffEpoch;
+	}
+
+	private String normalizeRole(String role, boolean allowLegacyPrefix) {
+		if (role == null || role.isBlank()) {
+			return null;
+		}
+		String trimmed = role.trim();
+		if (trimmed.startsWith("ROLE_")) {
+			return trimmed;
+		}
+		return allowLegacyPrefix ? "ROLE_" + trimmed : null;
+	}
+
+	private boolean isDevProfile() {
+		return Arrays.asList(environment.getActiveProfiles()).contains("dev");
+	}
+
+	private boolean isPerfProfile() {
+		return Arrays.asList(environment.getActiveProfiles()).contains("perf");
+	}
+
+	private boolean containsLegacyPrefix(List<String> roles) {
+		for (String role : roles) {
+			if (role != null && !role.trim().startsWith("ROLE_")) {
+				return true;
+			}
+		}
+		return false;
+	}
+}
