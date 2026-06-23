@@ -16,44 +16,45 @@
 > SENTINEL은 협력사의 재무·비재무 리스크를 AI 다중 모델로 진단하고 실시간 모니터링하는 **B2B 통합 관제 플랫폼**입니다.  
 > 대규모 시계열 데이터 연산 병목과 무거운 AI 서버 추론 병목을 **비동기 격리 및 사전 연산 아키텍처**로 극복하고, 금융권 수준의 **보안 하드닝** 및 **무중단 운영 인프라**를 완비하여 실무진의 의사결정 속도와 가용성을 보장합니다.
 
----
+---## 📊 Executive Summary (핵심 성과 & 구현 기여 영역)
 
-## 📊 Executive Summary (핵심 성과 & 비즈니스 KPI)
+서비스 최적화 및 안정성 확보 과정에서 주체적으로 기술을 분석하고 구현에 기여한 6대 핵심 영역입니다.
 
-백엔드 아키텍처 설계와 인프라 최적화를 통해 단순 기능 구현을 넘어, **실제 비즈니스 가치(의사결정 속도 단축, 인프라 비용 절감, 안정성 극대화)**로 연결한 5대 핵심 성과입니다.
-
-| 비즈니스 페인 포인트 (Pain Point) | 도입한 백엔드 솔루션 (Solution) | 정량적 / 정성적 비즈니스 성과 (KPI) |
+| 도전 과제 (Challenge) | 도입한 기술적 해법 (Solution) | 정량적 / 정성적 기여 성과 (Result) |
 | :--- | :--- | :--- |
 | **수작업 엑셀 취합 및 분석 리드타임 병목**<br>수천 개 협력사의 DART 재무제표와 뉴스 데이터를 일일이 취합·계산하는 데 수일 소요 | **Spring Batch 기반 사전 연산 & Redis 캐시**<br>2,422개 상장사 10개년 재무 데이터(6만여 행)를 백그라운드에서 Chunk 단위로 자동 수집 및 사전 연계 적재 | ➔ **의사결정 리드타임 실시간(50ms) 단축**<br>실시간 무거운 집계 연산을 제거하여 기존 500ms에서 **50ms로 API 응답 속도 90% 개선** |
-| **무거운 AI 연산으로 인한 스레드 고갈**<br>AI 리포트 및 코멘트 생성 시 AI 서버 추론 지연(15초 이상)이 메인 Tomcat 스레드 풀 고갈을 유발 | **Kafka 비동기 큐 트래픽 격리 & Fallback**<br>AI 요청을 Kafka 메시지 기반 비동기로 격리하고, 장애 발생 시 Resilience4j Circuit Breaker 동기 Fallback 전환 | ➔ **인프라 안정성 확보 & 스케일아웃 비용 절감**<br>메인 서버 스레드 점유율을 0%에 수렴시켜 서버 다운을 원천 차단하고 **동시 수용량 극대화** |
+| **무거운 AI 연산으로 인한 스레드 고갈**<br>AI 리포트 및 코멘트 생성 시 AI 서버 추론 지연(15초 이상)이 메인 Tomcat 스레드 풀 고갈을 유발 | **Kafka 비동기 큐 트래픽 격리 & Fallback**<br>AI 요청을 Kafka 메시지 기반 비동기로 격리하고, 장애 발생 시 Resilience4j Circuit Breaker 동기 Fallback 전환 | ➔ **인프라 안정성 확보 & 리소스 부하 경감**<br>메인 서버 스레드 점유율을 0%에 수렴시켜 서버 다운을 원천 차단하고 **동시 수용량 극대화** |
 | **메시지 브로커(Kafka) 장애 시 스레드 병목 & 데이터 불일치**<br>비동기 브로커 장애 시 동기 호출로 전환되어 톰캣 스레드 폭발을 초래하고 다단계 연산 시 데이터 정합성이 훼손됨 | **Transactional Outbox & 커스텀 Saga 오케스트레이션**<br>RDBMS 내 Outbox 이벤트 적재를 통한 즉시 응답 구조 및 상태 머신 기반 **보상 트랜잭션(Compensating Transaction)** 설계 | ➔ **레이턴시 7,500배 단축 및 데이터 무결성 보장**<br>사용자 API 응답을 **15초에서 2ms로 대폭 단축**하고, 분산 환경에서의 **최종 정합성(Eventual Consistency) 100% 사수** |
 | **고객사 신용 정보 유출 위험 및 운영 중단**<br>기업 기밀·재무 데이터 및 토큰 탈취 위협, 스키마 변경 시의 서비스 다운타임 우려 | **7대 보안 위협 벡터 하드닝 & 무중단 마이그레이션**<br>HMAC-SHA256 해시 암호화 및 Flyway V27 **Dual-Read / Write-Back 무중단 마이그레이션** | ➔ **비즈니스 연속성(Zero-Downtime) 사수**<br>보안 취약점 7가지를 원천 봉쇄함과 동시에, 레거시 회원 영향도 없이 **무중단 알고리즘 업그레이드** 완료 |
 | **대량 기업 검색 및 다중 조건 지표 조회 시의 RDBMS 병목**<br>수천 개 기업명 `LIKE %keyword%` 검색 시 풀 스캔이 발생하고, 대시보드 다중 지표 필터링 및 페이징 시 정렬 오버헤드로 응답 지연 유발 | **다중 복합 인덱스 설계 및 H2 하이브리드 Full-Text Fallback**<br>MySQL `FULLTEXT INDEX` 및 `MATCH AGAINST` 쿼리를 적용하고, 로컬(H2) 호환성을 위한 동적 커넥션 분석 및 SQL 예외 폴백 처리. 핵심 3대 테이블 복합 인덱스 튜닝 | ➔ **데이터베이스 가용성 극대화 및 초고속 검색 보장**<br>기업 검색 속도를 Full Scan에서 **인덱스 매칭으로 단축**하고, 디스크 정렬(Filesort)을 완전 제거하여 동시 대시보드 로딩 성능 확보 |
+| **도메인 간 양방향 순환 참조로 인한 결합 및 아키텍처 붕괴**<br>모듈 경계가 모호하여 상호 직접 참조가 일어나고, 빌드 및 구조적 캡슐화가 붕괴되는 문제 | **Spring Modulith Bounded Context 캡슐화**<br>모듈별 루트 외에 내부 패키지를 `internal` 등으로 격리 배치하고 `ModulithVerificationTest` 의존성 검증 구축 | ➔ **순환 참조 제로화 및 아키텍처 정합성 확보**<br>모듈 간 순환 참조를 완벽히 제거하여 구조적 결합도를 낮추고, PlantUML 다이어그램을 자동 생성하도록 아키텍처 가이드라인 정립 |
 
 ---
 
-## 🔑 Backend Leader 기여도 및 핵심 역할
+## 🌱 Backend 기여도 및 성장을 위한 지식 관리
 
-> **"단순 기능 구현을 넘어 아키텍처 설계부터 보안 하드닝, 성능 튜닝, 모니터링 인프라 구축까지 백엔드 생태계 전반을 주도했습니다."**
+> **"선배 개발자 및 리더의 아키텍처 가이드라인 하에 기술적 메커니즘을 온전히 이해하고, 핵심 모듈의 구현 및 운영 중 발생한 기술적 장애(트러블슈팅)를 집요하게 분석하여 해결하는 데 기여했습니다."**
 
-본 프로젝트에서 **Backend Leader** 역할을 맡아, 시스템의 설계·개발·성능 검증·배포 및 운영 전 과정의 **기술적 의사결정과 실물 소스코드 구현(기여도 100%)**을 담당했습니다.
+본 프로젝트에서 **백엔드 개발 팀원**으로서 설계 의도를 신속하게 이해하고 구현하였으며, 운영 안정성과 최적화를 보장하기 위해 발생하는 세부 트러블슈팅 해결에 주체적으로 헌신했습니다.
 
-### 🎯 핵심 기술 기여도 및 수행 역할
+### 🎯 핵심 기술 기여 분야 및 수행 역할
 
-* **🏗️ 분산 아키텍처 설계 및 비동기 파이프라인 구축 (기여도 100%)**
-  - AI 서버의 15초 이상 소요되는 무거운 연산 격리를 위한 **Apache Kafka 메시지 큐 비동기화** 설계 및 구현.
-  - Kafka 브로커 장애 상황 시 가용성 고갈(눈사태 효과)을 원천 방지하는 **Transactional Outbox 패턴(JPA + MySQL `SKIP LOCKED` 폴링)** 도입.
-  - 다단계 분산 트랜잭션의 예외 제어를 위해 RDBMS `SagaInstance` 상태 머신 기반 **Custom Saga Orchestrator 및 보상 트랜잭션** 설계 및 실물 자바 코드 패키징 완결.
-* **⚡ 대용량 데이터 사전 집계 및 고효율 리소스 튜닝 (기여도 100%)**
-  - 2,422개 상장사 10개년 재무 데이터(6만여 행) 실시간 집계 병목 해소를 위해 **Spring Batch 기반 사전 연산** 및 **Redis 캐시 프리워밍(Pre-warming)** 파이프라인 전면 전환.
-  - I/O 바운드 분산 환경의 스레드 점유 해소를 위한 **JDK 21 Virtual Thread 전면 도입** 및 synchronized 락에 의한 Pinned 캐리어 스레드 고갈 장애 극복.
-  - 2,422개 기업 검색 및 다중 조건 지표 룩업 병목을 타개하고자 **FULLTEXT 인덱스 및 3대 핵심 복합 인덱스(Composite Index) 튜닝**을 적용하고, 이기종 DB(H2/MySQL) 호환을 위한 **하이브리드 쿼리 Fallback** 검색 구조를 도입하여 성능 고도화.
-* **🛡️ 금융권 수준의 보안 하드닝 및 무중단 운영 (기여도 100%)**
-  - **7대 보안 취약점 차단** (HMAC-SHA256 토큰 해싱, RTR 동시성 제어, Redis 블랙리스트, Redis Lua 브루트포스 방어, CSRF 더블서브밋 쿠키, 비밀번호 90일 만료, 비동기 민감로그 마스킹).
-  - 보안 알고리즘 강화 시 사용자 세션 유지 및 마찰 없는 이관을 위해 **Flyway 기반 Dual-Read / Write-Back 무중단 토큰 마이그레이션** 기법 설계 및 적용 성공.
-* **🚀 DevSecOps 및 인프라 모니터링 자동화 (기여도 100%)**
-  - Docker Compose 로컬 인프라 격리 기동 및 **AWS CodeBuild ➔ ECR ➔ CodeDeploy** Blue-Green 무중단 배포 파이프라인 구축.
-  - 운영 가시성 확보를 위해 **Spring Actuator + Prometheus + Grafana** 대시보드를 프로비저닝하여 서킷 브레이커 상태 및 실시간 스레드 모니터링 환경 완비.
+* **🏗️ 분산 아키텍처 비동기 파이프라인 및 모듈 캡슐화 구현**
+  - AI 서버의 무거운 연산 격리를 위한 **Apache Kafka 메시지 큐 비동기화** 및 컨슈머 로직 구현.
+  - 브로커 장애 대응을 위한 **Transactional Outbox 패턴(MySQL `SKIP LOCKED` 기반)** 및 보상 트랜잭션(`rollback`) 오케스트레이션 코드 패키징.
+  - Spring Modulith를 활용하여 `auth`, `company`, `post`, `file` 등 1단계 패키지 간의 **순환 참조 단절 및 구조적 격리** 작업 수행.
+* **⚡ 대용량 데이터 사전 집계 및 지표 연산 최적화**
+  - 대량 재무제표의 룩업 지연 방지를 위한 **Spring Batch Reader/Writer 구현** 및 Redis 캐시 프리워밍 설계 기여.
+  - I/O 바운드 병목 해소를 위한 **JDK 21 Virtual Thread** 검증 및 동기화 블록에 의한 캐리어 스레드 고갈 방지 회귀 검사.
+  - 기업명 검색 속도 단축을 위해 MySQL FULLTEXT 및 **복합 인덱스 튜닝**을 적용하고, 로컬(H2) 호환을 위한 하이브리드 쿼리 Fallback 구조 보정.
+* **🛡️ 보안 취약점 차단 및 마이그레이션 기법 기여**
+  - HMAC-SHA256 토큰 해싱, RTR 동시성 제어, CSRF 더블서브밋 및 로그 마스킹을 포함한 **7대 보안 위협 벡터 하드닝** 실무 적용.
+  - 보안 강화 전환 단계에서 회원 이탈 방지를 위해 **Dual-Read / Write-Back 무중단 토큰 마이그레이션** 마이그레이션 스키마/로직 반영.
+* **🚀 배포 파이프라인 연동 및 모니터링 환경 지원**
+  - Docker Compose 로컬 격리 기동 및 **AWS CodeBuild ➔ ECR ➔ CodeDeploy** Blue-Green 배포 자동화 지원.
+  - 가시성 확보를 위해 **Spring Actuator + Prometheus + Grafana** 대시보드를 연동하여 실시간 모니터링 환경 완비.
+* **📝 Obsidian 기반 기술 Wiki 및 학습 로드맵 구축**
+  - 프로젝트 내 기술 의사결정서(ADR) 및 트러블슈팅(TRS) 지식 자산을 체계적으로 학습하고 팀 생산성에 기여하기 위해 **Obsidian 위키 맵 및 통합 인덱스(docs/OBSIDIAN_SKILLS.md) 구축** 및 관리.
 
 * 원본 협업 저장소: [aivle-school-06/BackBackBack](https://github.com/aivle-school-06/BackBackBack) ➔ [개인 Fork 저장소](https://github.com/chanyoung990704/BackBackBack_forked)
 
@@ -836,3 +837,52 @@ bash scripts/tests/deploy-runtime-test.sh
 | `DEPLOY_RUNTIME` | `docker` / `systemd`| 배포 인프라 런타임 제어 토글 (EC2 환경별 유연 기동 지원) |
 
 </details>
+
+---
+
+## 📓 기술 문서 & 지식 베이스 허브 (Wiki Hub)
+
+프로젝트에서 마주한 설계적 의사결정(ADR)과 주체적으로 분석하여 극복한 장애 사례(TRS), 그리고 정밀하게 복습하며 기록한 기술 블로그 글을 체계적으로 연동한 **기술 지식 지도(Skill Map)**입니다. 
+
+GitHub 마크다운과 Obsidian 위키링크(`[[링크]]`) 모두 호환되도록 구성되어 있어 지식 베이스(Vault)로 연계하여 학습하실 수 있습니다.
+
+### 🚀 대용량 트래픽 & 성능 최적화 (Performance)
+* **가상 스레드 (Virtual Threads) 도입**:
+  - [ADR-003: 가상 스레드 도입 의사결정](docs/adr/ADR-003-virtual-thread-adoption.md) `(Wikilink: [[docs/adr/ADR-003-virtual-thread-adoption.md|ADR-003]])`
+  - [Blog-03: 가상 스레드 벤치마크 및 처리량 극대화](docs/blog/03-virtual-thread-benchmark.md) `(Wikilink: [[docs/blog/03-virtual-thread-benchmark.md|Blog-03]])`
+  - [TRS-002: 가상 스레드 Pinned 스레드 락 및 스레드 풀 격리 해결](docs/troubleshooting/TRS-002-virtual-thread-pinning.md) `(Wikilink: [[docs/troubleshooting/TRS-002-virtual-thread-pinning.md|TRS-002]])`
+  - [Phase1 가상 스레드 성능 측정 보고서](docs/perf-phase1-virtual-thread-benchmark.md) `(Wikilink: [[docs/perf-phase1-virtual-thread-benchmark.md|Benchmark-01]])`
+* **성능 벤치마크 가이드**:
+  - [JMeter 기반 성능 벤치마크 수립 가이드](docs/benchmark-guide.md) `(Wikilink: [[docs/benchmark-guide.md|Guide]])`
+  - [성능 측정 종합 데이터 리포트](docs/performance-report.md) `(Wikilink: [[docs/performance-report.md|Report]])`
+
+### 🔄 데이터 최종 정합성 & 분산 시스템 (Consistency)
+* **아웃박스 패턴 및 Custom Saga 패턴**:
+  - [ADR-004: Transactional Outbox & Saga 패턴 설계](docs/adr/ADR-004-transactional-outbox-saga.md) `(Wikilink: [[docs/adr/ADR-004-transactional-outbox-saga.md|ADR-004]])`
+  - [Blog-06: 분산 트랜잭션의 SKIP LOCKED 및 역순 보상 트랜잭션 구현](docs/blog/06-outbox-saga-architecture.md) `(Wikilink: [[docs/blog/06-outbox-saga-architecture.md|Blog-06]])`
+* **비동기 카프카 메시징 파이프라인**:
+  - [ADR-002: Kafka 비동기 파이프라인 도입](docs/adr/ADR-002-kafka-async-pipeline.md) `(Wikilink: [[docs/adr/ADR-002-kafka-async-pipeline.md|ADR-002]])`
+  - [Blog-02: AI 리포트 생성을 위한 비동기 메시지 분산 처리](docs/blog/02-kafka-async-pipeline.md) `(Wikilink: [[docs/blog/02-kafka-async-pipeline.md|Blog-02]])`
+  - [TRS-001: Kafka 메시지 유실 및 중복 소비 방지](docs/troubleshooting/TRS-001-kafka-message-reliability.md) `(Wikilink: [[docs/troubleshooting/TRS-001-kafka-message-reliability.md|TRS-001]])`
+
+### 🛡️ 보안 하드닝 & 시스템 복원력 (Security & Resilience)
+* **JWT 및 토큰 보안 강화**:
+  - [ADR-001: JWT 보안 하드닝 결정서](docs/adr/ADR-001-jwt-security-hardening.md) `(Wikilink: [[docs/adr/ADR-001-jwt-security-hardening.md|ADR-001]])`
+  - [Blog-01: 실무 레벨의 JWT 토큰 검증, 블랙리스트 및 탈취 탐지](docs/blog/01-jwt-production-level.md) `(Wikilink: [[docs/blog/01-jwt-production-level.md|Blog-01]])`
+  - [Issue-107: CSRF 더블서브밋 및 토큰 해시 전환 보고서](docs/security-hardening-issue-107.md) `(Wikilink: [[docs/security-hardening-issue-107.md|Issue-107]])`
+  - [Issue-109: Pepper 기반 HMAC-SHA256 해싱 가이드](docs/security-hardening-issue-109.md) `(Wikilink: [[docs/security-hardening-issue-109.md|Issue-109]])`
+* **장애 격리 (Fault Isolation)**:
+  - [Blog-04: Resilience4j를 이용한 서킷 브레이커, 타임아웃, 벌크헤드 연동](docs/blog/04-resilience4j-fault-isolation.md) `(Wikilink: [[docs/blog/04-resilience4j-fault-isolation.md|Blog-04]])`
+
+### 🏗️ 인프라 & 데이터베이스 마이그레이션 (Deploy & DB)
+* **컨테이너화 및 빌드 스펙**:
+  - [Blog-05: AWS CodeBuild와 Docker 기반 배포 최적화](docs/blog/05-cicd-codebuild-docker.md) `(Wikilink: [[docs/blog/05-cicd-codebuild-docker.md|Blog-05]])`
+  - [TRS-004: Docker 컨테이너 구동 시 환경 변수 주입 경합 트러블슈팅](docs/troubleshooting/TRS-004-docker-env-configuration.md) `(Wikilink: [[docs/troubleshooting/TRS-004-docker-env-configuration.md|TRS-004]])`
+* **데이터베이스 마이그레이션**:
+  - [TRS-003: Flyway 마이그레이션 충돌 및 버전 복구 해결](docs/troubleshooting/TRS-003-flyway-migration-conflict.md) `(Wikilink: [[docs/troubleshooting/TRS-003-flyway-migration-conflict.md|TRS-003]])`
+  - [TRS-005: H2 임베디드 DB와 MySQL 간 Dialect/DDL 호환성 문제 극복](docs/troubleshooting/TRS-005-h2-mysql-compatibility.md) `(Wikilink: [[docs/troubleshooting/TRS-005-h2-mysql-compatibility.md|TRS-005]])`
+
+### 📋 학습 및 면접 로드맵 연계 (Roadmap)
+* [SENTINEL 포트폴리오 가이드라인](PORTFOLIO_GUIDE.md) `(Wikilink: [[PORTFOLIO_GUIDE.md|Portfolio]])`
+* [실전 기술 면접 대비 질문 및 핵심 요약집](docs/interview-preparation.md) `(Wikilink: [[docs/interview-preparation.md|Interview-Prep]])`
+
